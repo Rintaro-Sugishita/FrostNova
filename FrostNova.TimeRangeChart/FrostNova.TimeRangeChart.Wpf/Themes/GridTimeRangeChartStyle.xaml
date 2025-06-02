@@ -1,0 +1,200 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+
+                    xmlns:local="clr-namespace:FrostNova.TimeRangeChart.Wpf"
+                    xmlns:cnv="clr-namespace:FrostNova.Core.Wpf.Converters;assembly=FrostNova.Core.Wpf"
+                    xmlns:behaviors="clr-namespace:FrostNova.Core.Wpf.Behaviors;assembly=FrostNova.Core.Wpf"
+                    xmlns:wpfCommon="clr-namespace:FrostNova.Core.Wpf.Common;assembly=FrostNova.Core.Wpf"
+                    >
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/TimeRangeControlStyle.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <cnv:DateTimeFormatConverter x:Key="dateConverter" />
+    <cnv:BorderThicknessConverter x:Key="borderThicknessConverter" />
+
+
+
+    <Style TargetType="{x:Type local:GridTimeRangeChart}" x:Key="defaultGridTimeRangeChartStyle">
+
+        <!--カラムヘッダのデフォルトスタイル-->
+        <Setter Property="ColumnHeaderTemplate">
+            <Setter.Value>
+                <DataTemplate DataType="{x:Type local:RuledLineData}">
+                    <Border Width="{Binding WidthPerRuledLine }"
+                            BorderBrush="{Binding RuledLineFill}"
+                            >
+                        <Border.BorderThickness>
+                            <MultiBinding  Converter="{StaticResource borderThicknessConverter}"
+                                           >
+                                <Binding Path="RuledLineThickness" />
+                                <Binding Path="RuledLineThickness" />
+                                <Binding  Mode="OneTime">
+                                    <Binding.Source>
+                                        <sys:Double>0</sys:Double>
+                                    </Binding.Source>
+                                </Binding>
+                                <Binding Path="RuledLineThickness" />
+                            </MultiBinding>
+                        </Border.BorderThickness>
+                        <TextBlock HorizontalAlignment="Center" >
+                            <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource dateConverter}">
+                                    <Binding Path="DateValue" />
+                                    <Binding Path="HeaderFormat" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+
+                        </TextBlock>
+                    </Border>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:GridTimeRangeChart}">
+                    <Grid>
+                        <Grid.Resources>
+                            <wpfCommon:BindingProxy Data="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}" x:Key="gridChartProxy" />
+                        </Grid.Resources>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+
+                        <!--row header-->
+                        <ScrollViewer x:Name="rowScrollViewer"  Grid.Column="0" Grid.Row="1"
+                                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Hidden"
+                                      >
+                            <i:Interaction.Behaviors>
+                                <behaviors:ScrollSyncBehavior
+                                    ReflectViewer="{Binding ElementName=chartScrollViewer}"
+                                    IsHorizontalSync="False" IsVerticalSync="True"
+                                    />
+                            </i:Interaction.Behaviors>
+                            <ItemsControl
+                                      ItemsSource="{TemplateBinding ItemsSource}"
+                                      ItemTemplate="{TemplateBinding Property=RowHeaderTemplate}"
+                                      ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                      MinWidth="{TemplateBinding MinRowWidth}"                                       
+                                      >
+                                <i:Interaction.Behaviors>
+                                    <behaviors:ItemsControlHeightSyncBehavior TargetItemsControl="{Binding ElementName=chartItemsControl}" />
+                                </i:Interaction.Behaviors>
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="{x:Type ContentPresenter}">
+                                        <Setter Property="Height" Value="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=RowHeight}" />
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <GridSplitter Grid.Column="1" Grid.Row="0" Width="4" VerticalAlignment="Stretch" />
+                        <GridSplitter Grid.Column="1" Grid.Row="1" Width="4" VerticalAlignment="Stretch" />
+
+
+                        <!--column header-->
+                        <!--datetimeアイテムを横に並べていく-->
+                        <ScrollViewer x:Name="columnScrollViewer" Grid.Column="2" Grid.Row="0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                            <i:Interaction.Behaviors>
+                                <behaviors:ScrollSyncBehavior
+                                    ReflectViewer="{Binding ElementName=columnScrollViewer}"
+                                    IsHorizontalSync="True" IsVerticalSync="False"
+                                    />
+                            </i:Interaction.Behaviors>
+                            <Grid Grid.Column="2" Grid.Row="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+
+                            <!--グループの方-->
+                            <ItemsControl Grid.Row="0">
+
+                            </ItemsControl>
+
+                            <!--細かい方-->
+                                
+                            <ItemsControl Grid.Row="1"
+                                          ItemTemplate="{TemplateBinding Property=ColumnHeaderTemplate}"
+                                          ItemsSource="{TemplateBinding TimeTicks}"
+                                          >
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+
+
+
+                            </ItemsControl>
+                        </Grid>
+                        </ScrollViewer>
+
+
+                        <!--chart-->
+                        <ScrollViewer x:Name="chartScrollViewer" Grid.Column="2" Grid.Row="1"
+                                      HorizontalScrollBarVisibility="Visible"
+                                      VerticalScrollBarVisibility="Visible"
+                                      PanningMode="Both"
+                                      >
+                            <i:Interaction.Behaviors>
+                                <behaviors:ScrollSyncBehavior
+                                    ReflectViewer="{Binding ElementName=rowScrollViewer}"
+                                    IsHorizontalSync="False" IsVerticalSync="True"
+                                    />
+                                <behaviors:ScrollSyncBehavior
+                                    ReflectViewer="{Binding ElementName=columnScrollViewer}"
+                                    IsHorizontalSync="True" IsVerticalSync="False"
+                                    />
+                                <behaviors:ScrollGestureBehavior />
+                            </i:Interaction.Behaviors>
+                            
+                            <ItemsControl Name="chartItemsControl" ItemsSource="{TemplateBinding ItemsSource}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <local:TimeRangeChart StartTime="{Binding Source={StaticResource gridChartProxy}, Path=Data.StartTime}"
+                                                              EndTime="{Binding Source={StaticResource gridChartProxy}, Path=Data.EndTime}"
+                                                              ScaleIncrement="{Binding Source={StaticResource gridChartProxy}, Path=Data.ScaleIncrement}"
+                                                              WidthPerRuledLine="{Binding Source={StaticResource gridChartProxy}, Path=Data.WidthPerRuledLine}"
+                                                              MinSpan="{Binding Source={StaticResource gridChartProxy}, Path=Data.MinSpan}"
+                                                              RuledLineFill="{Binding Source={StaticResource gridChartProxy}, Path=Data.RuledLineFill}"
+                                                              RuledLineThickness="{Binding Source={StaticResource gridChartProxy}, Path=Data.RuledLineThickness}"
+                                                              TimeRangeStyle="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeRangeStyle,FallbackValue={StaticResource timeRangeControlStyle}}"
+                                                              Style="{Binding Source={StaticResource gridChartProxy}, Path=Data.ChartStyle}"
+                                                              TimeTicks="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeTicks}"
+                                                              IsControlTick="False"
+                                                              
+                                                              />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="{x:Type ContentPresenter}">
+                                        <Setter Property="HorizontalAlignment" Value="Left" />
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
+                            </ItemsControl>
+
+                        </ScrollViewer>
+
+                    </Grid>
+
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+
+
+    </Style>
+
+
+</ResourceDictionary>

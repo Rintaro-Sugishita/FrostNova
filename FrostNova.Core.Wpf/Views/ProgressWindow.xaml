@@ -1,0 +1,48 @@
+﻿<Window x:Class="FrostNova.Core.Wpf.Views.ProgressWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+        xmlns:behaviors="clr-namespace:FrostNova.Core.Wpf.Behaviors"
+        xmlns:vm="clr-namespace:FrostNova.Core.Wpf.ViewModelBases"
+        xmlns:local="clr-namespace:FrostNova.Core.Wpf.Views"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type={x:Type vm:ProgressWindowViewModel}, IsDesignTimeCreatable=True}"
+        Cursor="Wait"
+        WindowStyle="None"
+        WindowStartupLocation="CenterOwner"
+        Title="ProgressWindow" Height="100" Width="350">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/FrostNova.Core.Wpf;component/Resources/Converters.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <i:Interaction.Behaviors>
+        <behaviors:WindowDragMoveBehavior IsCloseDoubleClick="False" />
+    </i:Interaction.Behaviors>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="20" />
+            <RowDefinition />
+            <RowDefinition Height="6" />
+            <RowDefinition Height="30" />
+        </Grid.RowDefinitions>
+        <TextBlock Text="{Binding ProgressInfo.Title}"  d:Text="grejgioea" FontSize="12" Background="#f3f3f3" Padding="4,0,0,0" />
+        <TextBlock Grid.Row="1" Text="{Binding ProgressInfo.ProgressText}" VerticalAlignment="Bottom" Margin="4" />
+        <ProgressBar Grid.Row="2" Height="4" VerticalAlignment="Center" Margin="4,1,4,1"
+                     Minimum="{Binding ProgressInfo.Minimum}"
+                     Maximum="{Binding ProgressInfo.Maximum}"
+                     Value="{Binding ProgressInfo.Value}"
+                     IsIndeterminate="{Binding ProgressInfo.IsIndeterminate}"
+                     
+                     />
+        <Button Grid.Row="3" Width="70" Height="25" VerticalAlignment="Bottom" HorizontalAlignment="Right" Content="Cancel"
+                Command="{Binding CancelCommand}"
+                Visibility="{Binding ProgressInfo.CanCancel,Converter={StaticResource boolVisivilityConverter}}"
+                
+                />
+    </Grid>
+</Window>
