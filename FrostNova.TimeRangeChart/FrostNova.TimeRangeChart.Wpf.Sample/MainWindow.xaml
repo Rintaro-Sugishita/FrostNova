@@ -7,6 +7,7 @@
         xmlns:local="clr-namespace:FrostNova.TimeRangeChart.Wpf.Sample"
         xmlns:chart="clr-namespace:FrostNova.TimeRangeChart.Wpf;assembly=FrostNova.TimeRangeChart.Wpf"
         mc:Ignorable="d"
+        Name="mainWindow"
         Title="MainWindow" Height="450" Width="800">
     <Window.DataContext>
         <local:MainWindowViewModel />
@@ -15,9 +16,9 @@
         <Grid.Resources>
             <ResourceDictionary>
                 <ResourceDictionary.MergedDictionaries>
-                    <!--<ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/TimeRangeChartStyle.xaml"/>
+                    <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/TimeRangeChartStyle.xaml"/>
                     <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/TimeRangeControlStyle.xaml"/>
-                    <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/GridTimeRangeChartStyle.xaml" />-->
+                    <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/GridTimeRangeChartStyle.xaml" />
                 </ResourceDictionary.MergedDictionaries>
 
                 <sys:TimeSpan x:Key="minSpan">1.0:0:0</sys:TimeSpan>
@@ -101,7 +102,7 @@
                     <chart:GridTimeRangeChart.ChartStyle>
                         <Style TargetType="{x:Type chart:TimeRangeChart}" >
                             <Setter Property="ItemsSource" Value="{Binding Gantts}" />
-                            <!--<Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.NonWorkingTimes}" />-->
+                            <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.NonWorkingTimes}" />
                         </Style>
                     </chart:GridTimeRangeChart.ChartStyle>
 

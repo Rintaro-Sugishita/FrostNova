@@ -22,7 +22,7 @@
                             <bProxy:BindingProxy Data="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}" x:Key="bindingProxy"/>
                         </Grid.Resources>
 
-                        <!--<ItemsControl x:Name="nonWorkingGanttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=SortedNonWorkingTimes}"                      
+                        <ItemsControl x:Name="nonWorkingGanttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=SortedNonWorkingTimes}"                      
                                         >
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -48,11 +48,11 @@
                                 </DataTemplate>
 
                             </ItemsControl.ItemTemplate>
-                        </ItemsControl>-->
+                        </ItemsControl>
 
 
 
-                        <!--<ItemsControl x:Name="borderCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=TimeTicks}">
+                        <ItemsControl x:Name="borderCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=TimeTicks}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <Canvas />
@@ -71,10 +71,10 @@
                                     <Setter Property="Canvas.Left" Value="{Binding LeftPoint}" />
                                 </Style>
                             </ItemsControl.ItemContainerStyle>
-                        </ItemsControl>-->
+                        </ItemsControl>
 
 
-                        <!--<ItemsControl x:Name="ganttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=ItemsSource}"                      
+                        <ItemsControl x:Name="ganttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=ItemsSource}"                      
                       >
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -95,7 +95,7 @@
                                 </DataTemplate>
 
                             </ItemsControl.ItemTemplate>
-                        </ItemsControl>-->
+                        </ItemsControl>
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
