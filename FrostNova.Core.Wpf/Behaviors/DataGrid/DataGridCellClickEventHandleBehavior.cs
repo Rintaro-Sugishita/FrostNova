@@ -38,7 +38,7 @@ namespace FrostNova.Core.Wpf.Behaviors
         private void AssociatedObject_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
 
-            DataGridCell cell = GetCell(e);
+            DataGridCell? cell = GetCell(e);
             if (cell != null)
             {
                 if (DoubleClickCommand?.CanExecute(cell.DataContext) == true)
@@ -51,7 +51,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private void AssociatedObject_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            DataGridCell cell = GetCell(e);
+            DataGridCell? cell = GetCell(e);
             if (cell != null)
             {
                 if (LeftButtonDownCommand?.CanExecute(cell.DataContext) == true)
@@ -63,7 +63,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private void AssociatedObject_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            DataGridCell cell = GetCell(e);
+            DataGridCell? cell = GetCell(e);
             if (cell != null)
             {
                 if (LeftButtonUpCommand?.CanExecute(cell.DataContext) == true)
@@ -75,7 +75,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private void AssociatedObject_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
-            DataGridCell cell = GetCell(e);
+            DataGridCell? cell = GetCell(e);
             if (cell != null)
             {
                 if (RightButtonDownCommand?.CanExecute(cell.DataContext) == true)
@@ -87,7 +87,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private void AssociatedObject_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
-            DataGridCell cell = GetCell(e);
+            DataGridCell? cell = GetCell(e);
             if (cell != null)
             {
                 if (RightButtonUpCommand?.CanExecute(cell.DataContext) == true)
@@ -97,13 +97,13 @@ namespace FrostNova.Core.Wpf.Behaviors
             }
         }
 
-        private DataGridCell GetCell(MouseEventArgs e)
+        private DataGridCell? GetCell(MouseEventArgs e)
         {
 
             var elem = e.MouseDevice.DirectlyOver as FrameworkElement;
             if (elem != null)
             {
-                DataGridCell cell = elem.Parent as DataGridCell;
+                DataGridCell? cell = elem.Parent as DataGridCell;
                 if (cell == null)
                 {
                     cell = elem.TemplatedParent as DataGridCell;

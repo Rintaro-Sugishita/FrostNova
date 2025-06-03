@@ -12,14 +12,14 @@ namespace FrostNova.Core.Common.Extensions
         public static IEnumerable<Attribute> GetAttributes(this Enum enumField)
         {
             var info = enumField.GetType().GetField(enumField.ToString());
-            return info.GetCustomAttributes();
+            return info?.GetCustomAttributes() ?? Array.Empty<Attribute>();
 
         }
 
-        public static T GetAttribute<T>(this Enum enumField) where T : Attribute
+        public static T? GetAttribute<T>(this Enum enumField) where T : Attribute
         {
             var info = enumField.GetType().GetField(enumField.ToString());
-            if (info.GetCustomAttribute<T>() is T ret)
+            if (info?.GetCustomAttribute<T>() is T ret)
             {
                 return ret;
             }

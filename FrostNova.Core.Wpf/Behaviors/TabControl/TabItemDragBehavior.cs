@@ -14,7 +14,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 {
     public class TabItemDragBehavior : Behavior<TabControl>
     {
-        private TabItem _draggedTab;
+        private TabItem? _draggedTab;
         private Point _dragStartPoint;
 
         protected override void OnAttached()
@@ -77,7 +77,7 @@ namespace FrostNova.Core.Wpf.Behaviors
             }
         }
 
-        private T GetParentOfType<T>(DependencyObject element) where T : DependencyObject
+        private T? GetParentOfType<T>(DependencyObject element) where T : DependencyObject
         {
             while (element != null && !(element is T))
                 element = VisualTreeHelper.GetParent(element);

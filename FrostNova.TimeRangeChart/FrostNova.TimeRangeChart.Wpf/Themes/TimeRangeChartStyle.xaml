@@ -22,8 +22,8 @@
                             <bProxy:BindingProxy Data="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}" x:Key="bindingProxy"/>
                         </Grid.Resources>
 
-                        <ItemsControl x:Name="nonWorkingGanttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=SortedNonWorkingTimes}"                      
-                      >
+                        <!--<ItemsControl x:Name="nonWorkingGanttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=SortedNonWorkingTimes}"                      
+                                        >
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <Canvas />
@@ -38,15 +38,8 @@
                                                             EndTime="{Binding EndTime}"
                                                             WorkingSpan="{Binding WorkingSpan}"
                                                             IgnoreNonWorkingTimes="True"
-                        Style="{StaticResource nonWorkingTimeRangeStyle}"
+                                                            Style="{StaticResource nonWorkingTimeRangeStyle}"
                                                             >
-
-                                        <!--TimeToPointAction="{Binding Source={StaticResource bindingProxy},Path=Data.TimeToPointFunc}" 
-                        PointToTimeAction="{Binding Source={StaticResource bindingProxy},Path=Data.PointToTimeFunc}"
-                        CalcWorkingTimeAction="{Binding Source={StaticResource bindingProxy},Path=Data.GetWorkingSpanFunc}"
-                        CalcEndTimeAction="{Binding Source={StaticResource bindingProxy},Path=Data.GetEndTimeFunc}"-->
-
-
                                         <i:Interaction.Behaviors>
                                             <behaviors:CanvasHelperBehavior BindLeft="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}} , Path=Left}"
                                                         />
@@ -55,11 +48,11 @@
                                 </DataTemplate>
 
                             </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        </ItemsControl>-->
 
 
 
-                        <ItemsControl x:Name="borderCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=TimeTicks}">
+                        <!--<ItemsControl x:Name="borderCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=TimeTicks}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <Canvas />
@@ -78,10 +71,10 @@
                                     <Setter Property="Canvas.Left" Value="{Binding LeftPoint}" />
                                 </Style>
                             </ItemsControl.ItemContainerStyle>
-                        </ItemsControl>
+                        </ItemsControl>-->
 
 
-                        <ItemsControl x:Name="ganttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=ItemsSource}"                      
+                        <!--<ItemsControl x:Name="ganttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=ItemsSource}"                      
                       >
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -91,14 +84,9 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <local:TimeRangeControl
-                        ParentChart="{Binding Source={StaticResource bindingProxy},Path=Data,Mode=OneTime}"
-                        Style="{Binding Source={StaticResource bindingProxy},Path=Data.TimeRangeStyle, FallbackValue={StaticResource timeRangeControlStyle}}"
-                        >
-                                        <!--TimeToPointAction="{Binding Source={StaticResource bindingProxy},Path=Data.TimeToPointFunc}" 
-                        PointToTimeAction="{Binding Source={StaticResource bindingProxy},Path=Data.PointToTimeFunc}"
-                        CalcWorkingTimeAction="{Binding Source={StaticResource bindingProxy},Path=Data.GetWorkingSpanFunc}"
-                        CalcEndTimeAction="{Binding Source={StaticResource bindingProxy},Path=Data.GetEndTimeFunc}"-->
-
+                                            ParentChart="{Binding Source={StaticResource bindingProxy},Path=Data,Mode=OneTime}"
+                                            Style="{Binding Source={StaticResource bindingProxy},Path=Data.TimeRangeStyle, FallbackValue={StaticResource timeRangeControlStyle}}"
+                                            >
                                         <i:Interaction.Behaviors>
                                             <behaviors:CanvasHelperBehavior BindLeft="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}} , Path=Left}"
                                                         />
@@ -107,7 +95,7 @@
                                 </DataTemplate>
 
                             </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        </ItemsControl>-->
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

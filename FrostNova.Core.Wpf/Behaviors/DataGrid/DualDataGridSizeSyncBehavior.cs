@@ -32,11 +32,11 @@ namespace FrostNova.Core.Wpf.Behaviors
         }
 
 
-        private  void DataGrid1_LoadingRow(object sender, DataGridRowEventArgs e)
+        private  void DataGrid1_LoadingRow(object? sender, DataGridRowEventArgs e)
         {
             SetColumnWidth();
         }
-        private void DataGird1_SizeChanged(object sender, SizeChangedEventArgs e)
+        private void DataGird1_SizeChanged(object? sender, SizeChangedEventArgs e)
         {
             SetColumnWidth();
         }

@@ -8,11 +8,11 @@ namespace FrostNova.Core.Wpf.Behaviors
 {
     public class DragItemData
     {
-        public object DragData { get; set; }
+        public object? DragData { get; set; }
 
-        public object SourceParameter { get; set; }
+        public object? SourceParameter { get; set; }
 
-        public object DropParameter { get; set; }
+        public object? DropParameter { get; set; }
 
 
     }

@@ -16,7 +16,7 @@ namespace FrostNova.Core.Processes
             }
             else
             {
-                System.Diagnostics.Process.Start("EXPLORER.EXE", System.IO.Path.GetDirectoryName(filePath));
+                System.Diagnostics.Process.Start("EXPLORER.EXE", System.IO.Path.GetDirectoryName(filePath)??"");
             }
         }
 

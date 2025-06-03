@@ -38,7 +38,7 @@ namespace FrostNova.Core.Wpf.ViewModelBases
 
         [ObservableProperty]
 
-        public Brush _iconBackgroundBrush;
+        public Brush? _iconBackgroundBrush;
 
         [ObservableProperty]
         private string _IconBackgroundText = string.Empty;

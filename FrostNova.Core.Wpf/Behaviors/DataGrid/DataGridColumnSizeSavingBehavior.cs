@@ -73,7 +73,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         }
 
-        private void AssociatedObject_Initialized(object sender, EventArgs e)
+        private void AssociatedObject_Initialized(object? sender, EventArgs e)
         {
             if (sender is DataGrid grid)
             {
@@ -81,7 +81,7 @@ namespace FrostNova.Core.Wpf.Behaviors
             }
         }
 
-        private void DataGridColumnSizeSavingBehavior_Closed(object sender, EventArgs e)
+        private void DataGridColumnSizeSavingBehavior_Closed(object? sender, EventArgs e)
         {
             SaveData(AssociatedObject);
         }

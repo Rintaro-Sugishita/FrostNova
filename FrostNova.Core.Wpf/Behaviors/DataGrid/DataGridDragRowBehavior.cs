@@ -141,7 +141,7 @@ namespace FrostNova.Core.Wpf.Behaviors
             return rect.Contains(point);
         }
 
-        private DataGridRow GetRowItem(int index)
+        private DataGridRow? GetRowItem(int index)
         {
             if (AssociatedObject.ItemContainerGenerator.Status
                     != GeneratorStatus.ContainersGenerated)
@@ -170,7 +170,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
             for (int i = 0; i < AssociatedObject.Items.Count; i++)
             {
-                DataGridRow itm = GetRowItem(i);
+                DataGridRow? itm = GetRowItem(i);
                 if (itm != null)
                 {
                     if (GetMouseTargetRow(itm, pos))
@@ -216,9 +216,9 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         }
 
-        private T GetDataGridObject<T>(DataGrid dataGrid, Point point)
+        private T? GetDataGridObject<T>(DataGrid dataGrid, Point point)
         {
-            T result = default(T);
+            T? result = default(T);
             var hitResultTest = VisualTreeHelper.HitTest(dataGrid, point);
             if (hitResultTest != null)
             {

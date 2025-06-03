@@ -22,7 +22,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         private DateTime _chartStart = DateTime.Now.Date.AddDays(-5);
 
         [ObservableProperty]
-        private DateTime _chartEnd = DateTime.Now.Date.AddDays(15);
+        private DateTime _chartEnd = DateTime.Now.Date.AddDays(10);
 
         [ObservableProperty]
         private TimeSpan _minSpan = TimeSpan.FromDays(1);
@@ -36,7 +36,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         public MainWindowViewModel()
         {
             ChartStart = DateTime.Now.Date.AddDays(-3);
-            ChartEnd = DateTime.Now.Date.AddDays(60);
+            ChartEnd = DateTime.Now.Date.AddDays(10);
 
             //土日を非稼働時間にする
             for (DateTime i = ChartStart; i <=ChartEnd; i = i.AddDays(1))

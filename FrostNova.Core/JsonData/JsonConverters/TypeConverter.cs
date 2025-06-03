@@ -12,15 +12,15 @@ namespace FrostNova.Core.JsonData.JsonConverters
     {
         public override Type Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            var typeText = reader.GetString();
-            return Type.GetType(typeText);
+            var typeText = reader.GetString() ?? "";
+            return Type.GetType(typeText)!;
 
         }
 
         public override void Write(Utf8JsonWriter writer, Type value, JsonSerializerOptions options)
         {
 
-            string text = value.FullName;
+            string text = value.FullName ?? "";
 
             writer.WriteStringValue(text);
         }

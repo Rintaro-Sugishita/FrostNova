@@ -73,7 +73,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private void UIElementDrop(object sender, DragEventArgs e)
         {
-            UIElement element = sender as UIElement;
+            UIElement? element = sender as UIElement;
             if (element != null)
             {
                 var formats = e.Data.GetFormats();

@@ -13,7 +13,7 @@ namespace FrostNova.Core.Wpf.AsyncHelpers
     public class AsyncHelper
     {
 
-        public static void RunAsyncProcess<T>(Func<ProgressInfo, Task> action, CancellationTokenSource token, Dispatcher dispatcher = null)
+        public static void RunAsyncProcess<T>(Func<ProgressInfo, Task> action, CancellationTokenSource token, Dispatcher? dispatcher = null)
         {
             //if (dispatcher == null)
             //{

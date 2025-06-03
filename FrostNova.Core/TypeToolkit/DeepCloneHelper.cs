@@ -75,14 +75,15 @@ namespace FrostNova.Core.TypeToolkit
                         }
                         else if (v is IList srcList)
                         {
-                            var destList = field.FieldType.Assembly.CreateInstance(field.FieldType?.FullName ?? "");
-                            foreach (var i in srcList)
-                            {
-                                var destItem = i.GetType().Assembly.CreateInstance(i.GetType().FullName ?? "");
-                                CopyProperty((object)i, destItem);
-                                ((IList)destList).Add(destItem);
+                            var destList = field.FieldType?.Assembly.CreateInstance(field.FieldType?.FullName ?? "") as IList;
+                            if (destList != null)
+                                foreach (var i in srcList)
+                                {
+                                    var destItem = i.GetType().Assembly.CreateInstance(i.GetType().FullName ?? "");
+                                    CopyProperty((object)i, destItem);
+                                    ((IList)destList).Add(destItem);
 
-                            }
+                                }
                             dv = destList;
                         }
                         else if (fieldType.IsClass)
@@ -131,7 +132,7 @@ namespace FrostNova.Core.TypeToolkit
                             }
                             else if (v is IList srcList)
                             {
-                                var destList = destProperty.PropertyType.Assembly.CreateInstance(destProperty.PropertyType?.FullName ?? "");
+                                var destList = (destProperty.PropertyType?.Assembly.CreateInstance(destProperty.PropertyType?.FullName ?? "") as IList)!;
                                 foreach (var i in srcList)
                                 {
                                     var destItem = i.GetType().Assembly.CreateInstance(i.GetType()?.FullName ?? "");
@@ -140,10 +141,11 @@ namespace FrostNova.Core.TypeToolkit
 
                                 }
                                 dv = destList;
+
                             }
                             else if (propertyType.IsClass)
                             {
-                                dv = DeepClone(v, propertyType);
+                                dv = DeepClone(v, propertyType)!;
                             }
                             else
                             {
@@ -186,26 +188,30 @@ namespace FrostNova.Core.TypeToolkit
             var fields = type.GetFields();
             foreach (var field in fields)
             {
-                Attribute att = Attribute.GetCustomAttribute(field, typeof(IgnoreCopyAttribute));
+                Attribute? att = Attribute.GetCustomAttribute(field, typeof(IgnoreCopyAttribute));
                 if (att != null && (att is IgnoreCopyAttribute || att is JsonIgnoreAttribute))
                 {
                     continue;
                 }
 
                 var v = field.GetValue(src);
-                Type fieldType = v.GetType();
-                object dv;
-                if (fieldType.GetInterfaces().Contains(typeof(ICloneable)))
+                Type? fieldType = v?.GetType();
+                object? dv=null;
+                if (v != null)
                 {
-                    dv = ((ICloneable)v).Clone();
-                }
-                else if (fieldType.IsClass)
-                {
-                    dv = DeepClone(v, fieldType);
-                }
-                else
-                {
-                    dv = v;
+
+                    if (fieldType?.GetInterfaces().Contains(typeof(ICloneable)) == true)
+                    {
+                        dv = ((ICloneable)v).Clone();
+                    }
+                    else if (fieldType?.IsClass == true && v != null)
+                    {
+                        dv = DeepClone(v, fieldType);
+                    }
+                    else
+                    {
+                        dv = v;
+                    }
                 }
                 field.SetValue(dest, dv);
             }
@@ -241,12 +247,12 @@ namespace FrostNova.Core.TypeToolkit
             var keyType = pair.Key?.GetType();
             var valueType = pair.Value?.GetType();
 
-            TKey destKey = default(TKey);
+            TKey? destKey = default(TKey);
             if (keyType != null)
             {
                 if (keyType.IsClass && keyType != typeof(string))
                 {
-                    destKey = (TKey)keyType.Assembly.CreateInstance(keyType.FullName);
+                    destKey = (TKey?)keyType.Assembly.CreateInstance(keyType?.FullName??"");
                 }
                 if (destKey != null)
                 {
@@ -258,12 +264,12 @@ namespace FrostNova.Core.TypeToolkit
                 }
             }
 
-            TValue destValue = default(TValue);
+            TValue? destValue = default(TValue);
             if (valueType != null)
             {
                 if (valueType.IsClass && valueType != typeof(string))
                 {
-                    destValue = (TValue)valueType.Assembly.CreateInstance(valueType.FullName);
+                    destValue = (TValue?)valueType.Assembly.CreateInstance(valueType.FullName??"");
                 }
                 if (destValue != null)
                 {
