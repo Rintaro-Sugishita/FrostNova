@@ -14,100 +14,12 @@ namespace FrostNova.Core.Wpf.Behaviors
 {
     public class ItemsControlHeightSyncBehavior : Behavior<ItemsControl>
     {
-
-        private INotifyCollectionChanged? _notifyCollection;
-
-        protected override void OnAttached()
-        {
-            base.OnAttached();
-            AssociatedObject.Loaded += AssociatedObject_Loaded;
-            AssociatedObject.SizeChanged += AssociatedObject_SizeChanged;
-            TrySubscribeToCollectionChanged();
-        }
-
-        protected override void OnDetaching()
-        {
-            base.OnDetaching();
-            AssociatedObject.Loaded -= AssociatedObject_Loaded;
-            AssociatedObject.SizeChanged -= AssociatedObject_SizeChanged;
-            UnsubscribeFromCollectionChanged();
-        }
-
-        private void AssociatedObject_Loaded(object sender, RoutedEventArgs e)
-        {
-            AssociatedObject.ItemContainerGenerator.StatusChanged += ItemContainerGenerator_StatusChanged;
-            SyncHeightsIfPossible();
-        }
-
-        private void AssociatedObject_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            SyncHeightsIfPossible();
-        }
-
-        private void ItemContainerGenerator_StatusChanged(object? sender, EventArgs e)
-        {
-            if (AssociatedObject.ItemContainerGenerator.Status == GeneratorStatus.ContainersGenerated)
-            {
-                SyncHeightsIfPossible();
-            }
-        }
-
-        private void SyncHeightsIfPossible()
-        {
-            if (TargetItemsControl == null)
-                return;
-
-            SetSync(AssociatedObject, TargetItemsControl);
-        }
-
-        private void TrySubscribeToCollectionChanged()
-        {
-            if (AssociatedObject.ItemsSource is INotifyCollectionChanged notify)
-            {
-                _notifyCollection = notify;
-                _notifyCollection.CollectionChanged += ItemsSource_CollectionChanged;
-            }
-        }
-
-        private void UnsubscribeFromCollectionChanged()
-        {
-            if (_notifyCollection != null)
-            {
-                _notifyCollection.CollectionChanged -= ItemsSource_CollectionChanged;
-                _notifyCollection = null;
-            }
-        }
-
-        private void ItemsSource_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            SyncHeightsIfPossible();
-        }
-
-        private static void SetSync(ItemsControl src, ItemsControl dest)
-        {
-            if (src == null || dest == null) return;
-            int count = Math.Min(src?.Items.Count ?? 0, dest?.Items.Count ?? 0);
-
-            for (int i = 0; i < count; i++)
-            {
-                var itemSrc = src?.Items[i];
-                var itemDest = dest?.Items[i];
-                if (itemSrc != null && itemDest != null)
-                {
-                    if (src?.ItemContainerGenerator.ContainerFromItem(itemSrc) is FrameworkElement containerSrc 
-                        && dest?.ItemContainerGenerator.ContainerFromItem(itemDest) is FrameworkElement containerDest)
-                    {
-                        void UpdateHeight()
-                        {
-                            containerDest.Height = containerSrc.ActualHeight;
-                        }
-
-                        containerSrc.LayoutUpdated += (s, e) => UpdateHeight();
-                        UpdateHeight(); // 初回反映
-                    }
-                }
-            }
-        }
+        public static readonly DependencyProperty TargetItemsControlProperty =
+               DependencyProperty.Register(
+                   nameof(TargetItemsControl),
+                   typeof(ItemsControl),
+                   typeof(ItemsControlHeightSyncBehavior),
+                   new PropertyMetadata(null, OnTargetItemsControlChanged));
 
         public ItemsControl TargetItemsControl
         {
@@ -115,14 +27,113 @@ namespace FrostNova.Core.Wpf.Behaviors
             set => SetValue(TargetItemsControlProperty, value);
         }
 
-        public static readonly DependencyProperty TargetItemsControlProperty =
-            DependencyProperty.Register(nameof(TargetItemsControl), typeof(ItemsControl), typeof(ItemsControlHeightSyncBehavior), new PropertyMetadata(null, OnTargetChanged));
+        private INotifyCollectionChanged? _sourceCollection;
+        private INotifyCollectionChanged? _targetCollection;
 
-        private static void OnTargetChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        protected override void OnAttached()
+        {
+            base.OnAttached();
+            AttachHandlers();
+        }
+
+        protected override void OnDetaching()
+        {
+            base.OnDetaching();
+            DetachHandlers();
+        }
+
+        private static void OnTargetItemsControlChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is ItemsControlHeightSyncBehavior behavior)
             {
-                behavior.SyncHeightsIfPossible();
+                behavior.DetachHandlers();
+                behavior.AttachHandlers();
+                behavior.SynchronizeHeights();
+            }
+        }
+
+        private void AttachHandlers()
+        {
+            if (AssociatedObject != null)
+            {
+                AssociatedObject.ItemContainerGenerator.StatusChanged += ItemContainerGenerator_StatusChanged;
+                _sourceCollection = AssociatedObject.ItemsSource as INotifyCollectionChanged;
+                if (_sourceCollection != null)
+                    _sourceCollection.CollectionChanged += Source_CollectionChanged;
+            }
+
+            if (TargetItemsControl != null)
+            {
+                TargetItemsControl.ItemContainerGenerator.StatusChanged += Target_ItemContainerGenerator_StatusChanged;
+                _targetCollection = TargetItemsControl.ItemsSource as INotifyCollectionChanged;
+                if (_targetCollection != null)
+                    _targetCollection.CollectionChanged += Target_CollectionChanged;
+            }
+        }
+
+        private void DetachHandlers()
+        {
+            if (AssociatedObject != null)
+            {
+                AssociatedObject.ItemContainerGenerator.StatusChanged -= ItemContainerGenerator_StatusChanged;
+                if (_sourceCollection != null)
+                    _sourceCollection.CollectionChanged -= Source_CollectionChanged;
+                _sourceCollection = null;
+            }
+
+            if (TargetItemsControl != null)
+            {
+                TargetItemsControl.ItemContainerGenerator.StatusChanged -= Target_ItemContainerGenerator_StatusChanged;
+                if (_targetCollection != null)
+                    _targetCollection.CollectionChanged -= Target_CollectionChanged;
+                _targetCollection = null;
+            }
+        }
+
+        private void ItemContainerGenerator_StatusChanged(object? sender, EventArgs e)
+        {
+            if (AssociatedObject.ItemContainerGenerator.Status == GeneratorStatus.ContainersGenerated)
+            {
+                SynchronizeHeights();
+            }
+        }
+
+        private void Target_ItemContainerGenerator_StatusChanged(object? sender, EventArgs e)
+        {
+            if (TargetItemsControl.ItemContainerGenerator.Status == GeneratorStatus.ContainersGenerated)
+            {
+                SynchronizeHeights();
+            }
+        }
+
+        private void Source_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            SynchronizeHeights();
+        }
+
+        private void Target_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            SynchronizeHeights();
+        }
+
+        private void SynchronizeHeights()
+        {
+            if (AssociatedObject == null || TargetItemsControl == null)
+                return;
+
+            int count = Math.Min(AssociatedObject.Items.Count, TargetItemsControl.Items.Count);
+
+            for (int i = 0; i < count; i++)
+            {
+                var container = AssociatedObject.ItemContainerGenerator.ContainerFromIndex(i) as FrameworkElement;
+                var targetContainer = TargetItemsControl.ItemContainerGenerator.ContainerFromIndex(i) as FrameworkElement;
+
+                if (container != null && targetContainer != null)
+                {
+                    double maxHeight = Math.Max(container.ActualHeight, targetContainer.ActualHeight);
+                    container.Height = maxHeight;
+                    targetContainer.Height = maxHeight;
+                }
             }
         }
     }

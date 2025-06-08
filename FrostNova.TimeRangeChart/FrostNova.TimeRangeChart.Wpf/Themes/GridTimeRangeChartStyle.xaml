@@ -137,7 +137,19 @@
 
 
                             </ItemsControl>
-                        </Grid>
+                                <!--<ListBox x:Name="chartItemsControl" Grid.Row="1"
+         ItemsSource="{TemplateBinding ItemsSource}"
+         ScrollViewer.CanContentScroll="True"
+         VirtualizingStackPanel.IsVirtualizing="True"
+                                         ItemTemplate="{TemplateBinding Property=ColumnHeaderTemplate}"
+         VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <VirtualizingStackPanel />
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                </ListBox>-->
+                            </Grid>
                         </ScrollViewer>
 
 
@@ -159,7 +171,7 @@
                                 <behaviors:ScrollGestureBehavior />
                             </i:Interaction.Behaviors>
                             
-                            <ItemsControl Name="chartItemsControl" ItemsSource="{TemplateBinding ItemsSource}">
+                            <!--<ItemsControl Name="chartItemsControl" ItemsSource="{TemplateBinding ItemsSource}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <local:TimeRangeChart StartTime="{Binding Source={StaticResource gridChartProxy}, Path=Data.StartTime}"
@@ -182,8 +194,36 @@
                                         <Setter Property="HorizontalAlignment" Value="Left" />
                                     </Style>
                                 </ItemsControl.ItemContainerStyle>
-                            </ItemsControl>
-
+                            </ItemsControl>-->
+                            <ListBox x:Name="chartItemsControl"
+                                 ItemsSource="{TemplateBinding ItemsSource}"
+                                 ScrollViewer.CanContentScroll="True"
+                                 VirtualizingStackPanel.IsVirtualizing="True"
+                                 VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <local:TimeRangeChart StartTime="{Binding Source={StaticResource gridChartProxy}, Path=Data.StartTime}"
+                                                              EndTime="{Binding Source={StaticResource gridChartProxy}, Path=Data.EndTime}"
+                                                              ScaleIncrement="{Binding Source={StaticResource gridChartProxy}, Path=Data.ScaleIncrement}"
+                                                              WidthPerRuledLine="{Binding Source={StaticResource gridChartProxy}, Path=Data.WidthPerRuledLine}"
+                                                              MinSpan="{Binding Source={StaticResource gridChartProxy}, Path=Data.MinSpan}"
+                                                              RuledLineFill="{Binding Source={StaticResource gridChartProxy}, Path=Data.RuledLineFill}"
+                                                              RuledLineThickness="{Binding Source={StaticResource gridChartProxy}, Path=Data.RuledLineThickness}"
+                                                              TimeRangeStyle="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeRangeStyle,FallbackValue={StaticResource timeRangeControlStyle}}"
+                                                              Style="{Binding Source={StaticResource gridChartProxy}, Path=Data.ChartStyle}"
+                                                              TimeTicks="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeTicks}"
+                                                              IsControlTick="False"
+                                                              Height="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=ActualHeight}"
+                                                              
+                                                              />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel />
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                            </ListBox>
                         </ScrollViewer>
 
                     </Grid>

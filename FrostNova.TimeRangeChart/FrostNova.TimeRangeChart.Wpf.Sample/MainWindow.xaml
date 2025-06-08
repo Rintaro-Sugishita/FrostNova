@@ -31,7 +31,7 @@
                     <Setter Property="WorkingSpan" Value="{Binding WorkingSpan}" />
                     <Setter Property="ActualSpan" Value="{Binding ActualSpan}" />
                     <Setter Property="IsMilestone" Value="False" />
-                    <Setter Property="Height" Value="20" />
+                    <Setter Property="Height" Value="40" />
                     <Setter Property="Background">
                         <Setter.Value>
                             <SolidColorBrush Color="{Binding Color}"></SolidColorBrush>
