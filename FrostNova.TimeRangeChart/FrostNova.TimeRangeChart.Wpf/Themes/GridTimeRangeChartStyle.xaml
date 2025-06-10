@@ -83,6 +83,7 @@
                             <ItemsControl
                                       ItemsSource="{TemplateBinding ItemsSource}"
                                       ItemTemplate="{TemplateBinding Property=RowHeaderTemplate}"
+                                      ItemTemplateSelector="{TemplateBinding Property=RowHeaderTemplateSelector}"
                                       ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                       MinWidth="{TemplateBinding MinRowWidth}"                                       
@@ -126,6 +127,7 @@
                                 
                             <ItemsControl Grid.Row="1"
                                           ItemTemplate="{TemplateBinding Property=ColumnHeaderTemplate}"
+                                          ItemTemplateSelector="{TemplateBinding Property=ColumnHeaderTemplateSelector}"
                                           ItemsSource="{TemplateBinding TimeTicks}"
                                           >
                                 <ItemsControl.ItemsPanel>

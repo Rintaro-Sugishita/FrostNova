@@ -126,6 +126,16 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty RowHeaderTemplateProperty = DependencyProperty.Register(nameof(RowHeaderTemplate), typeof(DataTemplate), typeof(GridTimeRangeChart));
 
+        /// <summary>
+        /// string
+        /// </summary>
+        public DataTemplateSelector RowHeaderTemplateSelector
+        {
+            get { return (DataTemplateSelector)GetValue(RowHeaderTemplateSelectorProperty); }
+            set { SetValue(RowHeaderTemplateSelectorProperty, value); }
+        }
+        public static DependencyProperty RowHeaderTemplateSelectorProperty = DependencyProperty.Register(nameof(RowHeaderTemplateSelector), typeof(DataTemplateSelector), typeof(GridTimeRangeChart));
+
 
         /// <summary>
         /// string
@@ -137,7 +147,13 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty ColumnHeaderTemplateProperty = DependencyProperty.Register(nameof(ColumnHeaderTemplate), typeof(DataTemplate), typeof(GridTimeRangeChart));
 
-
+        public DataTemplateSelector ColumnHeaderTemplateSelector
+        {
+            get { return (DataTemplateSelector)GetValue(ColumnHeaderTemplateSelectorProperty); }
+            set { SetValue(ColumnHeaderTemplateSelectorProperty, value); }
+        }
+        public static readonly DependencyProperty ColumnHeaderTemplateSelectorProperty =
+            DependencyProperty.Register(nameof(ColumnHeaderTemplateSelector), typeof(DataTemplateSelector), typeof(GridTimeRangeChart));
 
         /// <summary>
         /// string
