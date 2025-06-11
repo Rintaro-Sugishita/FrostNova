@@ -16,6 +16,40 @@
     <cnv:BorderThicknessConverter x:Key="borderThicknessConverter" />
 
 
+    <Style TargetType="{x:Type ListBox}" x:Key="virtualContainerListBoxStyle">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBox">
+                    <!--<ScrollViewer Focusable="false"
+                      Padding="0"
+                      Background="Transparent">-->
+                        <ItemsPresenter />
+                    <!--</ScrollViewer>-->
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="{x:Type ListBoxItem}" x:Key="virtualListBoxItemStyle">
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="BorderBrush" Value="Gray" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}">
+                        <ContentPresenter />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
     <Style TargetType="{x:Type local:GridTimeRangeChart}" x:Key="defaultGridTimeRangeChartStyle">
 
@@ -70,6 +104,16 @@
                             <RowDefinition />
                         </Grid.RowDefinitions>
 
+                        <!--row and column header-->
+                        <Border BorderThickness="0,0,0,0.5" BorderBrush="Gray">
+                            <ContentPresenter x:Name="allHeader"
+                                          Content="{TemplateBinding CornerHeaderSource}"
+                                          ContentTemplate="{TemplateBinding CornerHeaderTemplate}"
+                                          ContentTemplateSelector="{TemplateBinding CornerHeaderTemplateSelector}"
+                                          />
+                        </Border>
+
+
                         <!--row header-->
                         <ScrollViewer x:Name="rowScrollViewer"  Grid.Column="0" Grid.Row="1"
                                       HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Hidden"
@@ -80,7 +124,7 @@
                                     IsHorizontalSync="False" IsVerticalSync="True"
                                     />
                             </i:Interaction.Behaviors>
-                            <ItemsControl
+                            <!--<ItemsControl
                                       ItemsSource="{TemplateBinding ItemsSource}"
                                       ItemTemplate="{TemplateBinding Property=RowHeaderTemplate}"
                                       ItemTemplateSelector="{TemplateBinding Property=RowHeaderTemplateSelector}"
@@ -96,7 +140,30 @@
                                         <Setter Property="Height" Value="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=RowHeight}" />
                                     </Style>
                                 </ItemsControl.ItemContainerStyle>
-                            </ItemsControl>
+                            </ItemsControl>-->
+                            <ListBox ItemsSource="{TemplateBinding ItemsSource}"
+                                     Style="{StaticResource virtualContainerListBoxStyle}"
+                                     ItemTemplate="{TemplateBinding RowHeaderTemplate}"
+                                     ItemTemplateSelector="{TemplateBinding RowHeaderTemplateSelector}"
+                                     ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     MinWidth="{TemplateBinding MinRowWidth}"                                     
+                                     >
+                                <i:Interaction.Behaviors>
+                                    <behaviors:ItemsControlHeightSyncBehavior TargetItemsControl="{Binding ElementName=chartItemsControl}" />
+                                </i:Interaction.Behaviors>
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel />
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource virtualListBoxItemStyle}">
+                                        <Setter Property="BorderThickness" Value="0,0,0,0.5" />
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                                     
                         </ScrollViewer>
 
                         <GridSplitter Grid.Column="1" Grid.Row="0" Width="4" VerticalAlignment="Stretch" />
@@ -139,6 +206,26 @@
 
 
                             </ItemsControl>
+                                <!--<ListBox  Grid.Row="1" ItemsSource="{TemplateBinding TimeTicks}"
+                                     Style="{StaticResource virtualContainerListBoxStyle}"
+                                     ItemTemplate="{TemplateBinding ColumnHeaderTemplate}"
+                                     ItemTemplateSelector="{TemplateBinding ColumnHeaderTemplateSelector}"
+                                     >
+                                    <i:Interaction.Behaviors>
+                                        <behaviors:ItemsControlHeightSyncBehavior TargetItemsControl="{Binding ElementName=chartItemsControl}" />
+                                    </i:Interaction.Behaviors>
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <VirtualizingStackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource virtualListBoxItemStyle}">
+                                            <Setter Property="BorderThickness" Value="0,0,0,0" />
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>-->
+
                                 <!--<ListBox x:Name="chartItemsControl" Grid.Row="1"
          ItemsSource="{TemplateBinding ItemsSource}"
          ScrollViewer.CanContentScroll="True"
@@ -201,7 +288,10 @@
                                  ItemsSource="{TemplateBinding ItemsSource}"
                                  ScrollViewer.CanContentScroll="True"
                                  VirtualizingStackPanel.IsVirtualizing="True"
-                                 VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                 VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                     Padding="0" Margin="0" BorderThickness="0"
+                                     Style="{StaticResource virtualContainerListBoxStyle}"
+                                     >
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <local:TimeRangeChart StartTime="{Binding Source={StaticResource gridChartProxy}, Path=Data.StartTime}"
@@ -216,7 +306,7 @@
                                                               TimeTicks="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeTicks}"
                                                               IsControlTick="False"
                                                               Height="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=ActualHeight}"
-                                                              
+                                                              BorderBrush="Gray"
                                                               />
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -225,6 +315,11 @@
                                         <VirtualizingStackPanel />
                                     </ItemsPanelTemplate>
                                 </ListBox.ItemsPanel>
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource virtualListBoxItemStyle}">
+                                        <Setter Property="BorderThickness" Value="0,0,0,0.5" />
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
                             </ListBox>
                         </ScrollViewer>
 

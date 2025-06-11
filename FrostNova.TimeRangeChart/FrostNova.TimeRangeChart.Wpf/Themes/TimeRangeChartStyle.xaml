@@ -17,6 +17,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:TimeRangeChart}">
+                    <!--<Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">-->
+                        
                     <Grid>
                         <Grid.Resources>
                             <bProxy:BindingProxy Data="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}" x:Key="bindingProxy"/>
@@ -74,7 +76,8 @@
                         </ItemsControl>
 
 
-                        <ItemsControl x:Name="ganttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=ItemsSource}"                      
+                        <ItemsControl x:Name="ganttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=ItemsSource}"   
+                                      BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                       >
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -97,6 +100,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </Grid>
+                    <!--</Border>-->
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

@@ -119,6 +119,38 @@ namespace FrostNova.TimeRangeChart.Wpf
         /// <summary>
         /// string
         /// </summary>
+        public DataTemplate CornerHeaderTemplate
+        {
+            get { return (DataTemplate)GetValue(CornerHeaderTemplateProperty); }
+            set { SetValue(CornerHeaderTemplateProperty, value); }
+        }
+        public static DependencyProperty CornerHeaderTemplateProperty = DependencyProperty.Register(nameof(CornerHeaderTemplate), typeof(DataTemplate), typeof(GridTimeRangeChart));
+
+        /// <summary>
+        /// string
+        /// </summary>
+        public DataTemplateSelector CornerHeaderTemplateSelector
+        {
+            get { return (DataTemplateSelector)GetValue(CornerHeaderTemplateSelectorProperty); }
+            set { SetValue(CornerHeaderTemplateSelectorProperty, value); }
+        }
+        public static DependencyProperty CornerHeaderTemplateSelectorProperty = DependencyProperty.Register(nameof(CornerHeaderTemplateSelector), typeof(DataTemplateSelector), typeof(GridTimeRangeChart));
+
+        /// <summary>
+        /// string
+        /// </summary>
+        public object? CornerHeaderSource
+        {
+            get { return (object?)GetValue(CornerHeaderSourceProperty); }
+            set { SetValue(CornerHeaderSourceProperty, value); }
+        }
+        public static DependencyProperty CornerHeaderSourceProperty = DependencyProperty.Register(nameof(CornerHeaderSource), typeof(object), typeof(GridTimeRangeChart));
+
+
+
+        /// <summary>
+        /// string
+        /// </summary>
         public DataTemplate RowHeaderTemplate
         {
             get { return (DataTemplate)GetValue(RowHeaderTemplateProperty); }
@@ -220,7 +252,7 @@ namespace FrostNova.TimeRangeChart.Wpf
 
             double newWidth = (ticks.Count-1) * WidthPerRuledLine;
 
-
+            
             foreach (var item in ticks)
             {
                 TimeTicks.Add(new RuledLineData(this) { DateValue = item, LeftPoint= TimeScreenHelper.TimeToPoint(item, StartTime, EndTime, newWidth) });

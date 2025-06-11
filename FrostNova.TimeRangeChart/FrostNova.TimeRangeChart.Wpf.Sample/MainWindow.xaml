@@ -94,6 +94,9 @@
                                           NonWorkingTimes="{Binding NonWorkingTimes}"
                                           TimeRangeStyle="{StaticResource rangeStyle}"
                                           >
+                    <chart:GridTimeRangeChart.CornerHeaderSource>
+                        <TextBlock Text="aaaa" />
+                    </chart:GridTimeRangeChart.CornerHeaderSource>
                     <chart:GridTimeRangeChart.RowHeaderTemplate>
                         <DataTemplate DataType="{x:Type local:GridSampleData}">
                             <TextBlock Text="{Binding Name}" Height="150" />
