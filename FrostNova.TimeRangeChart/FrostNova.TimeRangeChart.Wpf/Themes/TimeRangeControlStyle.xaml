@@ -7,14 +7,14 @@
                     xmlns:timeRangeHelpers="clr-namespace:FrostNova.TimeRangeChart.TimeRangeHelpers;assembly=FrostNova.TimeRangeChart"
                     >
 
-    
-    
+
+
     <local:MilestonePositionConverter x:Key="MilestonePositionConverter" />
     <cnv:BorderThicknessConverter x:Key="borderThicknessConverter" />
 
     <sys:Double x:Key="expandWidth">7</sys:Double>
-    
-    
+
+
     <Style TargetType="{x:Type Thumb}" x:Key="expandThumbStyle">
         <Setter Property="Width" Value="{StaticResource expandWidth}" />
         <Setter Property="Cursor" Value="SizeWE" />
@@ -29,7 +29,25 @@
             </Setter.Value>
         </Setter>
     </Style>
-
+    
+    <Style TargetType="{x:Type Thumb}" x:Key="moveThumbStyle">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Thumb}">
+                    <Border Background="Transparent" HorizontalAlignment="Stretch" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="BorderThickness" Value=" 0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=CanDrag}" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
 
     <Style TargetType="{x:Type local:TimeRangeControl}" x:Key="timeRangeControlStyle"
            >
@@ -38,11 +56,13 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Canvas.Left" Value="{Binding Left, RelativeSource={RelativeSource Self}}" />
         <!--<Setter Property="Canvas.Top" Value="{Binding Top, RelativeSource={RelativeSource Self}}" />-->
+
+
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
                     <Canvas Width="{TemplateBinding GanttWidth}">
-                            <Border Background="{TemplateBinding Background}" Grid.Column="1" 
+                        <Border Background="{TemplateBinding Background}" Grid.Column="1" 
                                 Width="{TemplateBinding GanttWidth}"
                                 Height="{TemplateBinding Height}" 
                                 >
@@ -50,8 +70,7 @@
                                 <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
                                                    Content="{Binding}" >
                                     <ContentPresenter.Margin>
-                                        <MultiBinding  Converter="{StaticResource borderThicknessConverter}"
-                                           >
+                                        <MultiBinding  Converter="{StaticResource borderThicknessConverter}">
                                             <Binding Source="{StaticResource expandWidth}"  />
                                             <Binding  Mode="OneTime">
                                                 <Binding.Source>
@@ -71,35 +90,10 @@
                                 </ContentPresenter>
 
                                 <Thumb Name="PART_MoveThumb"   Grid.Column="1"
-                                   Background="Transparent"
-                                   HorizontalAlignment="Stretch"
-                               >
-
-                                    <Thumb.Style>
-                                        <Style TargetType="{x:Type Thumb}">
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="{x:Type Thumb}">
-                                                        <Border Background="Transparent"
-                                                            HorizontalAlignment="Stretch"
-                                                            />
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                            <!--<Setter Property="Background" Value="{Binding  RelativeSource={RelativeSource Mode=TemplatedParent}, Path=Background}" />-->
-                                            <Setter Property="BorderThickness" Value=" 0" />
-                                            <Setter Property="BorderBrush" Value="Transparent" />
-                                            <Setter Property="Cursor" Value="Hand" />
-                                            <!--<Setter Property="HorizontalAlignment" Value="Stretch" />-->
-                                            <Setter Property="VerticalAlignment" Value="Stretch" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=CanDrag}" Value="False">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Thumb.Style>
-
+                                       Background="Transparent"
+                                       HorizontalAlignment="Stretch"
+                                           Style="{StaticResource moveThumbStyle}"
+                                       >
                                 </Thumb>
                             </Grid>
 
@@ -107,31 +101,13 @@
 
                         <Thumb Name="PART_LeftThumb" Height="{TemplateBinding Height}"  Canvas.Left="0"  Grid.Column="0"
                                Background="{TemplateBinding Background}"
+                               Style="{StaticResource expandThumbStyle}"
                                >
-                            <Thumb.Style>
-                                <Style TargetType="{x:Type Thumb}" BasedOn="{StaticResource  expandThumbStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=CanExpandSpan}" Value="False">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Thumb.Style>
-
                         </Thumb>
                         <Thumb Name="PART_RightThumb" Height="{TemplateBinding Height}" Canvas.Right="0" Grid.Column="2"
                                Background="{TemplateBinding Background}"
+                               Style="{StaticResource expandThumbStyle}"
                                >
-                            <Thumb.Style>
-                                <Style TargetType="{x:Type Thumb}" BasedOn="{StaticResource  expandThumbStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=CanExpandSpan}" Value="False">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Thumb.Style>
-
                         </Thumb>
 
                     </Canvas>
@@ -154,45 +130,45 @@
                                 </Grid.RenderTransform>
 
                                 <StackPanel Orientation="Horizontal">
-                                    
 
-                                <Polygon x:Name="diamondMilestone" Points="10,0 20,10 10,20 0,10"
+
+                                    <Polygon x:Name="diamondMilestone" Points="10,0 20,10 10,20 0,10"
                                             Width="{TemplateBinding Width}" 
                                             Height="{TemplateBinding Height}"
                                             Fill="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}},Path=Background}"
                                             Stroke="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}},Path=BorderBrush}"
                                              >
-                                    <Polygon.Style>
-                                        <Style TargetType="{x:Type Polygon}">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=MilestoneType}" Value="{x:Static timeRangeBase:MilestoneStyle.Diamond}">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>                                        
-                                    </Polygon.Style>
-                                </Polygon>
-                                <Ellipse x:Name="circleMilestone"
+                                        <Polygon.Style>
+                                            <Style TargetType="{x:Type Polygon}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=MilestoneType}" Value="{x:Static timeRangeBase:MilestoneStyle.Diamond}">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Polygon.Style>
+                                    </Polygon>
+                                    <Ellipse x:Name="circleMilestone"
                                             Width="{TemplateBinding Width}" 
                                             Height="{TemplateBinding Height}"
                                             Fill="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}},Path=Background}"
                                             Stroke="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}},Path=BorderBrush}"
                                              >
-                                    <!--<Ellipse.ToolTip >
+                                        <!--<Ellipse.ToolTip >
                                         <ToolTip Content="{TemplateBinding ContentTemplate}"></ToolTip>
                                     </Ellipse.ToolTip>-->
-                                    <Ellipse.Style>
-                                        <Style TargetType="{x:Type Ellipse}">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=MilestoneType}" Value="{x:Static timeRangeBase:MilestoneStyle.Circle}">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Ellipse.Style>
-                                </Ellipse>
+                                        <Ellipse.Style>
+                                            <Style TargetType="{x:Type Ellipse}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=MilestoneType}" Value="{x:Static timeRangeBase:MilestoneStyle.Circle}">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
                                     <ContentPresenter  ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
                                                        Content="{Binding}"
                                                        Height="{TemplateBinding Height}"
@@ -205,40 +181,156 @@
                                         HorizontalAlignment="Stretch"
                                        ToolTip="{TemplateBinding ToolTip}"
                                         >
-                                    
-                        
+
+
                                     <Thumb.Style>
-                                                <Style TargetType="{x:Type Thumb}">
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate TargetType="{x:Type Thumb}">
-                                                                <Border Background="Transparent"
+                                        <Style TargetType="{x:Type Thumb}">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="{x:Type Thumb}">
+                                                        <Border Background="Transparent"
                                                             HorizontalAlignment="Stretch"
                                                             />
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                    <Setter Property="BorderThickness" Value=" 0" />
-                                                    <Setter Property="BorderBrush" Value="Transparent" />
-                                                    <Setter Property="Cursor" Value="Hand" />
-                                                    <!--<Setter Property="HorizontalAlignment" Value="Stretch" />-->
-                                                    <Setter Property="VerticalAlignment" Value="Stretch" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=CanDrag}" Value="False">
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Thumb.Style>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Setter Property="BorderThickness" Value=" 0" />
+                                            <Setter Property="BorderBrush" Value="Transparent" />
+                                            <Setter Property="Cursor" Value="Hand" />
+                                            <!--<Setter Property="HorizontalAlignment" Value="Stretch" />-->
+                                            <Setter Property="VerticalAlignment" Value="Stretch" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=CanDrag}" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Thumb.Style>
 
-                                    </Thumb>
-                                </Grid>
+                                </Thumb>
+                            </Grid>
 
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
             </Trigger>
-            
+
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsMilestone" Value="False" />
+                    <Condition Property="CanDrag" Value="False" />
+                    <Condition Property="CanExpandSpan" Value="False" />
+                </MultiTrigger.Conditions>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
+                            <Canvas Width="{TemplateBinding GanttWidth}">
+                                <Border Background="{TemplateBinding Background}" Grid.Column="1" 
+                                Width="{TemplateBinding GanttWidth}"
+                                Height="{TemplateBinding Height}" 
+                                >
+                                    <Grid>
+                                        <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
+                                                   Content="{Binding}" >
+                                        </ContentPresenter>
+                                    </Grid>
+                                </Border>
+                            </Canvas>
+                        </ControlTemplate>
+
+                    </Setter.Value>
+                </Setter>
+            </MultiTrigger>
+
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsMilestone" Value="False" />
+                    <Condition Property="CanDrag" Value="True" />
+                    <Condition Property="CanExpandSpan" Value="False" />
+                </MultiTrigger.Conditions>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
+                            <Canvas Width="{TemplateBinding GanttWidth}">
+                                <Border Background="{TemplateBinding Background}" Grid.Column="1" 
+                                Width="{TemplateBinding GanttWidth}"
+                                Height="{TemplateBinding Height}" 
+                                >
+                                    <Grid>
+                                        <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
+                                                   Content="{Binding}" >
+                                        </ContentPresenter>
+                                        <Thumb Name="PART_MoveThumb"   Grid.Column="1"
+                                               Background="Transparent"
+                                               HorizontalAlignment="Stretch"
+                                                   Style="{StaticResource moveThumbStyle}"
+                                               >
+                                        </Thumb>
+
+                                    </Grid>
+                                </Border>
+                            </Canvas>
+                        </ControlTemplate>
+
+                    </Setter.Value>
+                </Setter>
+            </MultiTrigger>
+
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsMilestone" Value="False" />
+                    <Condition Property="CanDrag" Value="False" />
+                    <Condition Property="CanExpandSpan" Value="True" />
+                </MultiTrigger.Conditions>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
+                            <Canvas Width="{TemplateBinding GanttWidth}">
+                                <Border Background="{TemplateBinding Background}" Grid.Column="1" 
+                                Width="{TemplateBinding GanttWidth}"
+                                Height="{TemplateBinding Height}" 
+                                >
+                                    <Grid>
+                                        <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
+                                                   Content="{Binding}" >
+                                            <ContentPresenter.Margin>
+                                                <MultiBinding  Converter="{StaticResource borderThicknessConverter}">
+                                                    <Binding Source="{StaticResource expandWidth}"  />
+                                                    <Binding  Mode="OneTime">
+                                                        <Binding.Source>
+                                                            <sys:Double>0</sys:Double>
+                                                        </Binding.Source>
+                                                    </Binding>
+                                                    <Binding Source="{StaticResource expandWidth}" />
+                                                    <Binding  Mode="OneTime">
+                                                        <Binding.Source>
+                                                            <sys:Double>0</sys:Double>
+                                                        </Binding.Source>
+                                                    </Binding>
+                                                </MultiBinding>
+
+                                            </ContentPresenter.Margin>
+                                        </ContentPresenter>
+                                    </Grid>
+                                </Border>
+                                <Thumb Name="PART_LeftThumb" Height="{TemplateBinding Height}"  Canvas.Left="0"  Grid.Column="0"
+                               Background="{TemplateBinding Background}"
+                               Style="{StaticResource expandThumbStyle}"
+                               >
+                                </Thumb>
+                                <Thumb Name="PART_RightThumb" Height="{TemplateBinding Height}" Canvas.Right="0" Grid.Column="2"
+                               Background="{TemplateBinding Background}"
+                               Style="{StaticResource expandThumbStyle}"
+                               >
+                                </Thumb>
+
+
+                            </Canvas>
+                        </ControlTemplate>
+
+                    </Setter.Value>
+                </Setter>
+            </MultiTrigger>
         </Style.Triggers>
     </Style>
 
