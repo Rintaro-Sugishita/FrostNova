@@ -311,12 +311,12 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         private double TimeToPoint(DateTime time)
         {
-            return TimeScreenHelper. TimeToPoint(time, StartTime, EndTime, ActualWidth);
+            return TimeScreenHelper. TimeToPoint(time, StartTime, EndTime, ActualWidth == 0 ? Width : ActualWidth );
         }
 
         private DateTime PointToTime(double point)
         {
-            return TimeScreenHelper.PointToTime(point, StartTime, EndTime, ActualWidth, MinSpan);
+            return TimeScreenHelper.PointToTime(point, StartTime, EndTime, ActualWidth == 0 ? Width : ActualWidth, MinSpan);
         }
 
      
@@ -324,7 +324,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             base.OnApplyTemplate();
 
-
+            //Refresh();
             this.SizeChanged += (s, e) =>
             {
                 // サイズ変更時に再描画

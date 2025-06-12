@@ -31,6 +31,8 @@
                     <Setter Property="WorkingSpan" Value="{Binding WorkingSpan}" />
                     <Setter Property="ActualSpan" Value="{Binding ActualSpan}" />
                     <Setter Property="IsMilestone" Value="False" />
+                    <Setter Property="CanDrag" Value="True" />
+                    <Setter Property="CanExpandSpan" Value="True" />
                     <Setter Property="Height" Value="40" />
                     <Setter Property="Background">
                         <Setter.Value>

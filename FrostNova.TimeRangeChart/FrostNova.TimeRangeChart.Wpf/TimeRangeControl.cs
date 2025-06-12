@@ -292,7 +292,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         public static DependencyProperty RightProperty = DependencyProperty.Register(nameof(Right), typeof(double), typeof(TimeRangeControl));
 
 
-        public bool CanCalculate => ParentChart != null && ParentChart.TimeToPointFunc != null && ParentChart.PointToTimeFunc != null && StartTime != DateTime.MinValue && EndTime != DateTime.MaxValue && _isloaded;
+        public bool CanCalculate => ParentChart != null && ParentChart.TimeToPointFunc != null && ParentChart.PointToTimeFunc != null && StartTime != DateTime.MinValue && EndTime != DateTime.MaxValue;
 
 
         public ICommand MoveCommand
@@ -430,30 +430,30 @@ namespace FrostNova.TimeRangeChart.Wpf
 
                 };
             }
-            SetLeft(this);
-            SetRight(this);
-            SetGanttWidth(this);
+            TryBindDefaultProperties();
 
-            this.Loaded += (s, e) =>
+            if (CanCalculate)
             {
-                _isloaded = true;
 
-                if (this.DataContext is not ITimeRange)
-                {
-                    Debug.Assert(false, $"DataContext of TimeRangeControl should be a {typeof(ITimeRange).FullName} type.");
-                }
-
-                TryBindDefaultProperties();
-
-                //座標計算する
                 SetLeft(this);
                 SetRight(this);
                 SetGanttWidth(this);
-            };
+            }
+
+            //this.Loaded += (s, e) =>
+            //{
+            //    _isloaded = true;
+
+            //    if (this.DataContext is not ITimeRange)
+            //    {
+            //        Debug.Assert(false, $"DataContext of TimeRangeControl should be a {typeof(ITimeRange).FullName} type.");
+            //    }
+
+            //};
 
 
         }
-        private bool _isloaded = false;
+        //private bool _isloaded = false;
 
         private void TryBindDefaultProperties()
         {
