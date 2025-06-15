@@ -26,6 +26,13 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(GridTimeRangeChart), new FrameworkPropertyMetadata(typeof(GridTimeRangeChart)));
         }
+        public GridTimeRangeChart()
+        {
+            if (TimeTicks == null)
+            {
+                TimeTicks = new ObservableCollection<IRuledLine>();
+            }
+        }
 
         [Bindable(true)]
         public DateTime StartTime
@@ -87,12 +94,12 @@ namespace FrostNova.TimeRangeChart.Wpf
         /// <summary>
         /// string
         /// </summary>
-        public IList<ITimeRange> NonWorkingTimes
-        {
-            get { return (IList<ITimeRange>)GetValue(NonWorkingTimesProperty); }
-            set { SetValue(NonWorkingTimesProperty, value); }
-        }
-        public static DependencyProperty NonWorkingTimesProperty = DependencyProperty.Register(nameof(NonWorkingTimes), typeof(IList<ITimeRange>), typeof(GridTimeRangeChart), new PropertyMetadata(OnNonWorkingTimesChanged));
+        //public IList<ITimeRange> NonWorkingTimes
+        //{
+        //    get { return (IList<ITimeRange>)GetValue(NonWorkingTimesProperty); }
+        //    set { SetValue(NonWorkingTimesProperty, value); }
+        //}
+        //public static DependencyProperty NonWorkingTimesProperty = DependencyProperty.Register(nameof(NonWorkingTimes), typeof(IList<ITimeRange>), typeof(GridTimeRangeChart), new PropertyMetadata(OnNonWorkingTimesChanged));
 
         /// <summary>
         /// string
@@ -208,12 +215,35 @@ namespace FrostNova.TimeRangeChart.Wpf
         public static DependencyProperty HeaderFormatProperty = DependencyProperty.Register(nameof(HeaderFormat), typeof(string), typeof(GridTimeRangeChart));
 
 
-        public ObservableCollection<RuledLineData> TimeTicks
+        public ObservableCollection<IRuledLine> TimeTicks
         {
-            get { return (ObservableCollection<RuledLineData>)GetValue(TimeTicksProperty); }
+            get { return (ObservableCollection<IRuledLine>)GetValue(TimeTicksProperty); }
             internal set { SetValue(TimeTicksProperty, value); }
         }
-        public static DependencyProperty TimeTicksProperty = DependencyProperty.Register(nameof(TimeTicks), typeof(ObservableCollection<RuledLineData>), typeof(GridTimeRangeChart), new PropertyMetadata(new ObservableCollection<RuledLineData>()));
+        public static DependencyProperty TimeTicksProperty = DependencyProperty.Register(nameof(TimeTicks), typeof(ObservableCollection<IRuledLine>), typeof(GridTimeRangeChart));
+
+
+        /// <summary>
+        /// string
+        /// </summary>
+        public TimeUnitType TimeUnit
+        {
+            get { return (TimeUnitType)GetValue(TimeUnitProperty); }
+            set { SetValue(TimeUnitProperty, value); }
+        }
+        public static DependencyProperty TimeUnitProperty = DependencyProperty.Register(nameof(TimeUnit), typeof(TimeUnitType), typeof(GridTimeRangeChart), new PropertyMetadata(TimeUnitType.Normal, OnMyPropertyChanged));
+
+
+        /// <summary>
+        /// string
+        /// </summary>
+        public int MonthSpan
+        {
+            get { return (int)GetValue(MonthSpanProperty); }
+            set { SetValue(MonthSpanProperty, value); }
+        }
+        public static DependencyProperty MonthSpanProperty = DependencyProperty.Register(nameof(MonthSpan), typeof(int), typeof(GridTimeRangeChart), new PropertyMetadata(1, OnMyPropertyChanged));
+
 
         public double MinRowWidth
         {
@@ -238,25 +268,27 @@ namespace FrostNova.TimeRangeChart.Wpf
                 gridChart.DrawBorder();
             }
         }
-        private static void OnNonWorkingTimesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-        }
+        //private static void OnNonWorkingTimesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        //{
+        //}
 
 
         private void DrawBorder()
         {
-
-            var ticks = TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement);
+            //if (TimeTicks == null) { TimeTicks = new ObservableCollection<IRuledLine>(); }
+            var ticks = TimeUnit == TimeUnitType.Normal ? TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement) : TimeHelper.GenerateTicksMonth(StartTime, EndTime, MonthSpan);
 
             TimeTicks.Clear();
 
             double newWidth = (ticks.Count-1) * WidthPerRuledLine;
 
-            
+
+            var localTimeTicks = new ObservableCollection<IRuledLine>();
             foreach (var item in ticks)
             {
-                TimeTicks.Add(new RuledLineData(this) { DateValue = item, LeftPoint= TimeScreenHelper.TimeToPoint(item, StartTime, EndTime, newWidth) });
+                localTimeTicks.Add(new RuledLineData(this) { DateValue = item, LeftPoint= TimeScreenHelper.TimeToPoint(item, StartTime, EndTime, newWidth) });
             }
+            TimeTicks = localTimeTicks;
         }
 
 

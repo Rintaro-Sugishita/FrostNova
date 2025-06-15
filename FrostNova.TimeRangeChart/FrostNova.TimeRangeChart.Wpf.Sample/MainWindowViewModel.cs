@@ -15,25 +15,6 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
     public partial class MainWindowViewModel : FrostNova.Core.Wpf.ViewModelBases.ViewModelBase
     {
 
-        [ObservableProperty]
-        ObservableCollection<GridSampleData> _modelList = new ObservableCollection<GridSampleData>();
-
-
-        [ObservableProperty]
-        private DateTime _chartStart = DateTime.Now.Date.AddDays(-5);
-
-        [ObservableProperty]
-        private DateTime _chartEnd = DateTime.Now.Date.AddDays(10);
-
-        [ObservableProperty]
-        private TimeSpan _minSpan = TimeSpan.FromDays(1);
-
-        [ObservableProperty]
-        private int _aaa = 5;
-
-        [ObservableProperty]
-        private ObservableCollection<ITimeRange> _nonWorkingTimes = [];
-
 
         public static class DateTimeRandomGenerator
         {
@@ -54,61 +35,25 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
             }
         }
 
+        [ObservableProperty]
+        GridViewModel _gridVm = new GridViewModel();
+
+        [ObservableProperty]
+        MonthGridViewModel _monthGridVm = new MonthGridViewModel();
+
+        [ObservableProperty]
+        ChartViewModel _chartVm = new ChartViewModel();
+
+
         protected override void InitializeOnDesign()
         {
             base.InitializeOnDesign();
-            SetData(10, 2, 3);
         }
         protected override void InitializeOnExecute()
         {
             base.InitializeOnExecute();
-            SetData(600, 10, 100);
         }
 
-        private void SetData(int days,int r, int c)
-        {
-            ChartStart = DateTime.Now.Date.AddDays(-3);
-            ChartEnd = DateTime.Now.Date.AddDays(days);
-
-            //土日を非稼働時間にする
-            for (DateTime i = ChartStart; i <= ChartEnd; i = i.AddDays(1))
-            {
-                if (i.DayOfWeek == DayOfWeek.Saturday || i.DayOfWeek == DayOfWeek.Sunday)
-                {
-                    NonWorkingTimes.Add(new FixedTimeRange(i, TimeSpan.FromDays(1)));
-                }
-            }
-
-
-            Random random = new Random();
-
-            for (int i = 0; i < r; i++)
-            {
-                var a = new GridSampleData();
-                a.Name = "data" + i;
-
-                //ganttを追加
-                //1行あたり100こくらい
-                for (int j = 0; j < c; j++)
-                {
-                    var d1 = DateTimeRandomGenerator.GetRandomDateTime(ChartStart, ChartEnd);
-                    var span = new TimeSpan(random.Next(4) + 1, 0, 0, 0);
-
-                    var d = new SampleModel(d1, span);
-                    d.Color = Color.FromArgb(130, (byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255));
-                    d.WorkingSpan = span;
-
-                    a.Gantts.Add(d);
-
-                }
-
-                ModelList.Add(a);
-
-
-            }
-
-
-        }
 
 
     }

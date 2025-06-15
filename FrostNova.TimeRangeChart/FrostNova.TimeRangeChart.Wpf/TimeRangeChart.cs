@@ -52,7 +52,7 @@ namespace FrostNova.TimeRangeChart.Wpf
     {
         static TimeRangeChart()
         {
-            DefaultStyleKeyProperty.OverrideMetadata(typeof(TimeRangeChart), new FrameworkPropertyMetadata(typeof(TimeRangeChart)));
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(TimeRangeChart), new FrameworkPropertyMetadata(typeof(TimeRangeChart)));           
         }
 
         public TimeRangeChart()
@@ -61,6 +61,10 @@ namespace FrostNova.TimeRangeChart.Wpf
             PointToTimeFunc = PointToTime;
             GetEndTimeFunc = GetEndTime;
             GetWorkingSpanFunc = GetWorkingSpan;
+            if (TimeTicks == null)
+            {
+                //TimeTicks = new ObservableCollection<IRuledLine>();
+            }
         }
 
         public Func<DateTime, double> TimeToPointFunc { get; private set; }
@@ -218,12 +222,12 @@ namespace FrostNova.TimeRangeChart.Wpf
         public static DependencyProperty IsTickControlProperty = DependencyProperty.Register(nameof(IsControlTick), typeof(bool), typeof(TimeRangeChart), new PropertyMetadata(true));
 
 
-        public ObservableCollection<RuledLineData> TimeTicks
+        public ObservableCollection<IRuledLine> TimeTicks
         {
-            get { return (ObservableCollection<RuledLineData>)GetValue(TimeTicksProperty); }
+            get { return (ObservableCollection<IRuledLine>)GetValue(TimeTicksProperty); }
             set { SetValue(TimeTicksProperty, value); }
         }
-        public static DependencyProperty TimeTicksProperty = DependencyProperty.Register(nameof(TimeTicks), typeof(ObservableCollection<RuledLineData>), typeof(TimeRangeChart), new PropertyMetadata(new ObservableCollection<RuledLineData>()));
+        public static DependencyProperty TimeTicksProperty = DependencyProperty.Register(nameof(TimeTicks), typeof(ObservableCollection<IRuledLine>), typeof(TimeRangeChart));
 
 
 
@@ -234,15 +238,51 @@ namespace FrostNova.TimeRangeChart.Wpf
             customControl.RefreshCall();
         }
 
+
+        /// <summary>
+        /// string
+        /// </summary>
+        public TimeUnitType TimeUnit
+        {
+            get { return (TimeUnitType)GetValue(TimeUnitProperty); }
+            set { SetValue(TimeUnitProperty, value); }
+        }
+        public static DependencyProperty TimeUnitProperty = DependencyProperty.Register(nameof(TimeUnit), typeof(TimeUnitType), typeof(TimeRangeChart), new PropertyMetadata(TimeUnitType.Normal, OnTimeUnitChanged));
+
+        private static void OnTimeUnitChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            TimeRangeChart customControl = (TimeRangeChart)d;
+            // 自身の再描画をトリガーする
+            customControl.RefreshCall();
+        }
+
+        /// <summary>
+        /// string
+        /// </summary>
+        public int MonthSpan
+        {
+            get { return (int)GetValue(MonthSpanProperty); }
+            set { SetValue(MonthSpanProperty, value); }
+        }
+        public static DependencyProperty MonthSpanProperty = DependencyProperty.Register(nameof(MonthSpan), typeof(int), typeof(TimeRangeChart), new PropertyMetadata(1, OnMonthSpanChanged));
+
+        private static void OnMonthSpanChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            TimeRangeChart customControl = (TimeRangeChart)d;
+            // 自身の再描画をトリガーする
+            customControl.RefreshCall();
+        }
+
         private void DrawBorder()
         {
-
+            //if (TimeTicks == null) { TimeTicks = new ObservableCollection<IRuledLine>(); }
+            if (TimeTicks == null) return;
             var ticks = TimeTicks.ToList();
             if (IsControlTick)
             {
                 //自身で罫線を管理する場合は再計算する
                 //そうでない場合は親から指定された値を使用する
-               var newTicks = TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement);
+               var newTicks = TimeUnit == TimeUnitType.Normal ? TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement) : TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1);
 
                 TimeTicks.Clear();
 
@@ -311,18 +351,41 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         private double TimeToPoint(DateTime time)
         {
-            return TimeScreenHelper. TimeToPoint(time, StartTime, EndTime, ActualWidth == 0 ? Width : ActualWidth );
+            switch (TimeUnit)
+            {
+                case TimeUnitType.Normal:
+                    return TimeScreenHelper.TimeToPoint(time, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth);
+                case TimeUnitType.Month:
+                    return TimeScreenHelper.TimeToPointMonth(time, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width: ActualWidth, TimeTicks);
+                default:
+                    break;
+            }
+            return 0;
         }
 
         private DateTime PointToTime(double point)
         {
-            return TimeScreenHelper.PointToTime(point, StartTime, EndTime, ActualWidth == 0 ? Width : ActualWidth, MinSpan);
+            switch (TimeUnit)
+            {
+                case TimeUnitType.Normal:
+                    return TimeScreenHelper.PointToTime(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, MinSpan);
+                case TimeUnitType.Month:
+                    return TimeScreenHelper.PointToTimeMonth(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, MinSpan, TimeTicks);
+                default:
+                    break;
+            }
+            return StartTime;
         }
 
-     
+
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
+
+            if (TimeTicks == null)
+            {
+                TimeTicks = new ObservableCollection<IRuledLine>();
+            }
 
             //Refresh();
             this.SizeChanged += (s, e) =>

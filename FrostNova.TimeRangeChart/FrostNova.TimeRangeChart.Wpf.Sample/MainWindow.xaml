@@ -85,15 +85,15 @@
         <TabControl>
             <TabItem Header="grid">
 
-                <chart:GridTimeRangeChart StartTime="{Binding ChartStart}" EndTime="{Binding ChartEnd}" WidthPerRuledLine="100"
+                <chart:GridTimeRangeChart StartTime="{Binding GridVm.ChartStart}" EndTime="{Binding GridVm.ChartEnd}" WidthPerRuledLine="100"
                                           MinSpan="{StaticResource minSpan}" ScaleIncrement="{StaticResource minSpan}"
-                                          ItemsSource="{Binding ModelList}"
+                                          ItemsSource="{Binding GridVm.ModelList}"
                                           MinRowWidth="200"
                                           HeaderFormat="yyyy/MM/dd"
                                           RuledLineThickness="0.5"
                                           RuledLineFill="Gray"
                                           RowHeight="150"
-                                          NonWorkingTimes="{Binding NonWorkingTimes}"
+                                          
                                           TimeRangeStyle="{StaticResource rangeStyle}"
                                           >
                     <chart:GridTimeRangeChart.CornerHeaderSource>
@@ -107,19 +107,49 @@
                     <chart:GridTimeRangeChart.ChartStyle>
                         <Style TargetType="{x:Type chart:TimeRangeChart}" >
                             <Setter Property="ItemsSource" Value="{Binding Gantts}" />
-                            <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.NonWorkingTimes}" />
+                            <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.GridVm.NonWorkingTimes}" />
+                        </Style>
+                    </chart:GridTimeRangeChart.ChartStyle>
+
+                </chart:GridTimeRangeChart>
+            </TabItem>
+            <TabItem Header="month grid">
+
+                <chart:GridTimeRangeChart StartTime="{Binding MonthGridVm.ChartStart}" EndTime="{Binding MonthGridVm.ChartEnd}" WidthPerRuledLine="200"
+                                          MinSpan="{StaticResource minSpan}" ScaleIncrement="{StaticResource minSpan}"
+                                          TimeUnit="Month" MonthSpan="2"
+                                          ItemsSource="{Binding MonthGridVm.ModelList}"
+                                          MinRowWidth="200"
+                                          HeaderFormat="yyyy/MM"
+                                          RuledLineThickness="0.5"
+                                          RuledLineFill="Gray"
+                                          RowHeight="150"
+                                          TimeRangeStyle="{StaticResource rangeStyle}"
+                                          >
+                    <chart:GridTimeRangeChart.CornerHeaderSource>
+                        <TextBlock Text="aaaa" />
+                    </chart:GridTimeRangeChart.CornerHeaderSource>
+                    <chart:GridTimeRangeChart.RowHeaderTemplate>
+                        <DataTemplate DataType="{x:Type local:GridSampleData}">
+                            <TextBlock Text="{Binding Name}" Height="150" />
+                        </DataTemplate>
+                    </chart:GridTimeRangeChart.RowHeaderTemplate>
+                    <chart:GridTimeRangeChart.ChartStyle>
+                        <Style TargetType="{x:Type chart:TimeRangeChart}" >
+                            <Setter Property="ItemsSource" Value="{Binding Gantts}" />
+                            <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.MonthGridVm.NonWorkingTimes}" />
                         </Style>
                     </chart:GridTimeRangeChart.ChartStyle>
 
                 </chart:GridTimeRangeChart>
             </TabItem>
             <TabItem Header="chart">
-                <chart:TimeRangeChart StartTime="{Binding ChartStart}" EndTime="{Binding ChartEnd}"
+                <chart:TimeRangeChart StartTime="{Binding ChartVm.ChartStart}" EndTime="{Binding ChartVm.ChartEnd}"
                                   MinSpan="{StaticResource minSpan}" ScaleIncrement="{StaticResource minSpan}"
-                                  ItemsSource="{Binding ModelList[0].Gantts}"
+                                  ItemsSource="{Binding ChartVm.Model.Gantts}"
                                   RuledLineThickness="0.5"
                                   RuledLineFill="Gray"
-                                      
+                                      NonWorkingTimes="{Binding ChartVm.NonWorkingTimes}"
                                       >
                     <chart:TimeRangeChart.TimeRangeStyle>
                         <Style TargetType="{x:Type chart:TimeRangeControl}" BasedOn="{StaticResource {x:Type chart:TimeRangeControl}}">

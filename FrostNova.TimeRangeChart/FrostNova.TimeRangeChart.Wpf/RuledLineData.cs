@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Windows.Media;
 
 namespace FrostNova.TimeRangeChart.Wpf
 {
-    public partial class RuledLineData : ObservableObject
+    public partial class RuledLineData : ObservableObject, IRuledLine
     {
         [ObservableProperty]
         private double _leftPoint = 0;

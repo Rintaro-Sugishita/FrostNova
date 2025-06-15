@@ -304,6 +304,8 @@
                                                               TimeRangeStyle="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeRangeStyle,FallbackValue={StaticResource timeRangeControlStyle}}"
                                                               Style="{Binding Source={StaticResource gridChartProxy}, Path=Data.ChartStyle}"
                                                               TimeTicks="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeTicks}"
+                                                              TimeUnit="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeUnit}"
+                                                              
                                                               IsControlTick="False"
                                                               Height="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=ActualHeight}"
                                                               BorderBrush="Gray"

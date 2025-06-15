@@ -18,7 +18,7 @@
 
 
   <PropertyGroup Condition="'$(Configuration)' != 'Release'">
-    <Now>$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</Now>
+    <Now>$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmm"))</Now>
     <VersionPrefix>0.0.2-dev</VersionPrefix>
     <VersionSuffix>$(Now)</VersionSuffix>
 

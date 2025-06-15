@@ -8,9 +8,17 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <ProjectReference Include="..\FrostNova.TimeRangeChart.Wpf\FrostNova.TimeRangeChart.Wpf.csproj" />
     <ProjectReference Include="..\FrostNova.TimeRangeChart\FrostNova.TimeRangeChart.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+    <PackageReference Include="FrostNova.TimeRangeChart" Version="0.0.2" />
+    <PackageReference Include="FrostNova.TimeRangeChart.Wpf" Version="0.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\FrostNova.Core.Wpf\FrostNova.Core.Wpf.csproj" />
+    <ProjectReference Include="..\..\FrostNova.Core\FrostNova.Core.csproj" />
   </ItemGroup>
 
 </Project>

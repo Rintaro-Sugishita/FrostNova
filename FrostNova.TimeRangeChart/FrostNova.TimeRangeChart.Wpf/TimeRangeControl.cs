@@ -440,16 +440,18 @@ namespace FrostNova.TimeRangeChart.Wpf
                 SetGanttWidth(this);
             }
 
-            //this.Loaded += (s, e) =>
-            //{
-            //    _isloaded = true;
+            this.Loaded += (s, e) =>
+            {
 
-            //    if (this.DataContext is not ITimeRange)
-            //    {
-            //        Debug.Assert(false, $"DataContext of TimeRangeControl should be a {typeof(ITimeRange).FullName} type.");
-            //    }
+                if (this.DataContext is not ITimeRange)
+                {
+                    Debug.Assert(false, $"DataContext of TimeRangeControl should be a {typeof(ITimeRange).FullName} type.");
+                }
+                SetLeft(this);
+                SetRight(this);
+                SetGanttWidth(this);
 
-            //};
+            };
 
 
         }

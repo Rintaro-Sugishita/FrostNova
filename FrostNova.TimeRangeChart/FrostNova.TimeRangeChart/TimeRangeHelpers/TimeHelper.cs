@@ -26,6 +26,23 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
             }
             return ticks;
         }
+        
+        public static List<DateTime> GenerateTicksMonth(DateTime startTime, DateTime endTime,int spanMonth)
+        {
+            List<DateTime> ticks = [];
+
+            // 最も近い増分の倍数に調整
+
+            DateTime adjustedStartTime = new DateTime(startTime.Year, startTime.Month, 1);
+
+            DateTime currentTime = adjustedStartTime;
+            while (currentTime <= endTime)
+            {
+                ticks.Add(currentTime);
+                currentTime = currentTime.AddMonths(spanMonth);
+            }
+            return ticks;
+        }
 
 
 
