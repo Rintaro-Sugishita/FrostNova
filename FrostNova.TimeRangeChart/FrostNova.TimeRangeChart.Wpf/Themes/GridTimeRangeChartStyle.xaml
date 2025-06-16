@@ -305,6 +305,7 @@
                                                               Style="{Binding Source={StaticResource gridChartProxy}, Path=Data.ChartStyle}"
                                                               TimeTicks="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeTicks}"
                                                               TimeUnit="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeUnit}"
+                                                              NonWorkingRangeBackground="{Binding Source={StaticResource gridChartProxy}, Path=Data.NonWorkingRangeBackground}"
                                                               
                                                               IsControlTick="False"
                                                               Height="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=ActualHeight}"

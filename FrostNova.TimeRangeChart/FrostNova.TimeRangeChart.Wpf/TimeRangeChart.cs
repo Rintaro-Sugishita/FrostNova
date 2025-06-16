@@ -134,6 +134,19 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty RuledLineThicknessProperty = DependencyProperty.Register(nameof(RuledLineThickness), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(1.0, OnMyPropertyChanged));
 
+        /// <summary>
+        /// background of non-working ranges
+        /// </summary>
+        public Brush NonWorkingRangeBackground
+        {
+            get { return (Brush)GetValue(NonWorkingRangeBackgroundProperty); }
+            set { SetValue(NonWorkingRangeBackgroundProperty, value); }
+        }
+        public static DependencyProperty NonWorkingRangeBackgroundProperty = DependencyProperty.Register(nameof(NonWorkingRangeBackground), typeof(Brush), typeof(TimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromRgb(0xd8, 0xd8, 0xd8))));
+
+
+
+
         private Rectangle _borderRect = new Rectangle();
 
         public IList<ITimeRange> NonWorkingTimes
@@ -275,7 +288,7 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         private void DrawBorder()
         {
-            //if (TimeTicks == null) { TimeTicks = new ObservableCollection<IRuledLine>(); }
+            //if (TimeTicks == null) { TimeTicks = new ObservableCollection<IRuledLine>(); } //これをすると親のDependencyPropertyから外れる
             if (TimeTicks == null) return;
             var ticks = TimeTicks.ToList();
             if (IsControlTick)

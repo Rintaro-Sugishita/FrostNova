@@ -337,7 +337,7 @@
 
     <Style TargetType="{x:Type local:TimeRangeControl}" x:Key="nonWorkingTimeRangeStyle"
            >
-        <Setter Property="Background" Value="#e0e0e0" />
+        <Setter Property="Background" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeChart}},Path=NonWorkingRangeBackground,FallbackValue=#d8d8d8}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="IsMilestone" Value="False" />

@@ -123,6 +123,7 @@
                                           HeaderFormat="yyyy/MM"
                                           RuledLineThickness="0.5"
                                           RuledLineFill="Gray"
+                                          NonWorkingRangeBackground="#e0e0e0"
                                           RowHeight="150"
                                           TimeRangeStyle="{StaticResource rangeStyle}"
                                           >

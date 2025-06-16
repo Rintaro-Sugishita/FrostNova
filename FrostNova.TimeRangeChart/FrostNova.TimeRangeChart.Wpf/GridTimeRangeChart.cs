@@ -80,9 +80,6 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty RuledLineFillProperty = DependencyProperty.Register(nameof(RuledLineFill), typeof(Brush), typeof(GridTimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromArgb(0, 255, 255, 255)), OnMyPropertyChanged));
 
-        /// <summary>
-        /// string
-        /// </summary>
         public double RuledLineThickness
         {
             get { return (double)GetValue(RuledLineThicknessProperty); }
@@ -90,6 +87,15 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty RuledLineThicknessProperty = DependencyProperty.Register(nameof(RuledLineThickness), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(1.0, OnMyPropertyChanged));
 
+        /// <summary>
+        /// background of non-working ranges
+        /// </summary>
+        public Brush NonWorkingRangeBackground
+        {
+            get { return (Brush)GetValue(NonWorkingRangeBackgroundProperty); }
+            set { SetValue(NonWorkingRangeBackgroundProperty, value); }
+        }
+        public static DependencyProperty NonWorkingRangeBackgroundProperty = DependencyProperty.Register(nameof(NonWorkingRangeBackground), typeof(Brush), typeof(GridTimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromRgb(0xd8, 0xd8, 0xd8))));
 
         /// <summary>
         /// string
