@@ -92,6 +92,7 @@
                                             >
                                         <i:Interaction.Behaviors>
                                             <behaviors:CanvasHelperBehavior BindLeft="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}} , Path=Left}"
+                                                                            CanvasVerticalAlignment="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=VerticalAlignment}"
                                                         />
                                         </i:Interaction.Behaviors>
                                     </local:TimeRangeControl>

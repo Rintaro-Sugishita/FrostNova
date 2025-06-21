@@ -294,6 +294,24 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         public bool CanCalculate => ParentChart != null && ParentChart.TimeToPointFunc != null && ParentChart.PointToTimeFunc != null && StartTime != DateTime.MinValue && EndTime != DateTime.MaxValue;
 
+        ///// <summary>
+        ///// VerticalAlignment
+        ///// </summary>
+        //public new VerticalAlignment VerticalAlignment
+        //{
+        //    get { return (VerticalAlignment)GetValue(VerticalAlignmentProperty); }
+        //    set { SetValue(VerticalAlignmentProperty, value); }
+        //}
+        //public static DependencyProperty VerticalAlignmentProperty = DependencyProperty.Register(nameof(VerticalAlignment), typeof(VerticalAlignment), typeof(TimeRangeControl));
+
+        private void Aaa()
+        {
+           
+        }
+
+
+
+
 
         public ICommand MoveCommand
         {

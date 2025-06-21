@@ -43,7 +43,13 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         protected override void InitializeOnExecute()
         {
             base.InitializeOnExecute();
+        }
+
+
+        public void SetData()
+        {
             SetData(180, 10, 100);
+
         }
 
         private void SetData(int days, int r, int c)

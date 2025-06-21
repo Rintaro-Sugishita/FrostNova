@@ -131,8 +131,11 @@ namespace FrostNova.Core.Wpf.Behaviors
                 if (container != null && targetContainer != null)
                 {
                     double maxHeight = Math.Max(container.ActualHeight, targetContainer.ActualHeight);
-                    container.Height = maxHeight;
-                    targetContainer.Height = maxHeight;
+                    if (maxHeight > 0)
+                    {
+                        container.Height = maxHeight;
+                        targetContainer.Height = maxHeight;
+                    }
                 }
             }
         }

@@ -40,11 +40,14 @@
         <Setter Property="BorderBrush" Value="Gray" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}">
-                        <ContentPresenter />
+                    <Border BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}"
+                            HorizontalAlignment="Stretch"
+                            >
+                        <ContentPresenter HorizontalAlignment="Stretch" />
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
@@ -116,7 +119,7 @@
 
                         <!--row header-->
                         <ScrollViewer x:Name="rowScrollViewer"  Grid.Column="0" Grid.Row="1"
-                                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Hidden"
+                                      HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Hidden"
                                       >
                             <i:Interaction.Behaviors>
                                 <behaviors:ScrollSyncBehavior
@@ -145,8 +148,6 @@
                                      Style="{StaticResource virtualContainerListBoxStyle}"
                                      ItemTemplate="{TemplateBinding RowHeaderTemplate}"
                                      ItemTemplateSelector="{TemplateBinding RowHeaderTemplateSelector}"
-                                     ScrollViewer.VerticalScrollBarVisibility="Hidden"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                      MinWidth="{TemplateBinding MinRowWidth}"                                     
                                      >
                                 <i:Interaction.Behaviors>
@@ -166,8 +167,8 @@
                                      
                         </ScrollViewer>
 
-                        <GridSplitter Grid.Column="1" Grid.Row="0" Width="4" VerticalAlignment="Stretch" />
-                        <GridSplitter Grid.Column="1" Grid.Row="1" Width="4" VerticalAlignment="Stretch" />
+                        <GridSplitter Grid.Column="1" Grid.Row="0" Width="4" HorizontalAlignment="Stretch" />
+                        <GridSplitter Grid.Column="1" Grid.Row="1" Width="4" HorizontalAlignment="Stretch" />
 
 
                         <!--column header-->

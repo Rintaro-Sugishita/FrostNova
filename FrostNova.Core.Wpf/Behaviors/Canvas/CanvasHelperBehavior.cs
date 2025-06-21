@@ -8,6 +8,7 @@ using System.Windows;
 using Microsoft.Xaml.Behaviors;
 using System.Windows.Media;
 using System.Net.Mime;
+using FrostNova.Core.Wpf.AttachedProperties;
 
 namespace FrostNova.Core.Wpf.Behaviors
 {
@@ -54,7 +55,7 @@ namespace FrostNova.Core.Wpf.Behaviors
                     {
                         Canvas.SetLeft(_presenter, BindLeft);
                     }
-                    if (BindTop != double.NaN && canvasTop!= BindTop)
+                    if (BindTop != double.NaN && canvasTop != BindTop)
                     {
                         Canvas.SetTop(_presenter, BindTop);
                     }
@@ -71,7 +72,7 @@ namespace FrostNova.Core.Wpf.Behaviors
             get { return (double)GetValue(BindLeftProperty); }
             set { SetValue(BindLeftProperty, value); }
         }
-        public static readonly DependencyProperty BindLeftProperty = DependencyProperty.Register(nameof(BindLeft), typeof(double), typeof(CanvasHelperBehavior),new FrameworkPropertyMetadata(double.NaN, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+        public static readonly DependencyProperty BindLeftProperty = DependencyProperty.Register(nameof(BindLeft), typeof(double), typeof(CanvasHelperBehavior), new FrameworkPropertyMetadata(double.NaN, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         /// <summary>
         /// string
@@ -97,5 +98,62 @@ namespace FrostNova.Core.Wpf.Behaviors
             }
             return null;
         }
+
+
+        public VerticalAlignment CanvasVerticalAlignment
+        {
+            get => (VerticalAlignment)GetValue(CanvasVerticalAlignmentProperty);
+            set => SetValue(CanvasVerticalAlignmentProperty, value);
+        }
+
+        public static readonly DependencyProperty CanvasVerticalAlignmentProperty =
+            DependencyProperty.Register(
+                nameof(CanvasVerticalAlignment),
+                typeof(VerticalAlignment),
+                typeof(CanvasHelperBehavior),
+                new PropertyMetadata(VerticalAlignment.Top, OnCanvasVerticalAlignmentChanged));
+
+        private static void OnCanvasVerticalAlignmentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is CanvasHelperBehavior b && b.AssociatedObject is FrameworkElement fe && fe.Parent is Canvas canvas)
+            {
+                fe.Loaded += (_, __) => UpdateTop(fe, canvas);
+                fe.SizeChanged += (_, __) => UpdateTop(fe, canvas);
+
+                UpdateTop(fe, canvas);
+            }
+        }
+
+        private static void UpdateTop(FrameworkElement element, Canvas canvas)
+        {
+            var alignment = element.GetValue(CanvasVerticalAlignmentProperty);
+            var height = element.ActualHeight;
+            var canvasHeight = canvas.ActualHeight;
+
+            double top = 0;
+            switch (alignment)
+            {
+                case VerticalAlignment.Top:
+                    top = 0;
+                    break;
+                case VerticalAlignment.Center:
+                    top = (canvasHeight - height) / 2;
+                    break;
+                case VerticalAlignment.Bottom:
+                    top = canvasHeight - height;
+                    break;
+                case VerticalAlignment.Stretch:
+                    // ストレッチ時は上寄せで高さをCanvasに合わせる
+                    top = 0;
+                    element.Height = canvasHeight;
+                    break;
+            }
+
+            Canvas.SetTop(element, top);
+        }
+
+
+
+
     }
 }

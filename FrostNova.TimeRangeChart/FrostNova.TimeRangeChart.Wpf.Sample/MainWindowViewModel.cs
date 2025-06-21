@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using FrostNova. TimeRangeChart.TimeRangeHelpers;
 using Microsoft.Xaml.Behaviors.Core;
+using CommunityToolkit.Mvvm.Input;
 
 namespace FrostNova.TimeRangeChart.Wpf.Sample
 {
@@ -54,6 +55,11 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
             base.InitializeOnExecute();
         }
 
+        [RelayCommand]
+        private void SetData()
+        {
+            GridVm.SetData();
+        }
 
 
     }
