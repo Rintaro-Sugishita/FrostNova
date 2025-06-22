@@ -48,17 +48,17 @@ namespace FrostNova.Core.Wpf.Behaviors
                 // Canvas.Leftが変わったらViewModelに書き戻す処理を仕込む
                 AssociatedObject.LayoutUpdated += (s, _) =>
                 {
-                    double canvasLeft = Canvas.GetLeft(_presenter);
-                    double canvasTop = Canvas.GetTop(_presenter);
+                    //double canvasLeft = Canvas.GetLeft(_presenter);
+                    //double canvasTop = Canvas.GetTop(_presenter);
 
-                    if (BindLeft != double.NaN && canvasLeft != BindLeft)
-                    {
-                        Canvas.SetLeft(_presenter, BindLeft);
-                    }
-                    if (BindTop != double.NaN && canvasTop != BindTop)
-                    {
-                        Canvas.SetTop(_presenter, BindTop);
-                    }
+                    //if (double.IsNaN(BindLeft) == false && canvasLeft != BindLeft)
+                    //{
+                    //    Canvas.SetLeft(_presenter, BindLeft);
+                    //}
+                    //if (double.IsNaN(BindTop) == false && canvasTop != BindTop)
+                    //{
+                    //    Canvas.SetTop(_presenter, BindTop);
+                    //}
                 };
             }
         }
@@ -72,7 +72,21 @@ namespace FrostNova.Core.Wpf.Behaviors
             get { return (double)GetValue(BindLeftProperty); }
             set { SetValue(BindLeftProperty, value); }
         }
-        public static readonly DependencyProperty BindLeftProperty = DependencyProperty.Register(nameof(BindLeft), typeof(double), typeof(CanvasHelperBehavior), new FrameworkPropertyMetadata(double.NaN, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+        public static readonly DependencyProperty BindLeftProperty = DependencyProperty.Register(nameof(BindLeft), typeof(double), typeof(CanvasHelperBehavior), new FrameworkPropertyMetadata(double.NaN, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnBindLeftChanged));
+
+        private static void OnBindLeftChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is CanvasHelperBehavior behavior && behavior._presenter != null)
+            {
+                double canvasLeft = Canvas.GetLeft(behavior._presenter);
+                double canvasTop = Canvas.GetTop(behavior._presenter);
+
+                if (double.IsNaN(behavior.BindLeft) == false && canvasLeft != behavior.BindLeft)
+                {
+                    Canvas.SetLeft(behavior._presenter, behavior.BindLeft);
+                }
+            }
+        }
 
         /// <summary>
         /// string

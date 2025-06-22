@@ -43,7 +43,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         protected override void InitializeOnExecute()
         {
             base.InitializeOnExecute();
-            SetData(20, 10);
+            SetData(20, 2);
         }
 
         private void SetData(int days, int c)
@@ -75,9 +75,10 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
                 var d1 = DateTimeRandomGenerator.GetRandomDateTime(ChartStart, ChartEnd);
                 var span = new TimeSpan(random.Next(60) + 20, 0, 0, 0);
 
-                var d = new SampleModel(d1.Date, span);
+                var d = new SampleModel(d1.Date, TimeSpan.Zero);
                 d.Color = Color.FromArgb(130, (byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255));
-                d.WorkingSpan = span;
+                d.WorkingSpan = TimeSpan.Zero;
+                d.IgnoreNonWorkingTimes = true;
 
                 a.Gantts.Add(d);
 

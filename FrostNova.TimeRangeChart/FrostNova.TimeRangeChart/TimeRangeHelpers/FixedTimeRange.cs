@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -9,12 +10,18 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
 {
     [DebuggerDisplay($"{nameof(FixedTimeRange)}: {nameof(StartTime)}:{{StartTime}}, {nameof(EndTime)}:{{EndTime}} ")]
 
-    public class FixedTimeRange : ITimeRange
+    public partial class FixedTimeRange : ObservableObject, ITimeRange
     {
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
+        [ObservableProperty]
+        private DateTime _startTime;
+
+        [ObservableProperty]
+        private DateTime _endTime;
+
         public TimeSpan? WorkingSpan { get => ActualSpan; set => ActualSpan = value.HasValue ? value.Value : TimeSpan.Zero; }
-        public TimeSpan ActualSpan { get; set; }
+
+        [ObservableProperty]
+        TimeSpan _actualSpan;
         public bool IgnoreNonWorkingTimes { get; } = true;
 
         public FixedTimeRange(DateTime startTime, DateTime endTime)

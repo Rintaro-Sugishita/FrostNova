@@ -345,8 +345,10 @@ namespace FrostNova.TimeRangeChart.Wpf
 
             if (moveThumb != null)
             {
+                bool isMoving = false;
                 moveThumb.DragDelta += (s, e) =>
                 {
+
                     if (!CanDrag) return;
                     if (!CanCalculate) return;
                     if (ParentChart == null) return;
@@ -360,18 +362,28 @@ namespace FrostNova.TimeRangeChart.Wpf
                     var deltaTime = movedStartTime - StartTime;
 
                     if (deltaTime == TimeSpan.Zero) return;
-                    var args = new MoveEventParameter(DataContext, deltaTime);
 
-                    if (MoveCommand != null)
+                    if (isMoving) return;
+                    try
                     {
-                        if (MoveCommand?.CanExecute(args) == true)
-                            MoveCommand.Execute(args);
-                    }
-                    else if (this.DataContext is ITimeRange timeRange)
-                    {
-                        timeRange.Move(deltaTime, ParentChart.NonWorkingTimes);
-                    }
+                        isMoving = true;
+                        var args = new MoveEventParameter(DataContext, deltaTime);
 
+                        if (MoveCommand != null)
+                        {
+                            if (MoveCommand?.CanExecute(args) == true)
+                                MoveCommand.Execute(args);
+                        }
+                        else if (this.DataContext is ITimeRange timeRange)
+                        {
+                            timeRange.Move(deltaTime, ParentChart.NonWorkingTimes);
+                        }
+
+                    }
+                    finally
+                    {
+                        isMoving = false;
+                    }
                 };
             }
 
