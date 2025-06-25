@@ -99,6 +99,16 @@ namespace FrostNova.Core.Wpf.Controls
         }
         public static DependencyProperty MinuteValueProperty = DependencyProperty.Register(nameof(MinuteValue), typeof(int?), typeof(TimePicker));
 
+        /// <summary>
+        /// second value
+        /// </summary>
+        public int? SecondValue
+        {
+            get { return (int?)GetValue(SecondValueProperty); }
+            set { SetValue(SecondValueProperty, value); }
+        }
+        public static DependencyProperty SecondValueProperty = DependencyProperty.Register(nameof(SecondValue), typeof(int?), typeof(TimePicker));
+
 
 
 
@@ -108,7 +118,7 @@ namespace FrostNova.Core.Wpf.Controls
         public IEnumerable<int> Hours
         {
             get { return (IEnumerable<int>)GetValue(HoursProperty); }
-            set { SetValue(HoursProperty, value); }
+            private set { SetValue(HoursProperty, value); }
         }
         public static DependencyProperty HoursProperty = DependencyProperty.Register(nameof(Hours), typeof(IEnumerable<int>), typeof(TimePicker));
 
@@ -130,9 +140,40 @@ namespace FrostNova.Core.Wpf.Controls
         public IEnumerable<int> Minutes
         {
             get { return (IEnumerable<int>)GetValue(MinutesProperty); }
-            set { SetValue(MinutesProperty, value); }
+            private set { SetValue(MinutesProperty, value); }
         }
         public static DependencyProperty MinutesProperty = DependencyProperty.Register(nameof(Minutes), typeof(IEnumerable<int>), typeof(TimePicker));
+
+        /// <summary>
+        /// second span
+        /// </summary>
+        public int SecondSpan
+        {
+            get { return (int)GetValue(SecondSpanProperty); }
+            set { SetValue(SecondSpanProperty, value); }
+        }
+        public static DependencyProperty SecondSpanProperty = DependencyProperty.Register(nameof(SecondSpan), typeof(int), typeof(TimePicker), new PropertyMetadata(10, OnSecondSpanChanged));
+
+
+        /// <summary>
+        /// list of seconds
+        /// </summary>
+        public IEnumerable<int> Seconds
+        {
+            get { return (IEnumerable<int>)GetValue(SecondsProperty); }
+           private set { SetValue(SecondsProperty, value); }
+        }
+        public static DependencyProperty SecondsProperty = DependencyProperty.Register(nameof(Seconds), typeof(IEnumerable<int>), typeof(TimePicker));
+
+        /// <summary>
+        /// show or hidden list of seconds
+        /// </summary>
+        public bool IsShowSecond
+        {
+            get { return (bool)GetValue(IsShowSecondProperty); }
+            set { SetValue(IsShowSecondProperty, value); }
+        }
+        public static DependencyProperty IsShowSecondProperty = DependencyProperty.Register(nameof(IsShowSecond), typeof(bool), typeof(TimePicker), new PropertyMetadata(false));
 
 
         /// <summary>
@@ -237,6 +278,21 @@ namespace FrostNova.Core.Wpf.Controls
 
         }
 
+        private static void OnSecondSpanChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TimePicker timePicker)
+            {
+                var format = FormatMinuteSpan(
+                timePicker.SecondSpan);
+                if (format != timePicker.SecondSpan)
+                {
+                    timePicker.SecondSpan = format;
+                    return;
+                }
+                SetSecondList(timePicker, timePicker.MinuteSpan);
+            }
+        }
+
         #endregion
 
         private static int FormatMinuteSpan(int span)
@@ -292,10 +348,23 @@ namespace FrostNova.Core.Wpf.Controls
             }
             picker.Minutes = list;
         }
+        
+        private static void SetSecondList(TimePicker picker, int span)
+        {
+            const int MAX = 60;
+            int currentMinute = 0;
+            List<int> list = new();
+            while (currentMinute < MAX)
+            {
+                list.Add(currentMinute);
+                currentMinute += span;
+            }
+            picker.Seconds = list;
+        }
 
         private static void SetHourList(TimePicker picker)
         {
-            picker.Hours = Enumerable.Range(0, 23);
+            picker.Hours = Enumerable.Range(0, 24);
         }
 
         private static void SetValue(TimePicker picker)
@@ -304,8 +373,12 @@ namespace FrostNova.Core.Wpf.Controls
             {
                 return;
             }
+            if (picker.IsShowSecond && picker.SecondValue.HasValue == false)
+            {
+                return;
+            }
 
-            var time = new TimeSpan(picker.HourValue.Value, picker.MinuteValue.Value, 0);
+            var time = new TimeSpan(picker.HourValue.Value, picker.MinuteValue.Value, picker.IsShowSecond ? picker.SecondValue!.Value : 0);
 
             if (picker.TimeValue is DateTime dateValue)
             {
@@ -335,16 +408,27 @@ namespace FrostNova.Core.Wpf.Controls
             {
                 picker.HourValue = dateValue.Hour;
                 picker.MinuteValue = dateValue.Minute;
+
+                if (picker.IsShowSecond)
+                {
+                    picker.SecondValue = dateValue.Second;
+                }
+
             }
             else if (picker.TimeValue is TimeSpan spanValue)
             {
                 picker.HourValue = spanValue.Hours;
                 picker.MinuteValue = spanValue.Minutes;
+                if (picker.IsShowSecond)
+                {
+                    picker.SecondValue = spanValue.Seconds;
+                }
             }
             else
             {
                 picker.HourValue = null;
                 picker.MinuteValue = null;
+                picker.SecondValue = null;
             }
         }
 
@@ -353,6 +437,7 @@ namespace FrostNova.Core.Wpf.Controls
             base.OnApplyTemplate();
             SetHourList(this);
             SetMinuteList(this, this.MinuteSpan);
+            SetSecondList(this, this.SecondSpan);
 
 
             var toggleButton = GetTemplateChild("PART_BUTTON") as ToggleButton;

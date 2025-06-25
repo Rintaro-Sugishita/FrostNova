@@ -53,6 +53,7 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition />
                                     <ColumnDefinition />
+                                    <ColumnDefinition />
                                 </Grid.ColumnDefinitions>
                                 <ListBox x:Name="PART_hour" ItemsSource="{TemplateBinding Hours}"
                                          SelectionMode="Single"
@@ -62,6 +63,24 @@
                                          SelectionMode="Single"
                                          SelectedItem="{Binding MinuteValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                          >
+
+                                </ListBox>               
+                                <ListBox x:Name="PART_second" Grid.Column="2" ItemsSource="{TemplateBinding Seconds}"
+                                         SelectionMode="Single"
+                                         SelectedItem="{Binding SecondValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                         >
+                                    <ListBox.Style>
+                                        <Style TargetType="{x:Type ListBox}" BasedOn="{StaticResource {x:Type ListBox}}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+
+                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource TemplatedParent},Path=IsShowSecond}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ListBox.Style>
 
                                 </ListBox>
 
