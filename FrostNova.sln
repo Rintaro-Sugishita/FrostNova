@@ -19,6 +19,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostNova.TimeRangeChartTes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostNova.TimeRangeChart.Wpf.Sample", "FrostNova.TimeRangeChart\FrostNova.TimeRangeChart.Wpf.Sample\FrostNova.TimeRangeChart.Wpf.Sample.csproj", "{FB4730B0-84FF-4E52-877D-97A98519094F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostNova.Core.Wpf.Controls", "FrostNova.Core.Wpf.Controls\FrostNova.Core.Wpf.Controls.csproj", "{52E3E7B0-F8D4-4704-8FA7-E69B17A66E5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostNova.Core.Wpf.Controls.Sample", "FrostNova.Core.Wpf.Controls.Sample\FrostNova.Core.Wpf.Controls.Sample.csproj", "{F9B5572A-46D0-45C8-A4E0-38AE505E2CF7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +57,14 @@ Global
 		{FB4730B0-84FF-4E52-877D-97A98519094F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FB4730B0-84FF-4E52-877D-97A98519094F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FB4730B0-84FF-4E52-877D-97A98519094F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52E3E7B0-F8D4-4704-8FA7-E69B17A66E5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52E3E7B0-F8D4-4704-8FA7-E69B17A66E5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52E3E7B0-F8D4-4704-8FA7-E69B17A66E5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52E3E7B0-F8D4-4704-8FA7-E69B17A66E5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9B5572A-46D0-45C8-A4E0-38AE505E2CF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9B5572A-46D0-45C8-A4E0-38AE505E2CF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9B5572A-46D0-45C8-A4E0-38AE505E2CF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9B5572A-46D0-45C8-A4E0-38AE505E2CF7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
