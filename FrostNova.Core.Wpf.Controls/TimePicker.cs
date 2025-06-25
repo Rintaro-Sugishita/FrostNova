@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -54,6 +55,8 @@ namespace FrostNova.Core.Wpf.Controls
             DefaultStyleKeyProperty.OverrideMetadata(typeof(TimePicker), new FrameworkPropertyMetadata(typeof(TimePicker)));
         }
 
+        #region properties
+
         /// <summary>
         /// value of datetime or timespan
         /// </summary>
@@ -79,22 +82,22 @@ namespace FrostNova.Core.Wpf.Controls
         /// <summary>
         /// hour value
         /// </summary>
-        public int HourValue
+        public int? HourValue
         {
-            get { return (int)GetValue(HourValueProperty); }
+            get { return (int?)GetValue(HourValueProperty); }
             set { SetValue(HourValueProperty, value); }
         }
-        public static DependencyProperty HourValueProperty = DependencyProperty.Register(nameof(HourValue), typeof(int), typeof(TimePicker));
+        public static DependencyProperty HourValueProperty = DependencyProperty.Register(nameof(HourValue), typeof(int?), typeof(TimePicker));
 
         /// <summary>
         /// minute value
         /// </summary>
-        public int MinuteValue
+        public int? MinuteValue
         {
-            get { return (int)GetValue(MinuteValueProperty); }
+            get { return (int?)GetValue(MinuteValueProperty); }
             set { SetValue(MinuteValueProperty, value); }
         }
-        public static DependencyProperty MinuteValueProperty = DependencyProperty.Register(nameof(MinuteValue), typeof(int), typeof(TimePicker));
+        public static DependencyProperty MinuteValueProperty = DependencyProperty.Register(nameof(MinuteValue), typeof(int?), typeof(TimePicker));
 
 
 
@@ -131,6 +134,93 @@ namespace FrostNova.Core.Wpf.Controls
         }
         public static DependencyProperty MinutesProperty = DependencyProperty.Register(nameof(Minutes), typeof(IEnumerable<int>), typeof(TimePicker));
 
+
+        /// <summary>
+        /// max height of popup
+        /// </summary>
+        public double MaxPopupHeight
+        {
+            get { return (double)GetValue(MaxPopupHeightProperty); }
+            set { SetValue(MaxPopupHeightProperty, value); }
+        }
+        public static DependencyProperty MaxPopupHeightProperty = DependencyProperty.Register(nameof(MaxPopupHeight), typeof(double), typeof(TimePicker), new PropertyMetadata(double.PositiveInfinity));
+
+        /// <summary>
+        /// min height of popup
+        /// </summary>
+        public double MinPopupHeight
+        {
+            get { return (double)GetValue(MinPopupHeightProperty); }
+            set { SetValue(MinPopupHeightProperty, value); }
+        }
+        public static DependencyProperty MinPopupHeightProperty = DependencyProperty.Register(nameof(MinPopupHeight), typeof(double), typeof(TimePicker), new PropertyMetadata(0.0D));
+
+        /// <summary>
+        /// height of popup
+        /// </summary>
+        public double PopupHeight
+        {
+            get { return (double)GetValue(PopupHeightProperty); }
+            set { SetValue(PopupHeightProperty, value); }
+        }
+        public static DependencyProperty PopupHeightProperty = DependencyProperty.Register(nameof(PopupHeight), typeof(double), typeof(TimePicker), new PropertyMetadata(double.NaN));
+
+        /// <summary>
+        /// max width of popup
+        /// </summary>
+        public double MaxPopupWidth
+        {
+            get { return (double)GetValue(MaxPopupWidthProperty); }
+            set { SetValue(MaxPopupWidthProperty, value); }
+        }
+        public static DependencyProperty MaxPopupWidthProperty = DependencyProperty.Register(nameof(MaxPopupWidth), typeof(double), typeof(TimePicker), new PropertyMetadata(double.PositiveInfinity));
+
+        /// <summary>
+        /// min width of popup
+        /// </summary>
+        public double MinPopupWidth
+        {
+            get { return (double)GetValue(MinPopupWidthProperty); }
+            set { SetValue(MinPopupWidthProperty, value); }
+        }
+        public static DependencyProperty MinPopupWidthProperty = DependencyProperty.Register(nameof(MinPopupWidth), typeof(double), typeof(TimePicker), new PropertyMetadata(0.0D));
+
+        /// <summary>
+        /// width of popup
+        /// </summary>
+        public double PopupWidth
+        {
+            get { return (double)GetValue(PopupWidthProperty); }
+            set { SetValue(PopupWidthProperty, value); }
+        }
+        public static DependencyProperty PopupWidthProperty = DependencyProperty.Register(nameof(PopupWidth), typeof(double), typeof(TimePicker), new PropertyMetadata(double.NaN));
+
+        /// <summary>
+        /// PlacementTarget
+        /// </summary>
+        public UIElement PlacementTarget
+        {
+            get { return (UIElement)GetValue(PlacementTargetProperty); }
+            set { SetValue(PlacementTargetProperty, value); }
+        }
+        public static DependencyProperty PlacementTargetProperty = DependencyProperty.Register(nameof(PlacementTarget), typeof(UIElement), typeof(TimePicker));
+
+        /// <summary>
+        /// string
+        /// </summary>
+        public PlacementMode Placement
+        {
+            get { return (PlacementMode)GetValue(PlacementProperty); }
+            set { SetValue(PlacementProperty, value); }
+        }
+        public static DependencyProperty PlacementProperty = DependencyProperty.Register(nameof(Placement), typeof(PlacementMode), typeof(TimePicker), new PropertyMetadata(PlacementMode.Bottom));
+
+
+        #endregion
+
+        #region property changed actions
+
+
         private static void OnMinuteSpanChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is TimePicker timePicker)
@@ -146,6 +236,8 @@ namespace FrostNova.Core.Wpf.Controls
             }
 
         }
+
+        #endregion
 
         private static int FormatMinuteSpan(int span)
         {
@@ -208,7 +300,12 @@ namespace FrostNova.Core.Wpf.Controls
 
         private static void SetValue(TimePicker picker)
         {
-            var time = new TimeSpan(picker.HourValue, picker.MinuteValue, 0);
+            if (picker.HourValue.HasValue == false || picker.MinuteValue.HasValue == false)
+            {
+                return;
+            }
+
+            var time = new TimeSpan(picker.HourValue.Value, picker.MinuteValue.Value, 0);
 
             if (picker.TimeValue is DateTime dateValue)
             {
@@ -243,6 +340,11 @@ namespace FrostNova.Core.Wpf.Controls
             {
                 picker.HourValue = spanValue.Hours;
                 picker.MinuteValue = spanValue.Minutes;
+            }
+            else
+            {
+                picker.HourValue = null;
+                picker.MinuteValue = null;
             }
         }
 

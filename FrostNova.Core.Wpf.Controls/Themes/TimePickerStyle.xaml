@@ -26,12 +26,28 @@
                                     </Setter>
                                 </Style>
                             </ToggleButton.Style>
-                            
+
                         </ToggleButton>
                         <Popup x:Name="PART_popup"
                                IsOpen="{Binding IsChecked, ElementName=PART_BUTTON}" StaysOpen="False" 
-                              
+                               MaxHeight="{TemplateBinding MaxPopupHeight}"
+                               MinHeight="{TemplateBinding MinPopupHeight}"
+                               Height="{TemplateBinding PopupHeight}"
+                               MaxWidth="{TemplateBinding MaxPopupWidth}"
+                               MinWidth="{TemplateBinding MinPopupWidth}"
+                               Width="{TemplateBinding PopupWidth}"
+                               Placement="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Placement,FallbackValue={x:Static PlacementMode.Bottom}}"                             
                                >
+                            <Popup.Style>
+                                <Style TargetType="{x:Type Popup}">
+                                    <Setter Property="PlacementTarget" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=PlacementTarget}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=PlacementTarget}" Value="{x:Null}">
+                                            <Setter Property="PlacementTarget" Value="{Binding ElementName=PART_BUTTON}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Popup.Style>
                             <Grid>
 
                                 <Grid.ColumnDefinitions>
@@ -39,15 +55,17 @@
                                     <ColumnDefinition />
                                 </Grid.ColumnDefinitions>
                                 <ListBox x:Name="PART_hour" ItemsSource="{TemplateBinding Hours}"
+                                         SelectionMode="Single"
                                          SelectedItem="{Binding HourValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                          />
                                 <ListBox x:Name="PART_minute" Grid.Column="1" ItemsSource="{TemplateBinding Minutes}"
+                                         SelectionMode="Single"
                                          SelectedItem="{Binding MinuteValue, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                          >
-                                    
+
                                 </ListBox>
-                            
-                            
+
+
                             </Grid>
                         </Popup>
                     </Grid>
@@ -55,5 +73,5 @@
             </Setter.Value>
         </Setter>
     </Style>
-    
+
 </ResourceDictionary>
