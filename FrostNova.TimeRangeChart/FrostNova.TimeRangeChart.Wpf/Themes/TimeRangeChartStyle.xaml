@@ -78,10 +78,11 @@
 
                         <ItemsControl x:Name="ganttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=ItemsSource}"   
                                       BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                      >
+                                      AllowDrop="{TemplateBinding AllowDrop}"
+                                      >
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <Canvas />
+                                    <Canvas AllowDrop="{TemplateBinding AllowDrop}" Background="Transparent" />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
@@ -94,6 +95,9 @@
                                             <behaviors:CanvasHelperBehavior BindLeft="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}} , Path=Left}"
                                                                             CanvasVerticalAlignment="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=VerticalAlignment}"
                                                         />
+                                            <!--<behaviors:DragSourceBehavior DragData="{Binding RelativeSource={RelativeSource Self}}"
+                                                                          SourceParameter="{Binding Source={StaticResource bindingProxy},Path=Data.ItemsSource,Mode=OneTime}"
+                                                                          />-->
                                         </i:Interaction.Behaviors>
                                     </local:TimeRangeControl>
                                 </DataTemplate>

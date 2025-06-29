@@ -16,11 +16,13 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using CommunityToolkit.Mvvm.Input;
+using FrostNova.Core.Wpf.Behaviors;
 using FrostNova.TimeRangeChart.TimeRangeHelpers;
 
 namespace FrostNova.TimeRangeChart.Wpf
 {
-    public class GridTimeRangeChart : Control
+    public partial class GridTimeRangeChart : Control
     {
         static GridTimeRangeChart()
         {
@@ -286,13 +288,13 @@ namespace FrostNova.TimeRangeChart.Wpf
 
             TimeTicks.Clear();
 
-            double newWidth = (ticks.Count-1) * WidthPerRuledLine;
+            double newWidth = (ticks.Count - 1) * WidthPerRuledLine;
 
 
             var localTimeTicks = new ObservableCollection<IRuledLine>();
             foreach (var item in ticks)
             {
-                localTimeTicks.Add(new RuledLineData(this) { DateValue = item, LeftPoint= TimeScreenHelper.TimeToPoint(item, StartTime, EndTime, newWidth) });
+                localTimeTicks.Add(new RuledLineData(this) { DateValue = item, LeftPoint = TimeScreenHelper.TimeToPoint(item, StartTime, EndTime, newWidth) });
             }
             TimeTicks = localTimeTicks;
         }
@@ -307,12 +309,56 @@ namespace FrostNova.TimeRangeChart.Wpf
             {
                 this.DrawBorder();
             };
+            AddHandler(TimeRangeChart.TaskDropEvent, new EventHandler<DropOnRowEventArgs>(OnTaskDrop));
+            AddHandler(TimeRangeChart.PreviewTaskDropEvent, new EventHandler<DropOnRowEventArgs>(OnPreviewTaskDrop));
 
-        
 
 
 
         }
+
+        protected void OnPreviewTaskDrop(object? sender, DropOnRowEventArgs e)
+        {
+            var newArgs = new DropOnRowEventArgs(PreviewTaskDropEvent, e.DropPoint, e.TaskObject!);
+            RaiseEvent(newArgs);
+        }
+        
+        protected void OnTaskDrop(object? sender, DropOnRowEventArgs e)
+        {
+            var newArgs = new DropOnRowEventArgs(TaskDropEvent, e.DropPoint, e.TaskObject!);
+            RaiseEvent(newArgs);
+        }
+
+
+        public bool CanDragTasksBetweenRows
+        {
+            get { return (bool)GetValue(CanDragTasksBetweenRowsProperty); }
+            set { SetValue(CanDragTasksBetweenRowsProperty, value); }
+        }
+        public static DependencyProperty CanDragTasksBetweenRowsProperty = DependencyProperty.Register(nameof(CanDragTasksBetweenRows), typeof(bool), typeof(GridTimeRangeChart), new PropertyMetadata(true));
+
+        public static readonly RoutedEvent TaskDropEvent =
+        EventManager.RegisterRoutedEvent(
+            nameof(TaskDrop), RoutingStrategy.Bubble,
+            typeof(EventHandler<DropOnRowEventArgs>), typeof(GridTimeRangeChart));
+
+        public event EventHandler<DropOnRowEventArgs> TaskDrop
+        {
+            add { AddHandler(TaskDropEvent, value); }
+            remove { RemoveHandler(TaskDropEvent, value); }
+        }
+        public static readonly RoutedEvent PreviewTaskDropEvent =
+        EventManager.RegisterRoutedEvent(
+            nameof(PreviewTaskDrop), RoutingStrategy.Bubble,
+            typeof(EventHandler<DropOnRowEventArgs>), typeof(GridTimeRangeChart));
+
+        public event EventHandler<DropOnRowEventArgs> PreviewTaskDrop
+        {
+            add { AddHandler(PreviewTaskDropEvent, value); }
+            remove { RemoveHandler(PreviewTaskDropEvent, value); }
+        }
+
+
 
 
     }

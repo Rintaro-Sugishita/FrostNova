@@ -76,6 +76,7 @@ namespace FrostNova.Core.Wpf.Behaviors
             UIElement? element = sender as UIElement;
             if (element != null)
             {
+                
                 var formats = e.Data.GetFormats();
                 if (formats != null && formats.Length > 0)
                 {

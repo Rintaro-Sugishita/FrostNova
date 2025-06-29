@@ -100,7 +100,7 @@
                                           RuledLineThickness="0.5"
                                           RuledLineFill="Gray"
                                           RowHeight="150"
-                                          
+                                          CanDragTasksBetweenRows="True"
                                           TimeRangeStyle="{StaticResource rangeStyle}"
                                           >
                     <chart:GridTimeRangeChart.CornerHeaderSource>

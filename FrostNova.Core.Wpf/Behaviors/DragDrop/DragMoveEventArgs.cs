@@ -15,6 +15,8 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         public object MovedItem { get; private set; }
 
+        internal EventArgs OriginalEventArgs { get; set; }
+
         internal DragMoveEventArgs(int newRowIndex, int oldRowIndex, object movedItem)
         {
             NewRowIndex = newRowIndex;

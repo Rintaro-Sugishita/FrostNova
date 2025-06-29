@@ -409,5 +409,77 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
 
 
+        public bool CanDragTasksBetweenRows
+        {
+            get { return (bool)GetValue(CanDragTasksBetweenRowsProperty); }
+            set { SetValue(CanDragTasksBetweenRowsProperty, value); }
+        }
+        public static DependencyProperty CanDragTasksBetweenRowsProperty = DependencyProperty.Register(nameof(CanDragTasksBetweenRows), typeof(bool), typeof(TimeRangeChart), new PropertyMetadata(false));
+
+
+
+
+        protected override void OnPreviewDrop(DragEventArgs e)
+        {
+            base.OnPreviewDrop(e);
+
+           if (CanDragTasksBetweenRows  == false) { return; }
+
+            var formats = e.Data.GetFormats();
+            if (formats != null && formats.Length > 0)
+            {
+                var data = e.Data.GetData(formats[0]);
+                if (data is DragTaskData data2)
+                {
+                    var param = new DragTaskData();
+
+
+                    var dropPoint = this?.PointToTimeFunc(e.GetPosition(this).X);
+
+                    var args = new DropOnRowEventArgs(PreviewTaskDropEvent, dropPoint.Value, data2.TimeRange);
+                    args.SourceList = data2.SourceRow;
+                    args.DestList = this.ItemsSource;
+                    RaiseEvent(args);
+                    if (args.Cancel) { return; }
+
+                    args.SourceList?.Remove(args.TaskObject);
+
+
+                    //開始時間を書き換える
+                    if (args.TaskObject is ITimeRange range)
+                    {
+                        range.Move(dropPoint.Value - range.StartTime, NonWorkingTimes);
+                    }
+
+                    args.DestList.Add(args.TaskObject);
+
+                    var args2 = new DropOnRowEventArgs(TaskDropEvent, dropPoint.Value, data2.TimeRange);
+                    RaiseEvent(args2);
+                }
+            }
+        }
+
+
+        public static readonly RoutedEvent TaskDropEvent =
+        EventManager.RegisterRoutedEvent(
+            nameof(TaskDrop), RoutingStrategy.Bubble,
+            typeof(EventHandler<DropOnRowEventArgs>), typeof(TimeRangeChart));
+
+        public event EventHandler<DropOnRowEventArgs> TaskDrop
+        {
+            add { AddHandler(TaskDropEvent, value); }
+            remove { RemoveHandler(TaskDropEvent, value); }
+        }
+        public static readonly RoutedEvent PreviewTaskDropEvent =
+        EventManager.RegisterRoutedEvent(
+            nameof(PreviewTaskDrop), RoutingStrategy.Bubble,
+            typeof(EventHandler<DropOnRowEventArgs>), typeof(TimeRangeChart));
+
+        public event EventHandler<DropOnRowEventArgs> PreviewTaskDrop
+        {
+            add { AddHandler(PreviewTaskDropEvent, value); }
+            remove { RemoveHandler(PreviewTaskDropEvent, value); }
+        }
+
     }
 }

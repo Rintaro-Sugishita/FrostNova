@@ -307,11 +307,18 @@
                                                               TimeTicks="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeTicks}"
                                                               TimeUnit="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeUnit}"
                                                               NonWorkingRangeBackground="{Binding Source={StaticResource gridChartProxy}, Path=Data.NonWorkingRangeBackground}"
-                                                              
+                                                              AllowDrop="True"
+                                                              CanDragTasksBetweenRows ="{Binding Source={StaticResource gridChartProxy}, Path=Data.CanDragTasksBetweenRows}"
                                                               IsControlTick="False"
                                                               Height="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=ActualHeight}"
                                                               BorderBrush="Gray"
-                                                              />
+                                                              
+                                                              >
+                                            <!--<i:Interaction.Behaviors>
+                                                <behaviors:DragDropBehavior />
+                                            </i:Interaction.Behaviors>-->
+                                            
+                                        </local:TimeRangeChart>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                                 <ListBox.ItemsPanel>

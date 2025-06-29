@@ -60,6 +60,8 @@ namespace FrostNova.Core.Wpf.Behaviors
                     var item = new DragItemData();
                     item.DragData = DragData;
                     item.SourceParameter = SourceParameter;
+                    
+                    
 
 
                     DragDrop.DoDragDrop(source, item, DragDropEffects.Move);

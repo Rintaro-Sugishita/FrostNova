@@ -10,8 +10,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Markup;
+using FrostNova.Core.Wpf.DragHelpers;
 using FrostNova.TimeRangeChart.TimeRangeHelpers;
 
 namespace FrostNova.TimeRangeChart.Wpf
@@ -74,7 +76,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             DependencyProperty.Register(nameof(ContentTemplate), typeof(DataTemplate), typeof(TimeRangeControl), new PropertyMetadata(null));
 
         /// <summary>
-        /// start time of gantt
+        /// start time of task range
         /// </summary>
         public DateTime StartTime
         {
@@ -96,7 +98,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
 
         /// <summary> 
-        /// end time of gantt
+        /// end time of task range
         /// </summary>
         public DateTime EndTime
         {
@@ -145,7 +147,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             if (d is TimeRangeControl range)
             {
                 var width = range.Right - range.Left;
-                if (width != range.Width && width >= 0 && !range.IsMilestone) range.GanttWidth = width;
+                if (width != range.Width && width >= 0 && !range.IsMilestone) range.TaskWidth = width;
             }
         }
 
@@ -155,21 +157,21 @@ namespace FrostNova.TimeRangeChart.Wpf
             {
                 if ((range.IsMilestone == false) && e.OldValue != e.NewValue)
                 {
-                    SetGanttWidth(range);
+                    SetTaskWidth(range);
                 }
             }
         }
 
         /// <summary>
-        /// width when this is gantt
+        /// width when this is task range
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Advanced)]
-        public double GanttWidth
+        public double TaskWidth
         {
-            get { return (double)GetValue(GanttWidthProperty); }
-            private set { SetValue(GanttWidthProperty, value); }
+            get { return (double)GetValue(TaskWidthProperty); }
+            private set { SetValue(TaskWidthProperty, value); }
         }
-        public static DependencyProperty GanttWidthProperty = DependencyProperty.Register(nameof(GanttWidth), typeof(double), typeof(TimeRangeControl));
+        public static DependencyProperty TaskWidthProperty = DependencyProperty.Register(nameof(TaskWidth), typeof(double), typeof(TimeRangeControl));
 
         private static void SetLeft(TimeRangeControl range)
         {
@@ -194,10 +196,10 @@ namespace FrostNova.TimeRangeChart.Wpf
                 }
             }
         }
-        private static void SetGanttWidth(TimeRangeControl range)
+        private static void SetTaskWidth(TimeRangeControl range)
         {
             var width = range.Right - range.Left;
-            if (width != range.Width && width >= 0 && !range.IsMilestone) range.GanttWidth = width;
+            if (width != range.Width && width >= 0 && !range.IsMilestone) range.TaskWidth = width;
 
         }
 
@@ -306,7 +308,7 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         private void Aaa()
         {
-           
+
         }
 
 
@@ -467,7 +469,7 @@ namespace FrostNova.TimeRangeChart.Wpf
 
                 SetLeft(this);
                 SetRight(this);
-                SetGanttWidth(this);
+                SetTaskWidth(this);
             }
 
             this.Loaded += (s, e) =>
@@ -479,7 +481,7 @@ namespace FrostNova.TimeRangeChart.Wpf
                 }
                 SetLeft(this);
                 SetRight(this);
-                SetGanttWidth(this);
+                SetTaskWidth(this);
 
             };
 
@@ -537,7 +539,68 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         }
 
+
+
+
+
+        private DragAdorner? _dragAdorner;
+        private AdornerLayer? _adornerLayer;
+        private Point _dragStartPoint;
+
+        protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnPreviewMouseLeftButtonDown(e);
+            _dragStartPoint = e.GetPosition(this);
+            //var startTime = ParentChart?.PointToTimeFunc(_dragStartPoint.X);
+
+        }
+
+        protected override void OnPreviewMouseMove(MouseEventArgs e)
+        {
+            base.OnPreviewMouseMove(e);
+
+            if (ParentChart?.CanDragTasksBetweenRows  != true) { return; }
+
+
+            if (e.LeftButton == MouseButtonState.Pressed && _dragAdorner == null)
+            {
+                var currentPos = e.GetPosition(this);
+                if (Math.Abs(currentPos.Y - _dragStartPoint.Y) > this?.ActualHeight)
+                {
+                    // AdornerLayer取得
+                    _adornerLayer = AdornerLayer.GetAdornerLayer(this);
+                    if (_adornerLayer != null)
+                    {
+                        _dragAdorner = new DragAdorner(this, this, 0.5);
+                        _adornerLayer.Add(_dragAdorner);
+                    }
+
+                    var newE = new DragTaskData();
+                    newE.ChartStartTime = ParentChart?.PointToTimeFunc(_dragStartPoint.X);
+                    newE.SourceRow = ParentChart?.ItemsSource;
+                    newE.TimeRange = this.DataContext;
+
+                    // DragDrop開始
+                    DragDrop.DoDragDrop(this, newE, DragDropEffects.Move);
+
+                    // 終了時にAdornerを削除
+                    if (_adornerLayer != null && _dragAdorner != null)
+                    {
+                        _adornerLayer.Remove(_dragAdorner);
+                        _dragAdorner = null;
+                    }
+                }
+            }
+
+            // Adornerの位置を更新
+            if (_dragAdorner != null)
+            {
+                var pos = e.GetPosition(_adornerLayer);
+                _dragAdorner.SetOffset(new Point(pos.X - _dragStartPoint.X, pos.Y - _dragStartPoint.Y));
+            }
+
+        }
+
+
     }
-
-
 }

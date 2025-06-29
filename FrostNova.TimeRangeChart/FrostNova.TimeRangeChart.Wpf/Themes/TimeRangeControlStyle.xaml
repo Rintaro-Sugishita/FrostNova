@@ -61,9 +61,9 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
-                    <Canvas Width="{TemplateBinding GanttWidth}">
+                    <Canvas Width="{TemplateBinding TaskWidth}">
                         <Border Background="{TemplateBinding Background}" Grid.Column="1" 
-                                Width="{TemplateBinding GanttWidth}"
+                                Width="{TemplateBinding TaskWidth}"
                                 Height="{TemplateBinding Height}" 
                                 >
                             <Grid>
@@ -233,9 +233,9 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
-                            <Canvas Width="{TemplateBinding GanttWidth}">
+                            <Canvas Width="{TemplateBinding TaskWidth}">
                                 <Border Background="{TemplateBinding Background}" Grid.Column="1" 
-                                Width="{TemplateBinding GanttWidth}"
+                                Width="{TemplateBinding TaskWidth}"
                                 Height="{TemplateBinding Height}" 
                                 >
                                     <Grid>
@@ -260,9 +260,9 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
-                            <Canvas Width="{TemplateBinding GanttWidth}">
+                            <Canvas Width="{TemplateBinding TaskWidth}">
                                 <Border Background="{TemplateBinding Background}" Grid.Column="1" 
-                                Width="{TemplateBinding GanttWidth}"
+                                Width="{TemplateBinding TaskWidth}"
                                 Height="{TemplateBinding Height}" 
                                 >
                                     <Grid>
@@ -294,9 +294,9 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
-                            <Canvas Width="{TemplateBinding GanttWidth}">
+                            <Canvas Width="{TemplateBinding TaskWidth}">
                                 <Border Background="{TemplateBinding Background}" Grid.Column="1" 
-                                Width="{TemplateBinding GanttWidth}"
+                                Width="{TemplateBinding TaskWidth}"
                                 Height="{TemplateBinding Height}" 
                                 >
                                     <Grid>
@@ -355,9 +355,9 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
-                    <Canvas Width="{TemplateBinding GanttWidth}">
+                    <Canvas Width="{TemplateBinding TaskWidth}">
                         <Border Background="{TemplateBinding Background}"
-                                Width="{TemplateBinding GanttWidth}"
+                                Width="{TemplateBinding TaskWidth}"
                                 Height="{TemplateBinding Height}"
                                 >
                         </Border>
