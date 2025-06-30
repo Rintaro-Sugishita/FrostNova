@@ -68,7 +68,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
             var a = new GridSampleData();
             a.Name = "data";
 
-            //ganttを追加
+            //rangeを追加
             //1行あたり100こくらい
             for (int j = 0; j < c; j++)
             {
@@ -80,7 +80,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
                 d.WorkingSpan = TimeSpan.Zero;
                 d.IgnoreNonWorkingTimes = true;
 
-                a.Gantts.Add(d);
+                a.Tasks.Add(d);
 
             }
 

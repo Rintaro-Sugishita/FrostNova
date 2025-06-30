@@ -80,7 +80,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
                     d.Color = Color.FromArgb(130, (byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255));
                     d.WorkingSpan = span;
 
-                    a.Gantts.Add(d);
+                    a.Tasks.Add(d);
 
                 }
 

@@ -110,7 +110,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         public static readonly DependencyProperty ScaleIncrementProperty = DependencyProperty.Register(nameof(ScaleIncrement), typeof(TimeSpan), typeof(TimeRangeChart), new PropertyMetadata(new TimeSpan(1, 0, 0), OnMyPropertyChanged));
 
         /// <summary>
-        /// min span of Gantt
+        /// min span of range
         /// </summary>
         public TimeSpan MinSpan
         {

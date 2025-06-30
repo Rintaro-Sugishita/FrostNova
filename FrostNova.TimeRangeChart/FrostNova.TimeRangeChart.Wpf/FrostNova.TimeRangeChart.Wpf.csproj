@@ -16,5 +16,8 @@
     <PackageReference Include="FrostNova.Core.Wpf" Version="0.0.2" />
     <PackageReference Include="FrostNova.TimeRangeChart" Version="0.0.2" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Behaviors\" />
+  </ItemGroup>
 
 </Project>

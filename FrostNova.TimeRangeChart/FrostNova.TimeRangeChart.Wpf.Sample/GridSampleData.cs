@@ -15,7 +15,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         private string _name="";
 
         [ObservableProperty]
-        private ObservableCollection<SampleModel> _Gantts = new ObservableCollection<SampleModel>();
+        private ObservableCollection<SampleModel> _tasks = new ObservableCollection<SampleModel>();
 
     }
 }
