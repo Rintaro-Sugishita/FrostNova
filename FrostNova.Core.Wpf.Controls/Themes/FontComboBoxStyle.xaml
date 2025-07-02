@@ -1,0 +1,76 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:FrostNova.Core.Wpf.Controls"
+                    >
+
+    <Style TargetType="{x:Type ComboBoxItem}" x:Key="fontComboboxItemStyle">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ComboBoxItem}">
+                    
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        
+    </Style>
+
+    <DataTemplate DataType="{x:Type FontFamily}"   x:Key="fontComboboxItemTemplate"               
+                  >
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Margin="0,0,20,0"
+                   FontSize="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:FontComboBox}},Path=FontSize}"
+                   Text="{Binding Source}" >
+                <TextBlock.Style>
+                    <Style TargetType="{x:Type TextBlock}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:FontComboBox}}, Path=NormalTextVisibility}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock FontFamily="{Binding}"
+                   FontSize="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:FontComboBox}},Path=FontSize}"
+                   Text="{Binding Source}" >
+                <TextBlock.Style>
+                    <Style TargetType="{x:Type TextBlock}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:FontComboBox}}, Path=FontTextVisibility}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+        </StackPanel>
+    </DataTemplate>
+
+    <Style TargetType="{x:Type local:FontComboBox}" x:Key="defaultFontComboboxStyle">
+        <Setter Property="Height" Value="{Binding RelativeSource={RelativeSource TemplatedParent},Path=FontSize}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:FontComboBox}">
+                    <ComboBox 
+                        ItemsSource="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=FontFamilies}"
+                        SelectedItem="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=SelectedFontFamily}"                        
+                        ItemTemplate="{StaticResource fontComboboxItemTemplate}"
+                        MinHeight="{TemplateBinding MinHeight}"
+                        Height="{TemplateBinding Height}"
+                        MinWidth="{TemplateBinding MinWidth}"
+                        Width="{TemplateBinding Width}"
+                        FontSize="{TemplateBinding FontSize}"
+                        >
+                        
+                    </ComboBox>
+                    
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
+</ResourceDictionary>
