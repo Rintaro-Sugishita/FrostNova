@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using FrostNova.Core.Wpf.AttachedProperties;
 
 namespace FrostNova.Core.Wpf.Behaviors
 {
@@ -135,7 +136,7 @@ namespace FrostNova.Core.Wpf.Behaviors
             if (data == null || data.Count == 0) { return; }
             foreach (var item in grid.Columns)
             {
-                string key = DataGridColumnKey.GetKey(item);
+                string key = DataGridColumnEx.GetKey(item);
                 if (string.IsNullOrEmpty(key)) { continue; }
                 var dataItem = data.FirstOrDefault(x => x.Key == key);
                 if (dataItem != null)
@@ -155,8 +156,8 @@ namespace FrostNova.Core.Wpf.Behaviors
             var saveData = new List<DataGridColumnData>();
             foreach (var item in grid.Columns)
             {
-                string key = DataGridColumnKey.GetKey(item);
-                bool canSave = DataGridColumnKey.GetCanSaveWidth(item);
+                string key = DataGridColumnEx.GetKey(item);
+                bool canSave = DataGridColumnEx.GetCanSaveWidth(item);
                 if (!canSave) continue;
                 if (string.IsNullOrEmpty(key)) continue;
                 DataGridColumnData columnData = new DataGridColumnData();

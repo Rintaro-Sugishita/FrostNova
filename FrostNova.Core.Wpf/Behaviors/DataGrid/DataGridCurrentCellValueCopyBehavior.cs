@@ -1,4 +1,5 @@
-﻿using Microsoft.Xaml.Behaviors;
+﻿using FrostNova.Core.Wpf.AttachedProperties;
+using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -36,7 +37,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
             if (Keyboard.Modifiers == ModifierKeys.Control)
             {
-                string key = DataGridColumnKey.GetKey(grid.CurrentCell.Column);
+                string key = DataGridColumnEx.GetKey(grid.CurrentCell.Column);
 
                 object? targetObject = null;
                 object item = grid.CurrentCell.Item;

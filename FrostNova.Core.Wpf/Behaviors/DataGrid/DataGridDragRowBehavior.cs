@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using FrostNova.Core.TypeToolkit;
+using FrostNova.Core.Wpf.AttachedProperties;
 using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections;
@@ -46,15 +47,6 @@ namespace FrostNova.Core.Wpf.Behaviors
         public delegate Point GetPosition(IInputElement element);
         private int rowIndex = -1;
 
-        public IList AllowDragColumnIndexes
-        {
-            get => (IList)_AllowDragColumnIndexes;
-            set
-            {
-                _AllowDragColumnIndexes = value;
-            }
-        }
-        private IList _AllowDragColumnIndexes = new List<int>();
         //public static readonly DependencyProperty AllowDragColumnIndexesProperty =
         //    DependencyProperty.Register(nameof(AllowDragColumnIndexes), typeof(IList), typeof(DataGridDragRowBehavior), new PropertyMetadata(new List<int>()));
 
@@ -78,7 +70,7 @@ namespace FrostNova.Core.Wpf.Behaviors
                 return;
 
 
-            int index = this.GetCurrentRowIndex(e.GetPosition, ArrayExtensionToArray(AllowDragColumnIndexes));
+            int index = this.GetCurrentRowIndex(e.GetPosition);
             if (index < 0)
                 return;
             if (index == rowIndex)
@@ -117,7 +109,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         void DataGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            rowIndex = GetCurrentRowIndex(e.GetPosition, ArrayExtensionToArray(AllowDragColumnIndexes));
+            rowIndex = GetCurrentRowIndex(e.GetPosition);
             if (rowIndex < 0)
                 return;
             if (AssociatedObject.SelectionUnit != DataGridSelectionUnit.Cell) AssociatedObject.SelectedIndex = rowIndex;
@@ -153,19 +145,18 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         }
 
-        private int GetCurrentRowIndex(GetPosition pos, int[] allowedIndexes)
+        private int GetCurrentRowIndex(GetPosition pos)
         {
             int curIndex = -1;
 
+            AssociatedObject.Columns.Where(x => DataGridColumnEx.GetCanDragRow(x));
 
             var cell = GetDataGridObject<DataGridCell>(AssociatedObject, pos((IInputElement)AssociatedObject));
             if (cell == null) { return -1; }
-            if (cell != null && allowedIndexes.Length > 0)
+
+           if (!DataGridColumnEx.GetCanDragRow(cell.Column))
             {
-                if (!allowedIndexes.Contains(cell.Column.DisplayIndex))
-                {
-                    return -1;
-                }
+                return -1;
             }
 
             for (int i = 0; i < AssociatedObject.Items.Count; i++)

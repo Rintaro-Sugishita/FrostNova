@@ -17,6 +17,7 @@
             <ctrls:TimePicker TimeValue="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsPartsDateTime="True" />
             <TextBox Text="{Binding Span}" />
             <ctrls:TimePicker TimeValue="{Binding Span, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsPartsDateTime="False" IsShowSecond="True" />
+            <ctrls:FontComboBox  />
         </StackPanel>
 
     </Grid>

@@ -1,4 +1,5 @@
-﻿using Microsoft.Xaml.Behaviors;
+﻿using FrostNova.Core.Wpf.AttachedProperties;
+using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -83,13 +84,13 @@ namespace FrostNova.Core.Wpf.Behaviors
             if (c == 0) { return; }
             for (int i = 0; i < c; i++)
             {
-                string key = DataGridColumnKey.GetKey(DataGrid1.Columns[i]);
-                bool can = DataGridColumnKey.GetUseSync(DataGrid1.Columns[i]);
+                string key = DataGridColumnEx.GetKey(DataGrid1.Columns[i]);
+                bool can = DataGridColumnEx.GetUseSync(DataGrid1.Columns[i]);
 
                 var dataGrid1Column = DataGrid1.Columns[i];
-                var dataGrid2Column = DataGrid2.Columns.FirstOrDefault(x => key == DataGridColumnKey.GetKey(x));
+                var dataGrid2Column = DataGrid2.Columns.FirstOrDefault(x => key == DataGridColumnEx.GetKey(x));
                 if (dataGrid2Column == null) { continue; }
-                bool can2 = DataGridColumnKey.GetUseSync(dataGrid2Column);
+                bool can2 = DataGridColumnEx.GetUseSync(dataGrid2Column);
                 if (!can && !can2) { continue; }
 
                 var maxColumn1Width = 0.0;
