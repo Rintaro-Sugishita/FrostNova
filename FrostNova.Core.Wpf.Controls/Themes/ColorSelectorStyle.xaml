@@ -43,7 +43,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate>
-                    <Grid x:Name="gridMain" Background="Transparent">
+                    <Grid x:Name="gridMain" Background="Transparent" DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:ColorSelector}}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="30"/>
                             <RowDefinition/>
@@ -69,6 +69,7 @@
                                     Orientation="Horizontal"
                                     Minimum="0" Maximum="{Binding MAX_GRADIENT_SLIDER}"
                                     TickFrequency="1"
+                                        Style="{StaticResource colorSliderStyle}"
                                     Value="{Binding SelectedHue}"
                                     >
                                 </Slider>

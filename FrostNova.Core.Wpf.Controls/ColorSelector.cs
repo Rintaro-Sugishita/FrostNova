@@ -71,7 +71,7 @@ namespace FrostNova.Core.Wpf.Controls
             get { return (Color?)GetValue(SelectedColorProperty); }
             set { SetValue(SelectedColorProperty, value); }
         }
-        public static DependencyProperty SelectedColorProperty = DependencyProperty.Register(nameof(SelectedColor), typeof(Color?), typeof(ColorSelector), new PropertyMetadata(null));
+        public static DependencyProperty SelectedColorProperty = DependencyProperty.Register(nameof(SelectedColor), typeof(Color?), typeof(ColorSelector), new PropertyMetadata(Color.FromRgb(255,0,0)));
 
         /// <summary>
         /// old color
@@ -442,7 +442,7 @@ namespace FrostNova.Core.Wpf.Controls
         #endregion
         public ColorSelector()
         {
-            SelectedColor = new Color() { A = 255, R = 0, G = 0, B = 0 };
+            SelectedColor = new Color() { A = 255, R = 255, G = 0, B = 0 };
             SetHsl();
 
             OnColorChanged();
