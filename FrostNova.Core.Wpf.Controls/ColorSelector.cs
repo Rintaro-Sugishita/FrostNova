@@ -59,7 +59,7 @@ namespace FrostNova.Core.Wpf.Controls
         {
             base.OnApplyTemplate();
 
-
+            SetHsl();
 
         }
 
@@ -71,7 +71,24 @@ namespace FrostNova.Core.Wpf.Controls
             get { return (Color?)GetValue(SelectedColorProperty); }
             set { SetValue(SelectedColorProperty, value); }
         }
-        public static DependencyProperty SelectedColorProperty = DependencyProperty.Register(nameof(SelectedColor), typeof(Color?), typeof(ColorSelector), new PropertyMetadata(Color.FromRgb(255,0,0)));
+        public static DependencyProperty SelectedColorProperty = DependencyProperty.Register(nameof(SelectedColor), typeof(Color?), typeof(ColorSelector), new PropertyMetadata(Color.FromRgb(255, 0, 0), OnSelectedColorChanged));
+
+        private static void OnSelectedColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ColorSelector selector)
+            {
+                if (selector.isInHslChanging == false)
+                    selector.SetHsl();
+                //selector.SelectedA = selector.SelectedColor.HasValue ? selector.SelectedColor.Value.A : (byte)0xFF;
+                //selector.SelectedRed = selector.SelectedColor.HasValue ? selector.SelectedColor.Value.R : (byte)0xFF;
+                //selector.SelectedGreen = selector.SelectedColor.HasValue ? selector.SelectedColor.Value.G : (byte)0xFF;
+                //selector.SelectedBlue = selector.SelectedColor.HasValue ? selector.SelectedColor.Value.B : (byte)0xFF;
+                selector.OnColorChanged();
+            }
+        }
+
+
+        private bool isInHslChanging = false;
 
         /// <summary>
         /// old color
@@ -98,21 +115,30 @@ namespace FrostNova.Core.Wpf.Controls
             }
             set
             {
-                if (SelectedColor != null)
-                {
-                    SelectedColor = Color.FromArgb(SelectedColor.Value.A, value, SelectedColor.Value.G, SelectedColor.Value.B);
-                }
-                else
-                {
-                    SelectedColor = Color.FromArgb(0xFF, value, 0, 0);
-                }
 
-                SetHsl();
-                SetHueGradient();
-                SetSaturationGradient();
-                SetLightnessGradient();
+                try
+                {
+                    isInHslChanging = true;
+                    if (SelectedColor != null)
+                    {
+                        SelectedColor = Color.FromArgb(SelectedColor.Value.A, value, SelectedColor.Value.G, SelectedColor.Value.B);
+                    }
+                    else
+                    {
+                        SelectedColor = Color.FromArgb(0xFF, value, 0, 0);
+                    }
 
-                OnColorChanged();
+                    SetHsl();
+                    SetHueGradient();
+                    SetSaturationGradient();
+                    SetLightnessGradient();
+
+                    OnColorChanged();
+                }
+                finally
+                {
+                    isInHslChanging = false;
+                }
 
             }
         }
@@ -125,21 +151,30 @@ namespace FrostNova.Core.Wpf.Controls
             }
             set
             {
-                if (SelectedColor != null)
+                try
                 {
-                    SelectedColor = Color.FromArgb(SelectedColor.Value.A, SelectedColor.Value.R, value, SelectedColor.Value.B);
+                    isInHslChanging = true;
+                    if (SelectedColor != null)
+                    {
+                        SelectedColor = Color.FromArgb(SelectedColor.Value.A, SelectedColor.Value.R, value, SelectedColor.Value.B);
+                    }
+                    else
+                    {
+                        SelectedColor = Color.FromArgb(0xFF, 0, value, 0);
+                    }
+
+                    SetHsl();
+                    SetHueGradient();
+                    SetSaturationGradient();
+                    SetLightnessGradient();
+
+                    OnColorChanged();
+
                 }
-                else
+                finally
                 {
-                    SelectedColor = Color.FromArgb(0xFF, 0, value, 0);
+                    isInHslChanging = false;
                 }
-
-                SetHsl();
-                SetHueGradient();
-                SetSaturationGradient();
-                SetLightnessGradient();
-
-                OnColorChanged();
 
             }
         }
@@ -151,20 +186,29 @@ namespace FrostNova.Core.Wpf.Controls
             }
             set
             {
-                if (SelectedColor != null)
+                try
                 {
-                    SelectedColor = Color.FromArgb(SelectedColor.Value.A, SelectedColor.Value.R, SelectedColor.Value.G, value);
-                }
-                else
-                {
-                    SelectedColor = Color.FromArgb(0xFF, 0, 0, value);
-                }
-                SetHsl();
-                SetHueGradient();
-                SetSaturationGradient();
-                SetLightnessGradient();
+                    isInHslChanging = true;
+                    if (SelectedColor != null)
+                    {
+                        SelectedColor = Color.FromArgb(SelectedColor.Value.A, SelectedColor.Value.R, SelectedColor.Value.G, value);
+                    }
+                    else
+                    {
+                        SelectedColor = Color.FromArgb(0xFF, 0, 0, value);
+                    }
+                    SetHsl();
+                    SetHueGradient();
+                    SetSaturationGradient();
+                    SetLightnessGradient();
 
-                OnColorChanged();
+                    OnColorChanged();
+                }
+                finally
+                {
+                    isInHslChanging = false;
+                }
+
             }
         }
 
@@ -176,16 +220,25 @@ namespace FrostNova.Core.Wpf.Controls
             }
             set
             {
-                if (SelectedColor != null)
+                try
                 {
-                    SelectedColor = Color.FromArgb(value, SelectedColor.Value.R, SelectedColor.Value.G, SelectedColor.Value.B);
+                    isInHslChanging = true;
+                    if (SelectedColor != null)
+                    {
+                        SelectedColor = Color.FromArgb(value, SelectedColor.Value.R, SelectedColor.Value.G, SelectedColor.Value.B);
+                    }
+                    else
+                    {
+                        SelectedColor = Color.FromArgb(value, 0, 0, 0);
+                    }
+                    OnColorChanged();
+                    OnPropertyChanged(nameof(SelectedA));
                 }
-                else
+                finally
                 {
-                    SelectedColor = Color.FromArgb(value, 0, 0, 0);
+                    isInHslChanging = false;
                 }
-                OnColorChanged();
-                OnPropertyChanged(nameof(SelectedA));
+
             }
         }
 
@@ -195,12 +248,20 @@ namespace FrostNova.Core.Wpf.Controls
         partial void OnSelectedHueChanged(float value)
         {
             var a = ColorHslConverter.HslToRgb(value, SelectedSaturation, SelectedLightness);
+            try
+            {
+                isInHslChanging = true;
+                SelectedColor = Color.FromArgb(SelectedColor.HasValue ? SelectedColor.Value.A : (byte)0xFF, a.R, a.G, a.B);
+                _SelectedHue = value;
+                SetLightnessGradient();
+                SetSaturationGradient();
+                OnColorChanged();
+            }
+            finally
+            {
+                isInHslChanging = false;
+            }
 
-            SelectedColor = Color.FromArgb(SelectedColor.HasValue ? SelectedColor.Value.A : (byte)0xFF, a.R, a.G, a.B);
-            _SelectedHue = value;
-            SetLightnessGradient();
-            SetSaturationGradient();
-            OnColorChanged();
         }
 
         [ObservableProperty]
@@ -209,16 +270,24 @@ namespace FrostNova.Core.Wpf.Controls
         partial void OnSelectedSaturationChanged(float value)
         {
             var a = ColorHslConverter.HslToRgb(SelectedHue, value, SelectedLightness);
+            try
+            {
+                isInHslChanging = true;
 
-            SelectedColor = Color.FromArgb(SelectedColor.HasValue ? SelectedColor.Value.A : (byte)0xFF, a.R, a.G, a.B);
-            _SelectedSaturation = value;
+                SelectedColor = Color.FromArgb(SelectedColor.HasValue ? SelectedColor.Value.A : (byte)0xFF, a.R, a.G, a.B);
+                _SelectedSaturation = value;
 
-            SetHueGradient();
-            SetLightnessGradient();
+                SetHueGradient();
+                SetLightnessGradient();
 
-            //SetBrightnessGradient();
+                //SetBrightnessGradient();
 
-            OnColorChanged();
+                OnColorChanged();
+            }
+            finally
+            {
+                isInHslChanging = false;
+            }
         }
 
 
@@ -227,14 +296,23 @@ namespace FrostNova.Core.Wpf.Controls
 
         partial void OnSelectedLightnessChanged(float value)
         {
-            var a = ColorHslConverter.HslToRgb(SelectedHue, SelectedSaturation, value);
-            SelectedColor = Color.FromArgb(SelectedColor.HasValue ? SelectedColor.Value.A : (byte)0xFF, a.R, a.G, a.B);
-            //_SelectedSaturation = value;
-            _SelectedLightness = value;
-            SetHueGradient();
-            SetSaturationGradient();
+            try
+            {
+                isInHslChanging = true;
+                var a = ColorHslConverter.HslToRgb(SelectedHue, SelectedSaturation, value);
+                SelectedColor = Color.FromArgb(SelectedColor.HasValue ? SelectedColor.Value.A : (byte)0xFF, a.R, a.G, a.B);
+                //_SelectedSaturation = value;
+                _SelectedLightness = value;
+                SetHueGradient();
+                SetSaturationGradient();
 
-            OnColorChanged();
+                OnColorChanged();
+            }
+            finally
+            {
+                isInHslChanging = false;
+            }
+
         }
 
         public string HexColorText
@@ -442,7 +520,7 @@ namespace FrostNova.Core.Wpf.Controls
         #endregion
         public ColorSelector()
         {
-            SelectedColor = new Color() { A = 255, R = 255, G = 0, B = 0 };
+            //SelectedColor = new Color() { A = 255, R = 255, G = 0, B = 0 };
             SetHsl();
 
             OnColorChanged();
@@ -491,9 +569,9 @@ namespace FrostNova.Core.Wpf.Controls
 
         private void SetLightnessGradient()
         {
-            ColorMediumBrightness = ColorHslConverter.HslToRgb(SelectedHue, _SelectedSaturation, 0.5F);
-            ColorMaxBrightness = ColorHslConverter.HslToRgb(SelectedHue, _SelectedSaturation, 1.0F);
-            ColorMinBrightness = ColorHslConverter.HslToRgb(SelectedHue, _SelectedSaturation, 0.0F);
+            ColorMediumBrightness = ColorHslConverter.HslToRgb(SelectedHue, SelectedSaturation, 0.5F);
+            ColorMaxBrightness = ColorHslConverter.HslToRgb(SelectedHue, SelectedSaturation, 1.0F);
+            ColorMinBrightness = ColorHslConverter.HslToRgb(SelectedHue, SelectedSaturation, 0.0F);
 
 
         }

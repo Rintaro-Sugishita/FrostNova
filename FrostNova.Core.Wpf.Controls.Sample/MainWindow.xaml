@@ -12,14 +12,27 @@
         <local:MainWindowViewModel />
     </Window.DataContext>
     <Grid>
-        <StackPanel>
-            <TextBox Text="{Binding Date}" />
-            <ctrls:TimePicker TimeValue="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsPartsDateTime="True" />
-            <TextBox Text="{Binding Span}" />
-            <ctrls:TimePicker TimeValue="{Binding Span, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsPartsDateTime="False" IsShowSecond="True" />
-            <ctrls:FontComboBox  />
-            <ctrls:ColorSelector />
-        </StackPanel>
+        <TabControl>
+            <TabItem Header="Time">
+                <StackPanel>
+                    <TextBox Text="{Binding Date}" />
+                    <ctrls:TimePicker TimeValue="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsPartsDateTime="True" />
+                    <TextBox Text="{Binding Span}" />
+                    <ctrls:TimePicker TimeValue="{Binding Span, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsPartsDateTime="False" IsShowSecond="True" />
+                    <ctrls:FontComboBox  />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Color">
+                <StackPanel>
+                    <ctrls:ColorSelector />
+                    <Button Command="{Binding ShowColorDialogCommand}" Content="select" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBox HorizontalAlignment="Stretch" MinWidth="200" />
+                        <ctrls:ColorPicker />
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
 
     </Grid>
 </Window>

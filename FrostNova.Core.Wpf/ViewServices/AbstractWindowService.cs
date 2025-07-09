@@ -29,7 +29,7 @@ namespace FrostNova.Core.Wpf.ViewServices
             return null;
         }
 
-        internal static bool? ShowDialogWindow<T>(T vm, Type windowType, IWindowService windowSerVice, Window? ownerWindow = null, WindowStartupLocation? location = null) where T : DialogWindowViewModelBase
+        public static bool? ShowDialogWindow<T>(T vm, Type windowType, IWindowService? windowSerVice, Window? ownerWindow = null, WindowStartupLocation? location = null) where T : DialogWindowViewModelBase
         {
             var window = windowType.Assembly.CreateInstance(windowType.FullName!) as Window;
             if (window == null) { return null; }
@@ -50,7 +50,7 @@ namespace FrostNova.Core.Wpf.ViewServices
             }
         }
 
-        internal static void ShowWindow<T>(T vm, Type windowType, IWindowService windowSerVice, Window? ownerWindow = null, WindowStartupLocation? location = null) where T : ViewModelBase
+        internal static void ShowWindow<T>(T vm, Type windowType, IWindowService? windowSerVice, Window? ownerWindow = null, WindowStartupLocation? location = null) where T : ViewModelBase
         {
             var window = windowType.Assembly.CreateInstance(windowType.FullName!) as Window;
             if (window == null) { return; }
@@ -76,7 +76,7 @@ namespace FrostNova.Core.Wpf.ViewServices
 
         
 
-        protected static void SetVm(ViewModelBase vm, Window subWindow, IWindowService windowService, Window? ownerWindow = null, WindowStartupLocation? location = null)
+        protected static void SetVm(ViewModelBase vm, Window subWindow, IWindowService? windowService, Window? ownerWindow = null, WindowStartupLocation? location = null)
         {
             subWindow.DataContext = vm;
 
@@ -85,29 +85,7 @@ namespace FrostNova.Core.Wpf.ViewServices
 
             vm.WindowService = windowService;
             vm.MessageBox = GetMessageBox();
-
-
-            if (vm is FloatingWindowViewModelBase floatingVm)
-            {
-
-                subWindow.Loaded += (object sender, RoutedEventArgs e) =>
-                {
-                    //floatingVm.OnWindowLoaded(sender as Window);
-                    floatingVm.OnLoaded();
-                };
-
-                subWindow.Closing += (object? sender, CancelEventArgs e) =>
-                {
-                    floatingVm.OnClosing(e);
-                };
-
-                floatingVm.RequestClose += delegate
-                {
-                    subWindow.Close();
-                };
-
-
-            }
+            
 
             if (vm is DialogWindowViewModelBase dialogVm)
             {
@@ -132,6 +110,33 @@ namespace FrostNova.Core.Wpf.ViewServices
 
 
             }
+            if (vm is FloatingWindowViewModelBase floatingVm)
+            {
+
+                subWindow.Loaded += (object sender, RoutedEventArgs e) =>
+                {
+                    //floatingVm.OnWindowLoaded(sender as Window);
+                    floatingVm.OnLoaded();
+                };
+
+                subWindow.Closing += (object? sender, CancelEventArgs e) =>
+                {
+                    floatingVm.OnClosing(e);
+                };
+
+
+                if (vm is not DialogWindowViewModelBase)
+                {
+                    floatingVm.RequestClose += delegate
+                    {
+                        subWindow.Close();
+                    };
+                }
+
+
+
+            }
+
         }
 
 

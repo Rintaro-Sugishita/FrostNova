@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace FrostNova.Core.Wpf.ViewModelBases
 {
@@ -16,6 +17,8 @@ namespace FrostNova.Core.Wpf.ViewModelBases
         public IWindowService? WindowService { get; set; }
 
         public IWpfMessageBox? MessageBox { get; set; }
+
+
 
         public ViewModelBase()
         {

@@ -6,16 +6,17 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace FrostNova.Core.Wpf.ViewServices
 {
-public partial    class FloatingWindowViewModelBase : ViewModelBase
+    public partial class FloatingWindowViewModelBase : ViewModelBase
     {
-        public Action? RequestClose;
+        public Action? RequestClose { get; set; }
 
 
         [RelayCommand]
-        protected void Close()
+        protected virtual void Close()
         {
             RequestClose?.Invoke();
         }

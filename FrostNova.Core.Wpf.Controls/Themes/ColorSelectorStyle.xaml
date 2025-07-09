@@ -5,6 +5,7 @@
 
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/ColorSliderStyle.xaml" />
+        <ResourceDictionary Source="/FrostNova.Core.Wpf;component/Resources/Converters.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <Style TargetType="{x:Type Slider}" x:Key="colorSelectorSliderStyle" BasedOn="{StaticResource colorSliderStyle}">
@@ -144,14 +145,25 @@
 
                                 <Border Grid.Row="2" BorderThickness="1" BorderBrush="Gray">
 
-                                    <Grid Background="Transparent" >
+                                    <Grid Background="Transparent" MinHeight="40" >
                                         <Grid.RowDefinitions>
                                             <RowDefinition />
                                             <RowDefinition />
                                         </Grid.RowDefinitions>
-                                        <Canvas x:Name="selectedColorCanvas" Grid.Row="0" Background="{Binding SelectedBrush, Mode=OneWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}" 
-                    />
-                                        <Canvas Grid.Row="1" Background="{Binding OldBrush, Mode=OneWay}" />
+                                        <Canvas x:Name="selectedColorCanvas" Grid.Row="0"
+                                                Background="{Binding SelectedColor,Converter={StaticResource colorToSolidBrushConverter},ConverterParameter=Colors.Red}"
+                                                >
+                                            <!--<Canvas.Background>
+                                                <SolidColorBrush Color="{Binding SelectedColor}" />
+                                            </Canvas.Background>-->
+                                        </Canvas>
+                                        <Canvas Grid.Row="1"  
+                                                Background="{Binding OldColor,Converter={StaticResource colorToSolidBrushConverter},ConverterParameter=Colors.Transparent}"                                                
+                                                >
+                                            <!--<Canvas.Background>
+                                                <SolidColorBrush Color="{Binding OldColor}" />
+                                            </Canvas.Background>-->
+                                        </Canvas>
 
 
                                     </Grid>
@@ -179,10 +191,10 @@
                                      />
                                 <TextBox Grid.Row="1" Grid.Column="1" 
                                      HorizontalContentAlignment="Right"
-                                     Text="{Binding SelectedSaturation}" />
+                                     Text="{Binding SelectedSaturation,StringFormat='0.00'}" />
                                 <TextBox Grid.Row="1" Grid.Column="2" 
                                      HorizontalContentAlignment="Right"
-                                     Text="{Binding SelectedLightness}" />
+                                     Text="{Binding SelectedLightness,StringFormat='0.00'}" />
                                 <Slider  Grid.Row="2" Grid.Column="0" 
                                          Style="{StaticResource colorSelectorVSliderStyle}"
                                          Value="{Binding SelectedA,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -192,7 +204,7 @@
                                     <Canvas.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                             <GradientStop Color="{Binding ColorMaxSaturation,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="0" />
-                                            <GradientStop Color="{Binding ColorMidiumSaturation,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="0.5" />
+                                            <GradientStop Color="{Binding ColorMediumSaturation,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="0.5" />
                                             <GradientStop Color="{Binding ColorMinSaturation,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="1" />
                                         </LinearGradientBrush>
                                     </Canvas.Background>
@@ -209,7 +221,7 @@
                                     <Canvas.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                             <GradientStop Color="{Binding ColorMaxBrightness,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="0" />
-                                            <GradientStop Color="{Binding ColorMidiumBrightness,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="0.5" />
+                                            <GradientStop Color="{Binding ColorMediumBrightness,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="0.5" />
                                             <GradientStop Color="{Binding ColorMinBrightness,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="1" />
                                         </LinearGradientBrush>
                                     </Canvas.Background>

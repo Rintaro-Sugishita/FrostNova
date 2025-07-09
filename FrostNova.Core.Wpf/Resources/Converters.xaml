@@ -4,5 +4,7 @@
                     >
     <conv:BorderThicknessConverter x:Key="borderThicknessConverter" />
     <conv:BoolToVisibilityConverter x:Key="boolVisivilityConverter" />
+    <conv:ColorToSolidColorBrushConverter x:Key="colorToSolidBrushConverter" />
+    <conv:ForegroundConverter x:Key="foregroundConverter" />
 
 </ResourceDictionary>

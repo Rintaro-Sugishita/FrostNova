@@ -8,6 +8,8 @@
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/TimePickerStyle.xaml" />
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/FontComboBoxStyle.xaml" />
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/ColorSelectorStyle.xaml" />
+        <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/ColorPaletteStyle.xaml" />
+        <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/ColorPickerStyle.xaml" />
     </ResourceDictionary.MergedDictionaries>
     
     <!--<Style TargetType="{x:Type local:CustomControl1}">
@@ -34,5 +36,7 @@
         
     </Style>
 
+    <Style TargetType="{x:Type local:ColorPalette}" BasedOn="{StaticResource defaultColorPaletteStyle}" />
+    <Style TargetType="{x:Type local:ColorPicker}" BasedOn="{StaticResource defaultColorPickerStyle}" />
 
 </ResourceDictionary>

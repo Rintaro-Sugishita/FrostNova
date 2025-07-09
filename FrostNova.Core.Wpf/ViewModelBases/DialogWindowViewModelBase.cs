@@ -25,6 +25,11 @@ namespace FrostNova.Core.Wpf.ViewModelBases
         {
             return true;
         }
+        protected override void Close()
+        {
+
+            RequestClose?.Invoke();
+        }
 
 
 
