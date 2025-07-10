@@ -102,6 +102,7 @@
                                           RowHeight="150"
                                           CanDragTasksBetweenRows="True"
                                           TimeRangeStyle="{StaticResource rangeStyle}"
+                                          NonWorkingRangeBackground="#f0f0f0"
                                           >
                     <chart:GridTimeRangeChart.CornerHeaderSource>
                         <TextBlock Text="aaaa" />
@@ -113,7 +114,7 @@
                     </chart:GridTimeRangeChart.RowHeaderTemplate>
                     <chart:GridTimeRangeChart.ChartStyle>
                         <Style TargetType="{x:Type chart:TimeRangeChart}" >
-                            <Setter Property="ItemsSource" Value="{Binding Gantts}" />
+                            <Setter Property="ItemsSource" Value="{Binding Tasks}" />
                             <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.GridVm.NonWorkingTimes}" />
                         </Style>
                     </chart:GridTimeRangeChart.ChartStyle>
@@ -144,7 +145,7 @@
                     </chart:GridTimeRangeChart.RowHeaderTemplate>
                     <chart:GridTimeRangeChart.ChartStyle>
                         <Style TargetType="{x:Type chart:TimeRangeChart}" >
-                            <Setter Property="ItemsSource" Value="{Binding Gantts}" />
+                            <Setter Property="ItemsSource" Value="{Binding Tasks}" />
                             <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.MonthGridVm.NonWorkingTimes}" />
                         </Style>
                     </chart:GridTimeRangeChart.ChartStyle>
@@ -154,7 +155,7 @@
             <TabItem Header="chart">
                 <chart:TimeRangeChart StartTime="{Binding ChartVm.ChartStart}" EndTime="{Binding ChartVm.ChartEnd}"
                                   MinSpan="{StaticResource minSpan}" ScaleIncrement="{StaticResource minSpan}"
-                                  ItemsSource="{Binding ChartVm.Model.Gantts}"
+                                  ItemsSource="{Binding ChartVm.Model.Tasks}"
                                   RuledLineThickness="0.5"
                                   RuledLineFill="Gray"
                                       NonWorkingTimes="{Binding ChartVm.NonWorkingTimes}"

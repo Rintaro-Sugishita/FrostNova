@@ -47,45 +47,84 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
 
 
 
-        public static DateTime CalcEndTime(DateTime startTime, TimeSpan workingSpan, IEnumerable<ITimeRange>? nonWorkingTimes=null)
+        public static DateTime CalcEndTime<T>(DateTime startTime, TimeSpan workingSpan, IEnumerable<T>? nonWorkingTimes=null) where T : ITimeRange
         {
 
             if (workingSpan <= TimeSpan.Zero)
                 return startTime;
 
-
-            // ② 実働時間を積み上げながら進めていく
-            DateTime current = startTime;
-            TimeSpan remaining = workingSpan;
-            if (nonWorkingTimes?.Any() == true)
-            {
-                foreach (var range in nonWorkingTimes)
-                {
-                    if (current >= range.EndTime)
-                        continue;
-
-                    if (current < range.StartTime)
-                    {
-                        var chunk = range.StartTime - current;
-                        if (chunk >= remaining)
-                            return current + remaining;
-
-                        remaining -= chunk;
-                        current = range.EndTime;
-                    }
-                    else
-                    {
-                        // current はこの non-working 時間帯の中にいる
-                        current = range.EndTime;
-                    }
-                }
-            }
-
-            // ③ 残りの実働時間を加算（もう非稼働時間はない）
-            return current + remaining;
+            return CalcShiftTime(startTime, workingSpan, nonWorkingTimes);
         }
 
-        public static TimeSpan CalcWorkingSpan(DateTime startTime, DateTime endTime, IEnumerable<ITimeRange>? nonWorkingTimes=null)
+
+        public static DateTime CalcShiftTime<T>(DateTime value, TimeSpan span, IEnumerable<T>? nonWorkingTimes = null) where T : ITimeRange
+        {
+            if (span == TimeSpan.Zero)
+                return value;
+
+            // 正方向（未来へ進める）
+            if (span > TimeSpan.Zero)
+            {
+                DateTime current = value;
+                TimeSpan remaining = span;
+                if (nonWorkingTimes?.Any() == true)
+                {
+                    foreach (var range in nonWorkingTimes.OrderBy(x => x.StartTime))
+                    {
+                        if (current >= range.EndTime)
+                            continue;
+
+                        if (current < range.StartTime)
+                        {
+                            var chunk = range.StartTime - current;
+                            if (chunk >= remaining)
+                                return current + remaining;
+
+                            remaining -= chunk;
+                            current = range.EndTime;
+                        }
+                        else
+                        {
+                            // current はこの non-working 時間帯の中にいる
+                            current = range.EndTime;
+                        }
+                    }
+                }
+                return current + remaining;
+            }
+            // 負方向（過去へ戻す）
+            else
+            {
+                DateTime current = value;
+                TimeSpan remaining = -span; // 正の値で扱う
+                if (nonWorkingTimes?.Any() == true)
+                {
+                    foreach (var range in nonWorkingTimes.OrderByDescending(x => x.EndTime))
+                    {
+                        if (current <= range.StartTime)
+                            continue;
+
+                        if (current > range.EndTime)
+                        {
+                            var chunk = current - range.EndTime;
+                            if (chunk >= remaining)
+                                return current - remaining;
+
+                            remaining -= chunk;
+                            current = range.StartTime;
+                        }
+                        else
+                        {
+                            // current はこの non-working 時間帯の中にいる
+                            current = range.StartTime;
+                        }
+                    }
+                }
+                return current - remaining;
+            }
+        }
+
+        public static TimeSpan CalcWorkingSpan<T>(DateTime startTime, DateTime endTime, IEnumerable<T>? nonWorkingTimes=null) where T : ITimeRange
         {
             //重複は省く
             if (endTime <= startTime)

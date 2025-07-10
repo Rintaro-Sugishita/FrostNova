@@ -34,7 +34,7 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
         {
             StartTime = startTime;
             WorkingSpan = span;
-            EndTime = TimeRangeHelpers.TimeHelper.CalcEndTime(StartTime, WorkingSpan.Value);
+            EndTime = TimeRangeHelpers.TimeHelper.CalcEndTime<ITimeRange>(StartTime, WorkingSpan.Value);
             TimeRangeHelper.SetActualSpan(this);
         }
 
