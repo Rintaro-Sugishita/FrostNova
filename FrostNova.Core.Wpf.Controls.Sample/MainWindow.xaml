@@ -30,6 +30,10 @@
                         <TextBox HorizontalAlignment="Stretch" MinWidth="200" />
                         <ctrls:ColorPicker />
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBox HorizontalAlignment="Stretch" MinWidth="200" />
+                        <ctrls:ColorPicker IsDialogMode="True" />
+                    </StackPanel>
                 </StackPanel>
             </TabItem>
         </TabControl>

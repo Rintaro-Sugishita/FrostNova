@@ -31,7 +31,8 @@
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
-            <TextBlock FontFamily="{Binding}"
+            <TextBlock> | </TextBlock>
+            <TextBlock Margin="20,0,0,0" FontFamily="{Binding}"
                    FontSize="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:FontComboBox}},Path=FontSize}"
                    Text="{Binding Source}" >
                 <TextBlock.Style>

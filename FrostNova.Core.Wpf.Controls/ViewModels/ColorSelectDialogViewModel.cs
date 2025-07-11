@@ -2,6 +2,8 @@
 using CommunityToolkit.Mvvm.Input;
 using FrostNova.Core.Common;
 using FrostNova.Core.JsonData;
+using FrostNova.Core.PathHelpers;
+using FrostNova.Core.Wpf.Converters;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -28,8 +30,9 @@ namespace FrostNova.Core.Wpf.Controls.ViewModels
         [ObservableProperty]
         NotifyCollection<Color> _recentlyUsedList = new();
 
+        [ObservableProperty]
+        Func<ICollection<Color>>? _SetRecentlyUsedColorsFunc;
 
-        public string? Path { get; set; } = null;
 
         public ColorSelectDialogViewModel()
         {
@@ -44,23 +47,23 @@ namespace FrostNova.Core.Wpf.Controls.ViewModels
         {
             base.OnLoaded();
 
-            //load
-            if (RecentlyUsedList.Count  == 0)
+            if (SetRecentlyUsedColorsFunc == null)
             {
-                var path = GetSavePath();
-                RecentlyUsedList = JsonDataHelper.LoadFromFile<NotifyCollection<Color>>(path) ?? new NotifyCollection<Color>();
+                RecentlyUsedList = new NotifyCollection<Color>(ReadColor());
+            }
+            else
+            {
+                RecentlyUsedList = new NotifyCollection<Color>(SetRecentlyUsedColorsFunc.Invoke());
             }
 
         }
 
+        
 
         protected override void OnClosing(CancelEventArgs e)
         {
             base.OnClosing(e);
 
-            //save
-            var path = GetSavePath();
-            JsonDataHelper.SaveToFile(GetSavePath(), RecentlyUsedList, true);
 
 
         }
@@ -73,26 +76,63 @@ namespace FrostNova.Core.Wpf.Controls.ViewModels
 
         protected override bool OnOkClosing()
         {
+            if (SelectedColor != null)
+            {
+                if (RecentlyUsedList.Contains(SelectedColor.Value))
+                {
+                    RecentlyUsedList.Remove(SelectedColor.Value);
+                }
+                RecentlyUsedList.Insert(0, SelectedColor.Value);
+                              
+
+                if (SetRecentlyUsedColorsFunc == null)
+                {
+                    SaveColor(RecentlyUsedList.Distinct().ToList());
+                }
+               
+            }
+
+
             return base.OnOkClosing();
 
         }
 
 
-        private string GetSavePath()
+        internal static string GetSavePath()
         {
-
-            if (Path == null)
-            {
-
                 var folder = FrostNova.Core.PathHelpers.PathHelper.GetUserDataPath(Process.GetCurrentProcess().ProcessName);
                 var fullPath = System.IO.Path.Combine(folder, "colorPaletteData.json");
                 return fullPath;
+        }
+        public static IList<Color> ReadColor()
+        {
+            var path = GetSavePath();
+            if (System.IO.File.Exists(path))
+            {
+                return System.IO.File.ReadAllLines(path).Select(x => ColorTextConverter.ConvertBack(x)).ToList();
+            }
+            return Array.Empty<Color>();
+        }
+
+        public static void SaveColor(ICollection<Color> colors)
+        {
+            var path = GetSavePath();
+            var folder = System.IO.Path.GetDirectoryName(path)!;
+            if (System.IO.Directory.Exists(folder) == false)
+            {
+                System.IO.Directory.CreateDirectory(folder);
+            }
+            if (colors.Count > 11)
+            {
+                System.IO.File.WriteAllLines(path, colors.Select(x => ColorTextConverter.Convert(x)).ToList().Slice(1, 11));
             }
             else
             {
-                return Path;
+                System.IO.File.WriteAllLines(path, colors.Select(x => ColorTextConverter.Convert(x)));
             }
+
         }
+
 
 
     }

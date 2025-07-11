@@ -1,4 +1,6 @@
-﻿using System;
+﻿using FrostNova.Core.Wpf.Controls.Dialogs;
+using FrostNova.Core.Wpf.Controls.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -34,7 +36,7 @@ namespace FrostNova.Core.Wpf.Controls
         public Color? CurrentPopupColor
         {
             get { return (Color?)GetValue(CurrentPopupColorProperty); }
-         internal   set { SetValue(CurrentPopupColorProperty, value); }
+            internal set { SetValue(CurrentPopupColorProperty, value); }
         }
         public static DependencyProperty CurrentPopupColorProperty = DependencyProperty.Register(nameof(CurrentPopupColor), typeof(Color?), typeof(ColorPicker));
 
@@ -44,7 +46,7 @@ namespace FrostNova.Core.Wpf.Controls
         public Color? OldPopupColor
         {
             get { return (Color?)GetValue(OldPopupColorProperty); }
-          internal  set { SetValue(OldPopupColorProperty, value); }
+            internal set { SetValue(OldPopupColorProperty, value); }
         }
         public static DependencyProperty OldPopupColorProperty = DependencyProperty.Register(nameof(OldPopupColor), typeof(Color?), typeof(ColorPicker));
         /// <summary>
@@ -118,7 +120,7 @@ namespace FrostNova.Core.Wpf.Controls
         public static DependencyProperty PlacementTargetProperty = DependencyProperty.Register(nameof(PlacementTarget), typeof(UIElement), typeof(ColorPicker));
 
         /// <summary>
-        /// string
+        /// Placement
         /// </summary>
         public PlacementMode Placement
         {
@@ -127,6 +129,30 @@ namespace FrostNova.Core.Wpf.Controls
         }
         public static DependencyProperty PlacementProperty = DependencyProperty.Register(nameof(Placement), typeof(PlacementMode), typeof(ColorPicker), new PropertyMetadata(PlacementMode.Bottom));
 
+        /// <summary>
+        /// IsDialogMode
+        /// </summary>
+        public bool IsDialogMode
+        {
+            get { return (bool)GetValue(IsDialogModeProperty); }
+            set { SetValue(IsDialogModeProperty, value); }
+        }
+        public static DependencyProperty IsDialogModeProperty = DependencyProperty.Register(nameof(IsDialogMode), typeof(bool), typeof(ColorPicker), new PropertyMetadata(false));
+
+
+        public Func<IList<Color>> SetRecentlyUsedColorsFunc
+        {
+            get { return (Func<IList<Color>>)GetValue(SetRecentlyUsedColorsFuncProperty); }
+            set { SetValue(SetRecentlyUsedColorsFuncProperty, value); }
+        }
+        public static DependencyProperty SetRecentlyUsedColorsFuncProperty = DependencyProperty.Register(nameof(SetRecentlyUsedColorsFunc), typeof(Func<IList<Color>>), typeof(ColorPicker));
+
+        public IList<Color> RecentlyUsedColors
+        {
+            get { return (IList<Color>)GetValue(RecentlyUsedColorsProperty); }
+            set { SetValue(RecentlyUsedColorsProperty, value); }
+        }
+        public static DependencyProperty RecentlyUsedColorsProperty = DependencyProperty.Register(nameof(RecentlyUsedColors), typeof(IList<Color>), typeof(ColorPicker));
 
         private static void SetColor(ColorPicker picker)
         {
@@ -137,10 +163,6 @@ namespace FrostNova.Core.Wpf.Controls
         {
             picker.CurrentPopupColor = picker.SelectedColor;
             picker.OldPopupColor = picker.CurrentPopupColor;
-            //if (picker.CurrentPopupColor == Colors.Transparent || picker.CurrentPopupColor == null)
-            //{
-            //    picker.CurrentPopupColor = Colors.Red;
-            //}
         }
 
         public override void OnApplyTemplate()
@@ -150,17 +172,41 @@ namespace FrostNova.Core.Wpf.Controls
 
             var toggleButton = GetTemplateChild("PART_BUTTON") as ToggleButton;
             var okButton = GetTemplateChild("PART_OK") as Button;
-            if (toggleButton != null && okButton !=null)
+            if (toggleButton != null && okButton != null)
             {
                 okButton.Click += (sender, e) =>
                 {
+
+                    //保存
+
                     SetColor(this);
                     toggleButton.IsChecked = false;
+                    if (SelectedColor != null)
+                    {
+                        RecentlyUsedColors = SetRecentlyUsedColorsFunc?.Invoke() ?? ColorSelectDialogViewModel.ReadColor();
+                        RecentlyUsedColors.Insert(0, SelectedColor.Value);
+                        ColorSelectDialogViewModel.SaveColor(RecentlyUsedColors.Distinct().ToList());
+                    }
                 };
                 toggleButton.Checked += (sender, e) =>
                 {
-                    SetPopupColor(this);
+                    if (IsDialogMode)
+                    {
+                        var resultColor = ColorSelectDialog.Show(SelectedColor);
+                        if (resultColor != null)
+                        {
+                            SelectedColor = resultColor;
+
+                        }
+                        toggleButton.IsChecked = false;
+                    }
+                    else
+                    {
+                        RecentlyUsedColors = ColorSelectDialogViewModel.ReadColor();
+                        SetPopupColor(this);
+                    }
                 };
+
             }
         }
 

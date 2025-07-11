@@ -14,6 +14,16 @@ namespace FrostNova.Core.Common
 {
   public  class NotifyCollection<T> : ObservableCollection<T>, IOperationScope
     {
+
+        public NotifyCollection()
+        {
+            }
+
+        public NotifyCollection(IEnumerable<T> values)
+        {
+            AddRange(values);
+        }
+
         [JsonIgnore, IgnoreCopy]
         public int RangeThreshold { get; set; } = 2;
 

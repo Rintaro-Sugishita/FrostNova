@@ -1,6 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using FrostNova.Core.PathHelpers;
+using FrostNova.Core.Wpf.Converters;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -67,12 +70,12 @@ namespace FrostNova.Core.Wpf.Controls
         /// <summary>
         /// string
         /// </summary>
-        public ICollection<Color> RecentlyUsedColors
+        public IList<Color> RecentlyUsedColors
         {
-            get { return (ICollection<Color>)GetValue(RecentlyUsedColorsProperty); }
+            get { return (IList<Color>)GetValue(RecentlyUsedColorsProperty); }
             set { SetValue(RecentlyUsedColorsProperty, value); }
         }
-        public static DependencyProperty RecentlyUsedColorsProperty = DependencyProperty.Register(nameof(RecentlyUsedColors), typeof(ICollection<Color>), typeof(ColorPalette));
+        public static DependencyProperty RecentlyUsedColorsProperty = DependencyProperty.Register(nameof(RecentlyUsedColors), typeof(IList<Color>), typeof(ColorPalette));
 
 
         /// <summary>
@@ -86,13 +89,51 @@ namespace FrostNova.Core.Wpf.Controls
         public static DependencyProperty SelectColorCommandProperty = DependencyProperty.Register(nameof(SelectColorCommand), typeof(ICommand), typeof(ColorPalette));
 
 
+        public Func<IList<Color>> SetRecentlyUsedColorsFunc
+        {
+            get { return (Func<IList<Color>>)GetValue(SetRecentlyUsedColorsFuncProperty); }
+            set { SetValue(SetRecentlyUsedColorsFuncProperty, value); }
+        }
+        public static DependencyProperty SetRecentlyUsedColorsFuncProperty = DependencyProperty.Register(nameof(SetRecentlyUsedColorsFunc), typeof(Func<IList<Color>>), typeof(ColorPalette));
+
+
+   
 
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
             SelectColorCommand = new RelayCommand<Color>((c) => { SelectedColor = c; });
+
         }
 
+
+        public static IList<Color> ReadColor()
+        {
+            var path = GetSavePath();
+            if (System.IO.File.Exists(path))
+            {
+                return System.IO.File.ReadAllLines(path).Select(x => ColorTextConverter.ConvertBack(x)).ToList();
+            }
+            return Array.Empty<Color>();
+        }
+
+        public static void SaveColor(IList<Color> colors)
+        {
+            var path = GetSavePath();
+            var folder = System.IO.Path.GetDirectoryName(path)!;
+            if (System.IO.Directory.Exists(folder) == false)
+            {
+                System.IO.Directory.CreateDirectory(folder);
+            }
+
+            System.IO.File.WriteAllLines(path, colors.Select(x => ColorTextConverter.Convert(x)));
+        }
+
+        public static string GetSavePath()
+        {
+            var folder = PathHelper.GetUserDataPath(Process.GetCurrentProcess().ProcessName);
+            return System.IO.Path.Combine(folder,"usedColors.txt");
+        }
 
 
     }

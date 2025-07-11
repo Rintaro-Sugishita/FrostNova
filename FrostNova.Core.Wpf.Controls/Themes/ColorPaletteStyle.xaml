@@ -79,7 +79,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:ColorPalette}">
-                    <StackPanel>
+                    <StackPanel Background="{TemplateBinding Background}">
                         <ListBox ItemsSource="{StaticResource foregroundList}" Style="{StaticResource selectColorListBox}" />
                         <ListBox ItemsSource="{StaticResource backgroundList}" Style="{StaticResource selectColorListBox}" />
                         <ListBox ItemsSource="{TemplateBinding RecentlyUsedColors}" Style="{StaticResource selectColorListBox}" />

@@ -2,19 +2,30 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FrostNova.Core.Wpf.Controls"
         xmlns:vm="clr-namespace:FrostNova.Core.Wpf.Controls.ViewModels"
+        xmlns:behaviors="clr-namespace:FrostNova.Core.Wpf.Behaviors;assembly=FrostNova.Core.Wpf"
+        Background="Transparent"
+        AllowsTransparency="True"
+        WindowStyle="None"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type={x:Type vm:ColorSelectDialogViewModel},IsDesignTimeCreatable=True}"
         Title="ColorSelectDialog" Height="340" Width="320">
+    <i:Interaction.Behaviors>
+        <behaviors:WindowDragMoveBehavior />
+    </i:Interaction.Behaviors>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition />
             <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
-        <local:ColorPalette Height="80" SelectedColor="{Binding SelectedColor,Mode=TwoWay}" />
+        <local:ColorPalette Background="White" Height="80" SelectedColor="{Binding SelectedColor,Mode=TwoWay}"
+                            SetRecentlyUsedColorsFunc="{Binding SetRecentlyUsedColorsFunc}"
+                            RecentlyUsedColors="{Binding RecentlyUsedList}"
+                            />
         <local:ColorSelector Grid.Row="1" x:Name="colorSelecter" SelectedColor="{Binding SelectedColor, Mode=TwoWay}" OldColor="{Binding OldColor}" >
         </local:ColorSelector>
         <Grid Grid.Row="2" 

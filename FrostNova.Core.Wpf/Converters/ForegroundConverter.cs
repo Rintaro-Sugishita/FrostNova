@@ -22,7 +22,7 @@ return                Convert(background);
             {
                 return Convert(color);
             }
-                return Brushes.Black;
+                return Colors.Black;
         }
 
 

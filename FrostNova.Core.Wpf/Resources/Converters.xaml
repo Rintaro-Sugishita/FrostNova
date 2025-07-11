@@ -6,5 +6,6 @@
     <conv:BoolToVisibilityConverter x:Key="boolVisivilityConverter" />
     <conv:ColorToSolidColorBrushConverter x:Key="colorToSolidBrushConverter" />
     <conv:ForegroundConverter x:Key="foregroundConverter" />
+    <conv:ForegroundBrushConverter x:Key="foregroundBrushConverter" />
 
 </ResourceDictionary>
