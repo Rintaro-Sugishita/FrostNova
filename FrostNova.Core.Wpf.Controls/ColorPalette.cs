@@ -89,9 +89,9 @@ namespace FrostNova.Core.Wpf.Controls
         public static DependencyProperty SelectColorCommandProperty = DependencyProperty.Register(nameof(SelectColorCommand), typeof(ICommand), typeof(ColorPalette));
 
 
-        public Func<IList<Color>> SetRecentlyUsedColorsFunc
+        public Func<IList<Color>>? SetRecentlyUsedColorsFunc
         {
-            get { return (Func<IList<Color>>)GetValue(SetRecentlyUsedColorsFuncProperty); }
+            get { return (Func<IList<Color>>?)GetValue(SetRecentlyUsedColorsFuncProperty); }
             set { SetValue(SetRecentlyUsedColorsFuncProperty, value); }
         }
         public static DependencyProperty SetRecentlyUsedColorsFuncProperty = DependencyProperty.Register(nameof(SetRecentlyUsedColorsFunc), typeof(Func<IList<Color>>), typeof(ColorPalette));
