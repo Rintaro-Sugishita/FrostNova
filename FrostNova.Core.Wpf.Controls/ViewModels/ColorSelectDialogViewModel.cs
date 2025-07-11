@@ -31,7 +31,7 @@ namespace FrostNova.Core.Wpf.Controls.ViewModels
         NotifyCollection<Color> _recentlyUsedList = new();
 
         [ObservableProperty]
-        Func<ICollection<Color>>? _SetRecentlyUsedColorsFunc;
+        Func<IList<Color>>? _SetRecentlyUsedColorsFunc;
 
 
         public ColorSelectDialogViewModel()
