@@ -11,9 +11,14 @@ if not exist %OUTPUT_DIR% (
 
 REM .nupkg を探してコピー（Releaseフォルダを対象）
 for /R %%F in (*.nupkg) do (
-    echo Copying: %%~nxF
-    copy /Y "%%F" "%OUTPUT_DIR%\%%~nxF" >nul
-)
+    echo Checking %%~nxF
+    echo %%~nxF | find /I "dev" >nul
+    if errorlevel 1 (
+        echo Copying %%~nxF
+        copy /Y "%%F" "%OUTPUT_DIR%\%%~nxF" >nul
+    ) else (
+        echo Skipped 
+    ))
 
 echo.
 echo All .nupkg files copied to "%OUTPUT_DIR%"
