@@ -258,6 +258,16 @@ namespace FrostNova.TimeRangeChart.Wpf
         public static DependencyProperty IgnoreNonWorkingTimesProperty = DependencyProperty.Register(nameof(IgnoreNonWorkingTimes), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(false));
 
 
+        /// <summary>
+        /// min span of range
+        /// </summary>
+        public TimeSpan? MinSpan
+        {
+            get { return (TimeSpan?)GetValue(MinSpanProperty); }
+            set { SetValue(MinSpanProperty, value); }
+        }
+        public static readonly DependencyProperty MinSpanProperty = DependencyProperty.Register(nameof(MinSpan), typeof(TimeSpan?), typeof(TimeRangeControl), new PropertyMetadata(null));
+
 
 
 
@@ -359,7 +369,7 @@ namespace FrostNova.TimeRangeChart.Wpf
                     var deltaX = e.HorizontalChange;
 
                     var startPoint = ParentChart.TimeToPointFunc(StartTime);
-                    var movedStartTime = ParentChart.PointToTimeFunc(deltaX + startPoint);
+                    var movedStartTime = ParentChart.PointToTimeFunc(deltaX + startPoint, MinSpan);
 
                     var deltaTime = movedStartTime - StartTime;
 
@@ -401,7 +411,7 @@ namespace FrostNova.TimeRangeChart.Wpf
                     var oldStartTime = StartTime;
 
                     var deltaX = e.HorizontalChange;
-                    var newStart = ParentChart.PointToTimeFunc(ParentChart.TimeToPointFunc(StartTime) + deltaX);
+                    var newStart = ParentChart.PointToTimeFunc(ParentChart.TimeToPointFunc(StartTime) + deltaX, MinSpan);
 
                     if (oldStartTime == newStart) return; // 変更なし
 
@@ -439,7 +449,7 @@ namespace FrostNova.TimeRangeChart.Wpf
 
                     var oldEndTime = EndTime;
                     var deltaX = e.HorizontalChange;
-                    var newEnd = ParentChart.PointToTimeFunc(ParentChart.TimeToPointFunc(EndTime) + deltaX);
+                    var newEnd = ParentChart.PointToTimeFunc(ParentChart.TimeToPointFunc(EndTime) + deltaX, MinSpan);
 
                     if (oldEndTime == newEnd) return; // 変更なし
 
@@ -576,7 +586,7 @@ namespace FrostNova.TimeRangeChart.Wpf
                     }
 
                     var newE = new DragTaskData();
-                    newE.ChartStartTime = ParentChart?.PointToTimeFunc(_dragStartPoint.X);
+                    newE.ChartStartTime = ParentChart?.PointToTimeFunc(_dragStartPoint.X, MinSpan);
                     newE.SourceRow = ParentChart?.ItemsSource;
                     newE.TimeRange = this.DataContext;
 

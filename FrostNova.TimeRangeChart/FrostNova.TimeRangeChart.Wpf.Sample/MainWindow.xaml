@@ -30,6 +30,7 @@
                     <Setter Property="EndTime" Value="{Binding EndTime}" />
                     <Setter Property="WorkingSpan" Value="{Binding WorkingSpan}" />
                     <Setter Property="ActualSpan" Value="{Binding ActualSpan}" />
+                    <Setter Property="MinSpan" Value="{Binding MinSpan}" />
                     <Setter Property="IsMilestone" Value="False" />
                     <Setter Property="CanDrag" Value="True" />
                     <Setter Property="CanExpandSpan" Value="True" />
@@ -43,12 +44,16 @@
                     <Setter Property="ContentTemplate">
                         <Setter.Value>
                             <DataTemplate DataType="{x:Type local:SampleModel}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding StartTime, StringFormat=MM/dd}" />
-                                    <TextBlock Text="("/>
-                                    <TextBlock Text="{Binding ActualSpan.Days}" />
-                                    <TextBlock Text=")"/>
-                                    <TextBlock Text="{Binding WorkingSpan.Days}" />
+                                <StackPanel>
+
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding StartTime, StringFormat=MM/dd}" />
+                                        <TextBlock Text="("/>
+                                        <TextBlock Text="{Binding ActualSpan.Days}" />
+                                        <TextBlock Text=")"/>
+                                        <TextBlock Text="{Binding WorkingSpan.Days}" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding MinSpan}" />
                                 </StackPanel>
                             </DataTemplate>
                         </Setter.Value>
@@ -102,7 +107,8 @@
                                           RowHeight="150"
                                           CanDragTasksBetweenRows="True"
                                           TimeRangeStyle="{StaticResource rangeStyle}"
-                                          NonWorkingRangeBackground="#f0f0f0"
+                                          NonWorkingRangeBackground="#eecccc"
+                                          Background="#ddddff"
                                           >
                     <chart:GridTimeRangeChart.CornerHeaderSource>
                         <TextBlock Text="aaaa" />

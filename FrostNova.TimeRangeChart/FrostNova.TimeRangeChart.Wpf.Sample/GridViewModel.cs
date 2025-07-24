@@ -86,6 +86,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
                     var d = new SampleModel(d1.Date, span);
                     d.Color = Color.FromArgb(130, (byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255));
                     d.WorkingSpan = span;
+                    d.MinSpan = random.Next(3) == 0 ? TimeSpan.FromHours(1) : null;
 
                     a.Tasks.Add(d);
 

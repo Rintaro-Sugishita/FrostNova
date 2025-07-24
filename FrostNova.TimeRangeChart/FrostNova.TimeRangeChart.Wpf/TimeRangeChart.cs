@@ -68,7 +68,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
 
         public Func<DateTime, double> TimeToPointFunc { get; private set; }
-        public Func<double, DateTime> PointToTimeFunc { get; private set; }
+        public Func<double, TimeSpan?, DateTime> PointToTimeFunc { get; private set; }
 
         public Func<DateTime, TimeSpan, DateTime> GetEndTimeFunc { get; private set; }
         public Func<DateTime, DateTime, TimeSpan> GetWorkingSpanFunc { get; private set; }
@@ -376,14 +376,14 @@ namespace FrostNova.TimeRangeChart.Wpf
             return 0;
         }
 
-        private DateTime PointToTime(double point)
+        private DateTime PointToTime(double point, TimeSpan? minSpan=null)
         {
             switch (TimeUnit)
             {
                 case TimeUnitType.Normal:
-                    return TimeScreenHelper.PointToTime(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, MinSpan);
+                    return TimeScreenHelper.PointToTime(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth,minSpan?? MinSpan);
                 case TimeUnitType.Month:
-                    return TimeScreenHelper.PointToTimeMonth(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, MinSpan, TimeTicks);
+                    return TimeScreenHelper.PointToTimeMonth(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth,minSpan?? MinSpan, TimeTicks);
                 default:
                     break;
             }
@@ -434,7 +434,7 @@ namespace FrostNova.TimeRangeChart.Wpf
                     var param = new DragTaskData();
 
 
-                    var dropPoint = this?.PointToTimeFunc(e.GetPosition(this).X);
+                    var dropPoint = this?.PointToTimeFunc(e.GetPosition(this).X, null);
 
                     var args = new DropOnRowEventArgs(PreviewTaskDropEvent, dropPoint.Value, data2.TimeRange);
                     args.SourceList = data2.SourceRow;

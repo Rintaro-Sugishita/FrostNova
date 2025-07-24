@@ -30,6 +30,10 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         private Color _color = Colors.Red;
 
 
+        [ObservableProperty]
+        private TimeSpan? _minSpan = null;
+
+
        // TimeSpan? ITimeRange.WorkingSpan { get => WorkingSpan; set => throw new NotImplementedException(); }
 
     }

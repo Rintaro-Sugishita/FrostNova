@@ -80,6 +80,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
                 d.WorkingSpan = TimeSpan.Zero;
                 d.IgnoreNonWorkingTimes = true;
 
+
                 a.Tasks.Add(d);
 
             }
