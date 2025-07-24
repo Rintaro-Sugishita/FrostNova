@@ -13,7 +13,7 @@
     <DebugType>embedded</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <Version>0.0.2.0</Version>
+    <Version>0.0.3.0</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
 
@@ -22,7 +22,7 @@
 
   <PropertyGroup Condition="'$(Configuration)' != 'Release'">
     <Now>$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmm"))</Now>
-    <VersionPrefix>0.0.2-dev</VersionPrefix>
+    <VersionPrefix>0.0.3-dev</VersionPrefix>
     <VersionSuffix>$(Now)</VersionSuffix>
 
   </PropertyGroup>

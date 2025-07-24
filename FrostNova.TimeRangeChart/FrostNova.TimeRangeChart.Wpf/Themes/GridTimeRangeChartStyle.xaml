@@ -307,6 +307,7 @@
                                                               TimeTicks="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeTicks}"
                                                               TimeUnit="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeUnit}"
                                                               NonWorkingRangeBackground="{Binding Source={StaticResource gridChartProxy}, Path=Data.NonWorkingRangeBackground}"
+                                                              Background="{Binding Source={StaticResource gridChartProxy}, Path=Data.Background}"
                                                               AllowDrop="True"
                                                               CanDragTasksBetweenRows ="{Binding Source={StaticResource gridChartProxy}, Path=Data.CanDragTasksBetweenRows}"
                                                               IsControlTick="False"

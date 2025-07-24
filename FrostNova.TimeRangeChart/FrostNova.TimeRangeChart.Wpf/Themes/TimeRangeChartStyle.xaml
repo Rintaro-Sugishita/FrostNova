@@ -19,7 +19,7 @@
                 <ControlTemplate TargetType="{x:Type local:TimeRangeChart}">
                     <!--<Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">-->
                         
-                    <Grid>
+                    <Grid Background="{TemplateBinding Background}">
                         <Grid.Resources>
                             <bProxy:BindingProxy Data="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}" x:Key="bindingProxy"/>
                         </Grid.Resources>
