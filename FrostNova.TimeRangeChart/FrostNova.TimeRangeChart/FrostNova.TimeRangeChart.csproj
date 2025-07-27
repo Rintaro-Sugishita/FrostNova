@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="FrostNova.Core" Version="0.0.2" />
+    <PackageReference Include="FrostNova.Core" Version="0.0.3" />
   </ItemGroup>
 
 

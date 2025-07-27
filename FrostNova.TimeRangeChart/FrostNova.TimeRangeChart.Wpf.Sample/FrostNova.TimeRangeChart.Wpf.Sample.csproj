@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
@@ -13,8 +13,8 @@
     <ProjectReference Include="..\FrostNova.TimeRangeChart\FrostNova.TimeRangeChart.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="FrostNova.TimeRangeChart" Version="0.0.2" />
-    <PackageReference Include="FrostNova.TimeRangeChart.Wpf" Version="0.0.2" />
+    <PackageReference Include="FrostNova.TimeRangeChart" Version="0.0.3" />
+    <PackageReference Include="FrostNova.TimeRangeChart.Wpf" Version="0.0.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\FrostNova.Core.Wpf\FrostNova.Core.Wpf.csproj" />
