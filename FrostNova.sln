@@ -29,6 +29,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sample", "Sample", "{E55582
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostNova.Core.ExcelWork.Sample", "Sample\FrostNova.Core.ExcelWork.Sample\FrostNova.Core.ExcelWork.Sample.csproj", "{0405E101-0127-492E-81D2-639EB05738D1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostNova.Core.TableWork", "FrostNova.Core.TableWork\FrostNova.Core.TableWork.csproj", "{B13B5BA3-7D2A-4E04-B126-1C7352B32FE8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostNova.WindowEventPickers", "FrostNova.WindowEventPickers\FrostNova.WindowEventPickers.csproj", "{4148BC2A-2D82-4AEC-BC79-A77138D2BBF6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +79,14 @@ Global
 		{0405E101-0127-492E-81D2-639EB05738D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0405E101-0127-492E-81D2-639EB05738D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0405E101-0127-492E-81D2-639EB05738D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B13B5BA3-7D2A-4E04-B126-1C7352B32FE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B13B5BA3-7D2A-4E04-B126-1C7352B32FE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B13B5BA3-7D2A-4E04-B126-1C7352B32FE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B13B5BA3-7D2A-4E04-B126-1C7352B32FE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4148BC2A-2D82-4AEC-BC79-A77138D2BBF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4148BC2A-2D82-4AEC-BC79-A77138D2BBF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4148BC2A-2D82-4AEC-BC79-A77138D2BBF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4148BC2A-2D82-4AEC-BC79-A77138D2BBF6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

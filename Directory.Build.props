@@ -34,6 +34,7 @@
     <PackageVersion Include="FrostNova.TimeRangeChart.Wpf" Version="0.0.3" />
     <PackageVersion Include="FrostNova.Core.Wpf.Controls" Version="0.0.3" />
     <PackageVersion Include="FrostNova.Core.ExcelWork" Version="0.0.3" />
+    <PackageVersion Include="FrostNova.WindowEventPickers" Version="0.0.3" />
 
   </ItemGroup>
 
