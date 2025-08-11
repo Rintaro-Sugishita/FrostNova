@@ -11,7 +11,7 @@ namespace FrostNova.Core.Wpf.ViewServices
     public interface IWindowService
     {
 
-        void ShowWindow<T>(T vm) where T : ViewModelBase;
+        Window? ShowWindow<T>(T vm) where T : ViewModelBase;
         bool? ShowDialogWindow<T>(T vm) where T : DialogWindowViewModelBase;
 
 

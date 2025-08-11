@@ -42,23 +42,25 @@ namespace FrostNova.Core.Wpf.ViewServices
 
 
 
-        public void ShowWindow<T>(T vm) where T : ViewModelBase
+        public Window? ShowWindow<T>(T vm) where T : ViewModelBase
         {
             if (WindowList.TryGetValue(typeof(T), out Type? windowType))
             {
-                ShowWindow(vm, windowType, this);
+                return ShowWindow(vm, windowType, this);
             }
+            return null;
         }
 
-        internal static void ShowWindow<T>(T vm, Type windowType, IWindowService? windowSerVice, Window? ownerWindow = null, WindowStartupLocation? location = null) where T : ViewModelBase
+        public static Window? ShowWindow<T>(T vm, Type windowType, IWindowService? windowSerVice, Window? ownerWindow = null, WindowStartupLocation? location = null) where T : ViewModelBase
         {
             var window = windowType.Assembly.CreateInstance(windowType.FullName!) as Window;
-            if (window == null) { return; }
+            if (window == null) { return null; }
 
             SetVm(vm, window, windowSerVice, ownerWindow, location);
 
             window.DataContext = vm;
             window.Show();
+            return window;
         }
 
         protected Dictionary<Type, Type> WindowList { get; set; } = [];
@@ -74,7 +76,7 @@ namespace FrostNova.Core.Wpf.ViewServices
             return new FrostNovaMessageBox();
         };
 
-        
+
 
         protected static void SetVm(ViewModelBase vm, Window subWindow, IWindowService? windowService, Window? ownerWindow = null, WindowStartupLocation? location = null)
         {
@@ -85,7 +87,7 @@ namespace FrostNova.Core.Wpf.ViewServices
 
             vm.WindowService = windowService;
             vm.MessageBox = GetMessageBox();
-            
+
 
             if (vm is DialogWindowViewModelBase dialogVm)
             {
