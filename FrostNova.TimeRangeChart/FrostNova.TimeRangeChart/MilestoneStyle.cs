@@ -8,6 +8,6 @@ namespace FrostNova.TimeRangeChart
 {
     public enum MilestoneStyle
     {
-        Circle, Diamond, Square, Triangle, Cross, X
+        None, Circle, Diamond/*, Square, Triangle, Cross, X*/
     }
 }
