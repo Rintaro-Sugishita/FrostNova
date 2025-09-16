@@ -161,7 +161,7 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
                 int daysFromStart = (time - monthStart).Days;
 
                 int incrementDays = (int)increment.TotalDays;
-                int roundedStep = (int)Math.Truncate((double)daysFromStart / (double)incrementDays);
+                int roundedStep = (int)Math.Round((double)daysFromStart / (double)incrementDays);
 
                 DateTime candidate = monthStart.AddDays(roundedStep * incrementDays);
 

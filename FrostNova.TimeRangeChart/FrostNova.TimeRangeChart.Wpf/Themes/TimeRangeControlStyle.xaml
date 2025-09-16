@@ -42,6 +42,7 @@
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="Focusable" Value="True" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=CanDrag}" Value="False">
                 <Setter Property="Visibility" Value="Collapsed" />
@@ -49,6 +50,22 @@
         </Style.Triggers>
     </Style>
 
+    <Style TargetType="{x:Type Border}" x:Key="rangeBorder">
+        <Setter Property="BorderBrush" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=BorderBrush}" />
+        <Setter Property="BorderThickness" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=BorderThickness}" />
+        <Setter Property="Width" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=TaskWidth}" />
+        <Setter Property="Height" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=Height}" />
+        <Setter Property="Background" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=Background}" />
+        
+
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=IsSelected}" Value="True">
+                <Setter Property="BorderBrush" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=SelectedBorderBrush}" />
+                <Setter Property="BorderThickness" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=SelectedBorderThickness}" />
+            </DataTrigger>
+        </Style.Triggers>
+        
+    </Style>
 
     <DataTemplate x:Key="diamondMilestoneTemplate">
         <Polygon x:Name="diamondMilestone" Points="10,0 20,10 10,20 0,10"
@@ -79,19 +96,22 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Canvas.Left" Value="{Binding Left, RelativeSource={RelativeSource Self}}" />
         <!--<Setter Property="Canvas.Top" Value="{Binding Top, RelativeSource={RelativeSource Self}}" />-->
+        <Setter Property="Focusable" Value="True" />
+
 
 
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
                     <Canvas Width="{TemplateBinding TaskWidth}">
-                        <Border Background="{TemplateBinding Background}" Grid.Column="1" 
-                                Width="{TemplateBinding TaskWidth}"
-                                Height="{TemplateBinding Height}" 
+                        <Border Focusable="True"
+                                Style="{StaticResource rangeBorder}"
                                 >
                             <Grid>
                                 <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
-                                                   Content="{Binding}" >
+                                                   Content="{Binding}" 
+                                                   Focusable="True"
+                                                  >
                                     <ContentPresenter.Margin>
                                         <MultiBinding  Converter="{StaticResource borderThicknessConverter}">
                                             <Binding Source="{StaticResource expandWidth}"  />
@@ -237,10 +257,7 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
                             <Canvas Width="{TemplateBinding TaskWidth}">
-                                <Border Background="{TemplateBinding Background}" Grid.Column="1" 
-                                Width="{TemplateBinding TaskWidth}"
-                                Height="{TemplateBinding Height}" 
-                                >
+                                <Border Style="{StaticResource rangeBorder}">
                                     <Grid>
                                         <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
                                                    Content="{Binding}" >
@@ -264,10 +281,7 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
                             <Canvas Width="{TemplateBinding TaskWidth}">
-                                <Border Background="{TemplateBinding Background}" Grid.Column="1" 
-                                Width="{TemplateBinding TaskWidth}"
-                                Height="{TemplateBinding Height}" 
-                                >
+                                <Border Style="{StaticResource rangeBorder}">
                                     <Grid>
                                         <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
                                                    Content="{Binding}" >
@@ -293,15 +307,13 @@
                     <Condition Property="IsMilestone" Value="False" />
                     <Condition Property="CanDrag" Value="False" />
                     <Condition Property="CanExpandSpan" Value="True" />
+                    <Condition Property="IsFocused" Value="False" />
                 </MultiTrigger.Conditions>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
                             <Canvas Width="{TemplateBinding TaskWidth}">
-                                <Border Background="{TemplateBinding Background}" Grid.Column="1" 
-                                Width="{TemplateBinding TaskWidth}"
-                                Height="{TemplateBinding Height}" 
-                                >
+                                <Border Style="{StaticResource rangeBorder}">
                                     <Grid>
                                         <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
                                                    Content="{Binding}" >
@@ -343,6 +355,7 @@
                     </Setter.Value>
                 </Setter>
             </MultiTrigger>
+
         </Style.Triggers>
     </Style>
 
@@ -353,6 +366,7 @@
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="IsMilestone" Value="False" />
+        <Setter Property="Focusable" Value="False" />
         <Setter Property="Canvas.Left" Value="{Binding Left, RelativeSource={RelativeSource Self}}" />
         <!--<Setter Property="Canvas.Top" Value="{Binding Top, RelativeSource={RelativeSource Self}}" />-->
         <Setter Property="Template">

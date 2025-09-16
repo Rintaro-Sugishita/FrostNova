@@ -13,6 +13,7 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Markup;
+using System.Windows.Media;
 using FrostNova.Core.Wpf.DragHelpers;
 using FrostNova.TimeRangeChart.TimeRangeHelpers;
 
@@ -316,13 +317,56 @@ namespace FrostNova.TimeRangeChart.Wpf
         //}
         //public static DependencyProperty VerticalAlignmentProperty = DependencyProperty.Register(nameof(VerticalAlignment), typeof(VerticalAlignment), typeof(TimeRangeControl));
 
-        private void Aaa()
-        {
 
+        /// <summary>
+        /// 
+        /// </summary>
+        public Brush SelectedBorderBrush
+        {
+            get { return (Brush)GetValue(SelectedBorderBrushProperty); }
+            set { SetValue(SelectedBorderBrushProperty, value); }
+        }
+        public static DependencyProperty SelectedBorderBrushProperty = DependencyProperty.Register(nameof(SelectedBorderBrush), typeof(Brush), typeof(TimeRangeControl), new PropertyMetadata(Brushes.Red));
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public Thickness SelectedBorderThickness
+        {
+            get { return (Thickness)GetValue(SelectedBorderThicknessProperty); }
+            set { SetValue(SelectedBorderThicknessProperty, value); }
+        }
+        public static DependencyProperty SelectedBorderThicknessProperty = DependencyProperty.Register(nameof(SelectedBorderThickness), typeof(Thickness), typeof(TimeRangeControl), new PropertyMetadata(new Thickness(2)));
+
+
+
+        /// <summary>
+        /// is select range
+        /// </summary>
+        public bool IsSelected
+        {
+            get { return (bool)GetValue(IsSelectedProperty); }
+            set { SetValue(IsSelectedProperty, value); }
+        }
+        public static DependencyProperty IsSelectedProperty = DependencyProperty.Register(nameof(IsSelected), typeof(bool), typeof(TimeRangeControl));
+
+
+        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+
+            //ParentChart?.OnTaskClicked(this);           
         }
 
-
-
+        private void PART_DragThumb_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Thumb thumb && thumb.TemplatedParent is TimeRangeControl parent)
+            {
+                //parent.Focus(); // 親（本体）にフォーカスを与える
+                e.Handled = false; // Thumb のドラッグ処理も有効に残すなら false
+            }
+            ParentChart?.OnTaskClicked(this);
+        }
 
 
         public ICommand MoveCommand
@@ -397,6 +441,9 @@ namespace FrostNova.TimeRangeChart.Wpf
                         isMoving = false;
                     }
                 };
+
+                if (this.IsSelected == false)
+                    moveThumb.PreviewMouseLeftButtonDown += PART_DragThumb_PreviewMouseDown;
             }
 
             if (leftThumb != null)
@@ -569,7 +616,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             base.OnPreviewMouseMove(e);
 
-            if (ParentChart?.CanDragTasksBetweenRows  != true) { return; }
+            if (ParentChart?.CanDragTasksBetweenRows != true) { return; }
 
 
             if (e.LeftButton == MouseButtonState.Pressed && _dragAdorner == null)

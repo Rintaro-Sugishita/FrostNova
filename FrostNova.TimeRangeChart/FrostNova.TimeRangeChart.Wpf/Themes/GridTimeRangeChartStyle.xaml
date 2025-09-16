@@ -308,6 +308,8 @@
                                                               TimeUnit="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeUnit}"
                                                               NonWorkingRangeBackground="{Binding Source={StaticResource gridChartProxy}, Path=Data.NonWorkingRangeBackground}"
                                                               Background="{Binding Source={StaticResource gridChartProxy}, Path=Data.Background}"
+                                                              SelectedRanges="{Binding Source={StaticResource gridChartProxy}, Path=Data.SelectedRanges}"
+                                                              SelectedValues="{Binding Source={StaticResource gridChartProxy}, Path=Data.SelectedValues}"
                                                               AllowDrop="True"
                                                               CanDragTasksBetweenRows ="{Binding Source={StaticResource gridChartProxy}, Path=Data.CanDragTasksBetweenRows}"
                                                               IsControlTick="False"

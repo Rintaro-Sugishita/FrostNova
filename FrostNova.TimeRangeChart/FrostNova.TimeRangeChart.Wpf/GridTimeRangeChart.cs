@@ -34,6 +34,18 @@ namespace FrostNova.TimeRangeChart.Wpf
             {
                 TimeTicks = new ObservableCollection<IRuledLine>();
             }
+
+            if (SelectedRanges == null)
+            {
+                SelectedRanges = new ObservableCollection<TimeRangeControl>();
+            }
+            if (SelectedValues == null)
+            {
+                SelectedValues = new ObservableCollection<object>();
+            }
+
+
+
         }
 
         [Bindable(true)]
@@ -268,6 +280,20 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty RowHeightProperty = DependencyProperty.Register(nameof(RowHeight), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(30.0));
 
+        public IList<TimeRangeControl> SelectedRanges
+        {
+            get { return (IList<TimeRangeControl>)GetValue(SelectedRangesProperty); }
+            set { SetValue(SelectedRangesProperty, value); }
+        }
+        public static DependencyProperty SelectedRangesProperty = DependencyProperty.Register(nameof(SelectedRanges), typeof(IList<TimeRangeControl>), typeof(GridTimeRangeChart));
+
+        public IList SelectedValues
+        {
+            get { return (IList)GetValue(SelectedValuesProperty); }
+            set { SetValue(SelectedValuesProperty, value); }
+        }
+        public static DependencyProperty SelectedValuesProperty = DependencyProperty.Register(nameof(SelectedValues), typeof(IList), typeof(GridTimeRangeChart));
+
 
         private static void OnMyPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -313,7 +339,10 @@ namespace FrostNova.TimeRangeChart.Wpf
             AddHandler(TimeRangeChart.PreviewTaskDropEvent, new EventHandler<DropOnRowEventArgs>(OnPreviewTaskDrop));
 
 
-
+            this.MouseLeftButtonDown += (s, e) =>
+            {
+                ClearSelectRange();
+            };
 
         }
 
@@ -358,6 +387,19 @@ namespace FrostNova.TimeRangeChart.Wpf
             remove { RemoveHandler(PreviewTaskDropEvent, value); }
         }
 
+
+        private  void ClearSelectRange()
+        {
+            if (SelectedRanges != null)
+                foreach (var item in SelectedRanges)
+                {
+                    item.IsSelected = false;
+                }
+            SelectedRanges?.Clear();
+            SelectedValues?.Clear();
+
+
+        }
 
 
 

@@ -52,7 +52,7 @@ namespace FrostNova.TimeRangeChart.Wpf
     {
         static TimeRangeChart()
         {
-            DefaultStyleKeyProperty.OverrideMetadata(typeof(TimeRangeChart), new FrameworkPropertyMetadata(typeof(TimeRangeChart)));           
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(TimeRangeChart), new FrameworkPropertyMetadata(typeof(TimeRangeChart)));
         }
 
         public TimeRangeChart()
@@ -61,6 +61,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             PointToTimeFunc = PointToTime;
             GetEndTimeFunc = GetEndTime;
             GetWorkingSpanFunc = GetWorkingSpan;
+            TaskClickAction = OnTaskClicked;
             if (TimeTicks == null)
             {
                 //TimeTicks = new ObservableCollection<IRuledLine>();
@@ -72,6 +73,8 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         public Func<DateTime, TimeSpan, DateTime> GetEndTimeFunc { get; private set; }
         public Func<DateTime, DateTime, TimeSpan> GetWorkingSpanFunc { get; private set; }
+
+        public Action<TimeRangeControl> TaskClickAction { get; private set; }
 
 
         public event EventHandler<EventArgs>? TimeRangeNeedRefresh;
@@ -197,7 +200,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty SortedNonWorkingTimesProperty = DependencyProperty.Register(nameof(SortedNonWorkingTimes), typeof(IList<ITimeRange>), typeof(TimeRangeChart));
 
-        
+
         public Style TimeRangeStyle
         {
             get { return (Style)GetValue(TimeRangeStyleProperty); }
@@ -295,7 +298,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             {
                 //自身で罫線を管理する場合は再計算する
                 //そうでない場合は親から指定された値を使用する
-               var newTicks = TimeUnit == TimeUnitType.Normal ? TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement) : TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1);
+                var newTicks = TimeUnit == TimeUnitType.Normal ? TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement) : TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1);
 
                 TimeTicks.Clear();
 
@@ -310,7 +313,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             if (!double.IsNaN(WidthPerRuledLine) && WidthPerRuledLine > 0)
             {
 
-                var newWidth = (ticks.Count-1) * WidthPerRuledLine;
+                var newWidth = (ticks.Count - 1) * WidthPerRuledLine;
                 if (newWidth > 0)
                 {
                     this.Width = newWidth;
@@ -330,7 +333,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
 
 
-    
+
 
 
         private DateTime GetEndTime(DateTime startTime, TimeSpan workingSpan)
@@ -345,6 +348,80 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
 
 
+
+
+        public IList<TimeRangeControl> SelectedRanges
+        {
+            get { return (IList<TimeRangeControl>)GetValue(SelectedRangesProperty); }
+            set { SetValue(SelectedRangesProperty, value); }
+        }
+        public static DependencyProperty SelectedRangesProperty = DependencyProperty.Register(nameof(SelectedRanges), typeof(IList<TimeRangeControl>), typeof(TimeRangeChart));
+
+        public IList SelectedValues
+        {
+            get { return (IList)GetValue(SelectedValuesProperty); }
+            set { SetValue(SelectedValuesProperty, value); }
+        }
+        public static DependencyProperty SelectedValuesProperty = DependencyProperty.Register(nameof(SelectedValues), typeof(IList), typeof(TimeRangeChart));
+
+
+        internal static void OnTaskClicked(TimeRangeChart chart, TimeRangeControl ctrl)
+        {
+
+            if (chart.IsControlTick)
+            {
+                if (chart.SelectedRanges == null)
+                {
+                    chart.SelectedRanges = new ObservableCollection<TimeRangeControl>();
+                    chart.SelectedValues = new ObservableCollection<object>();
+                }
+            }
+
+
+            if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                ClearSelectRange(chart);
+            }
+
+            if (ctrl.IsSelected)
+            {
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) || Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+                {
+                    ctrl.IsSelected = false;
+                    chart.SelectedRanges?.Remove(ctrl);
+                    chart.SelectedValues?.Remove(ctrl.DataContext);
+                }
+            }
+            else
+            {
+                ctrl.IsSelected = true;
+                chart.SelectedRanges?.Add(ctrl);
+                chart.SelectedValues?.Add(ctrl.DataContext);
+            }
+
+        }
+
+        internal void OnTaskClicked(TimeRangeControl ctrl)
+        {
+            OnTaskClicked(this, ctrl);
+        }
+
+        private static void ClearSelectRange(TimeRangeChart chart)
+        {
+
+            if (chart.SelectedRanges != null)
+                foreach (var item in chart.SelectedRanges)
+                {
+                    item.IsSelected = false;
+                }
+            chart.SelectedRanges?.Clear();
+            chart.SelectedValues?.Clear();
+        }
+
+        private void ClearSelectRange()
+        {
+            ClearSelectRange(this);
+        }
 
         private void Refresh()
         {
@@ -369,21 +446,21 @@ namespace FrostNova.TimeRangeChart.Wpf
                 case TimeUnitType.Normal:
                     return TimeScreenHelper.TimeToPoint(time, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth);
                 case TimeUnitType.Month:
-                    return TimeScreenHelper.TimeToPointMonth(time, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width: ActualWidth, TimeTicks);
+                    return TimeScreenHelper.TimeToPointMonth(time, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, TimeTicks);
                 default:
                     break;
             }
             return 0;
         }
 
-        private DateTime PointToTime(double point, TimeSpan? minSpan=null)
+        private DateTime PointToTime(double point, TimeSpan? minSpan = null)
         {
             switch (TimeUnit)
             {
                 case TimeUnitType.Normal:
-                    return TimeScreenHelper.PointToTime(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth,minSpan?? MinSpan);
+                    return TimeScreenHelper.PointToTime(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, minSpan ?? MinSpan);
                 case TimeUnitType.Month:
-                    return TimeScreenHelper.PointToTimeMonth(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth,minSpan?? MinSpan, TimeTicks);
+                    return TimeScreenHelper.PointToTimeMonth(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, minSpan ?? MinSpan, TimeTicks);
                 default:
                     break;
             }
@@ -406,6 +483,12 @@ namespace FrostNova.TimeRangeChart.Wpf
                 // サイズ変更時に再描画
                 Refresh();
             };
+
+
+            this.MouseLeftButtonDown += (s, e) =>
+            {
+                ClearSelectRange();
+            };
         }
 
 
@@ -423,7 +506,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             base.OnPreviewDrop(e);
 
-           if (CanDragTasksBetweenRows  == false) { return; }
+            if (CanDragTasksBetweenRows == false) { return; }
 
             var formats = e.Data.GetFormats();
             if (formats != null && formats.Length > 0)
