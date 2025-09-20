@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 
-namespace FrostNova.TimeRangeChart.Wpf
+namespace FrostNova.TimeRangeChart.Wpf.Converters
 {
     public class MilestonePositionConverter : IValueConverter
     {
         //与えられた widthの半分、左へずらす
-        public object? Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             //与えられた widthの半分、左へずらす
             if (value is double x)

@@ -5,11 +5,13 @@
                     xmlns:cnv="clr-namespace:FrostNova.Core.Wpf.Converters;assembly=FrostNova.Core.Wpf"
                     xmlns:timeRangeBase="clr-namespace:FrostNova.TimeRangeChart;assembly=FrostNova.TimeRangeChart"
                     xmlns:timeRangeHelpers="clr-namespace:FrostNova.TimeRangeChart.TimeRangeHelpers;assembly=FrostNova.TimeRangeChart"
+                    xmlns:localConv="clr-namespace:FrostNova.TimeRangeChart.Wpf.Converters"
                     >
 
 
 
-    <local:MilestonePositionConverter x:Key="MilestonePositionConverter" />
+    <localConv:MilestonePositionConverter x:Key="MilestonePositionConverter" />
+    <localConv:RangeContentPaddingConverter x:Key="RangeContentPaddingConverter" />
     <cnv:BorderThicknessConverter x:Key="borderThicknessConverter" />
 
     <sys:Double x:Key="expandWidth">7</sys:Double>
@@ -18,6 +20,8 @@
     <Style TargetType="{x:Type Thumb}" x:Key="expandThumbStyle">
         <Setter Property="Width" Value="{StaticResource expandWidth}" />
         <Setter Property="Cursor" Value="SizeWE" />
+        <Setter Property="Visibility" Value="Collapsed" />
+        <Setter Property="Opacity" Value="0" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Thumb}">
@@ -28,6 +32,32 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=IsMouseOver}" Value="True">
+                <Setter Property="Visibility" Value="Visible" />
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                         To="1"
+                                         Duration="0:0:0.3" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=IsSelected}" Value="True">
+                <Setter Property="Visibility" Value="Visible" />
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                         To="1"
+                                         Duration="0:0:0.3" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <Style TargetType="{x:Type Thumb}" x:Key="moveThumbStyle">
@@ -56,7 +86,17 @@
         <Setter Property="Width" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=TaskWidth}" />
         <Setter Property="Height" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=Height}" />
         <Setter Property="Background" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=Background}" />
-        
+        <Setter Property="Focusable" Value="True" />
+
+        <Setter Property="Padding">
+            <Setter.Value>
+                <MultiBinding Converter="{StaticResource RangeContentPaddingConverter}" Mode="OneWay">
+                    <Binding RelativeSource="{RelativeSource AncestorType={x:Type local:TimeRangeControl}}" Path="BorderThickness" />
+                    <Binding RelativeSource="{RelativeSource AncestorType={x:Type local:TimeRangeControl}}" Path="SelectedBorderThickness" />
+                    <Binding RelativeSource="{RelativeSource AncestorType={x:Type local:TimeRangeControl}}" Path="IsSelected" />
+                </MultiBinding>
+            </Setter.Value>
+        </Setter>
 
         <Style.Triggers>
             <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=IsSelected}" Value="True">
@@ -64,6 +104,7 @@
                 <Setter Property="BorderThickness" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=SelectedBorderThickness}" />
             </DataTrigger>
         </Style.Triggers>
+
         
     </Style>
 
@@ -104,8 +145,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
                     <Canvas Width="{TemplateBinding TaskWidth}">
-                        <Border Focusable="True"
-                                Style="{StaticResource rangeBorder}"
+                        <Border Style="{StaticResource rangeBorder}"
                                 >
                             <Grid>
                                 <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
