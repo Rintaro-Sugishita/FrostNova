@@ -33,6 +33,10 @@
             </Setter.Value>
         </Setter>
         <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=IsExpandThumbAnyTimeVisible}" Value="True">
+                <Setter Property="Visibility" Value="Visible" />
+                <Setter Property="Opacity" Value="1" />
+            </DataTrigger>
             <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=IsMouseOver}" Value="True">
                 <Setter Property="Visibility" Value="Visible" />
                 <DataTrigger.EnterActions>

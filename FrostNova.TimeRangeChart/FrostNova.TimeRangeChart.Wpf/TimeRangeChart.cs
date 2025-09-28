@@ -201,6 +201,17 @@ namespace FrostNova.TimeRangeChart.Wpf
         public static DependencyProperty SortedNonWorkingTimesProperty = DependencyProperty.Register(nameof(SortedNonWorkingTimes), typeof(IList<ITimeRange>), typeof(TimeRangeChart));
 
 
+        /// <summary>
+        /// string
+        /// </summary>
+        public DataTemplate TimeRangeTemplate
+        {
+            get { return (DataTemplate)GetValue(TimeRangeTemplateProperty); }
+            set { SetValue(TimeRangeTemplateProperty, value); }
+        }
+        public static DependencyProperty TimeRangeTemplateProperty = DependencyProperty.Register(nameof(TimeRangeTemplate), typeof(DataTemplate), typeof(TimeRangeChart));
+
+
         public Style TimeRangeStyle
         {
             get { return (Style)GetValue(TimeRangeStyleProperty); }

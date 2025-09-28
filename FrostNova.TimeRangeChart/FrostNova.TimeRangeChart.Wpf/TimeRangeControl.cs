@@ -23,6 +23,8 @@ namespace FrostNova.TimeRangeChart.Wpf
     public class TimeRangeControl : Control
     {
 
+        #region properties
+
         /// <summary>
         /// parent chart
         /// </summary>
@@ -32,9 +34,9 @@ namespace FrostNova.TimeRangeChart.Wpf
             get { return (TimeRangeChart)GetValue(ParentChartProperty); }
             set { SetValue(ParentChartProperty, value); }
         }
-        public static DependencyProperty ParentChartProperty = DependencyProperty.Register(nameof(ParentChart), typeof(TimeRangeChart), typeof(TimeRangeControl), new PropertyMetadata(null, OnPrentChartChanged));
+        public static DependencyProperty ParentChartProperty = DependencyProperty.Register(nameof(ParentChart), typeof(TimeRangeChart), typeof(TimeRangeControl), new PropertyMetadata(null, OnParentChartChanged));
 
-        private static void OnPrentChartChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnParentChartChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is TimeRangeControl range)
             {
@@ -54,14 +56,14 @@ namespace FrostNova.TimeRangeChart.Wpf
 
 
         /// <summary>
-        /// contet
+        /// content
         /// </summary>
-        /// <remarks>donot set</remarks>
+        /// <remarks>do not set</remarks>
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         public ContentControl Content
         {
             get { return (ContentControl)GetValue(ContentProperty); }
-            set { SetValue(ContentProperty, value); }
+            internal set { SetValue(ContentProperty, value); }
         }
         public static DependencyProperty ContentProperty = DependencyProperty.Register(nameof(Content), typeof(ContentControl), typeof(TimeRangeControl));
 
@@ -317,6 +319,16 @@ namespace FrostNova.TimeRangeChart.Wpf
         //}
         //public static DependencyProperty VerticalAlignmentProperty = DependencyProperty.Register(nameof(VerticalAlignment), typeof(VerticalAlignment), typeof(TimeRangeControl));
 
+        /// <summary>
+        /// string
+        /// </summary>
+        public bool IsExpandThumbAnyTimeVisible
+        {
+            get { return (bool)GetValue(IsExpandThumbAnyTimeVisibleProperty); }
+            set { SetValue(IsExpandThumbAnyTimeVisibleProperty, value); }
+        }
+        public static DependencyProperty IsExpandThumbAnyTimeVisibleProperty = DependencyProperty.Register(nameof(IsExpandThumbAnyTimeVisible), typeof(bool), typeof(TimeRangeControl),new PropertyMetadata(false));
+
 
         /// <summary>
         /// 
@@ -337,8 +349,6 @@ namespace FrostNova.TimeRangeChart.Wpf
             set { SetValue(SelectedBorderThicknessProperty, value); }
         }
         public static DependencyProperty SelectedBorderThicknessProperty = DependencyProperty.Register(nameof(SelectedBorderThickness), typeof(Thickness), typeof(TimeRangeControl), new PropertyMetadata(new Thickness(2)));
-
-
 
         /// <summary>
         /// is select range
@@ -390,6 +400,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty ExpandEndTimeCommandProperty = DependencyProperty.Register(nameof(ExpandEndTimeCommand), typeof(ICommand), typeof(TimeRangeControl));
 
+        #endregion
 
         public override void OnApplyTemplate()
         {
@@ -544,7 +555,6 @@ namespace FrostNova.TimeRangeChart.Wpf
 
 
         }
-        //private bool _isloaded = false;
 
         private void TryBindDefaultProperties()
         {
@@ -604,12 +614,17 @@ namespace FrostNova.TimeRangeChart.Wpf
         private AdornerLayer? _adornerLayer;
         private Point _dragStartPoint;
 
+        //start time when start drag
+        private DateTime? _dragStartTime=null;
+
         protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnPreviewMouseLeftButtonDown(e);
             _dragStartPoint = e.GetPosition(this);
-            //var startTime = ParentChart?.PointToTimeFunc(_dragStartPoint.X);
-
+            _dragStartTime = StartTime;
+            //var startTime = ParentChart?.PointToTimeFunc(_dragStartPoint.X, MinSpan);
+            OnDragStart?.Invoke(this, new DragDropRangeEventArgs());
+           
         }
 
         protected override void OnPreviewMouseMove(MouseEventArgs e)
@@ -657,6 +672,17 @@ namespace FrostNova.TimeRangeChart.Wpf
             }
 
         }
+
+        #region events
+
+        public event EventHandler<DragDropRangeEventArgs>? OnDragStart;
+       
+        public event EventHandler<DragDropRangeEventArgs>? OnDragEnd;
+
+      
+        
+
+        #endregion
 
 
     }

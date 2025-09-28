@@ -12,6 +12,8 @@
 
 
 
+
+
     <Style TargetType="{x:Type local:TimeRangeChart}" x:Key="defaultTimeRangeChartStyle">
 
         <Setter Property="Template">
@@ -22,6 +24,22 @@
                     <Grid Background="{TemplateBinding Background}">
                         <Grid.Resources>
                             <bProxy:BindingProxy Data="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}" x:Key="bindingProxy"/>
+
+                            <DataTemplate x:Key="defaultRangeTemplate">
+                                <local:TimeRangeControl
+                                            ParentChart="{Binding Source={StaticResource bindingProxy},Path=Data,Mode=OneTime}"
+                                            Style="{Binding Source={StaticResource bindingProxy},Path=Data.TimeRangeStyle, FallbackValue={StaticResource timeRangeControlStyle}}"
+                                            >
+                                    <i:Interaction.Behaviors>
+                                        <behaviors:CanvasHelperBehavior BindLeft="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}} , Path=Left}"
+                                                                            CanvasVerticalAlignment="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=VerticalAlignment}"
+                                                        />
+                                        <!--<behaviors:DragSourceBehavior DragData="{Binding RelativeSource={RelativeSource Self}}"
+                                                                          SourceParameter="{Binding Source={StaticResource bindingProxy},Path=Data.ItemsSource,Mode=OneTime}"
+                                                                          />-->
+                                    </i:Interaction.Behaviors>
+                                </local:TimeRangeControl>
+                            </DataTemplate>
                         </Grid.Resources>
 
                         <ItemsControl x:Name="nonWorkingGanttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=SortedNonWorkingTimes}"                      
@@ -85,24 +103,23 @@
                                     <Canvas AllowDrop="{TemplateBinding AllowDrop}" Background="Transparent" />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <local:TimeRangeControl
-                                            ParentChart="{Binding Source={StaticResource bindingProxy},Path=Data,Mode=OneTime}"
-                                            Style="{Binding Source={StaticResource bindingProxy},Path=Data.TimeRangeStyle, FallbackValue={StaticResource timeRangeControlStyle}}"
-                                            >
-                                        <i:Interaction.Behaviors>
-                                            <behaviors:CanvasHelperBehavior BindLeft="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}} , Path=Left}"
-                                                                            CanvasVerticalAlignment="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=VerticalAlignment}"
-                                                        />
-                                            <!--<behaviors:DragSourceBehavior DragData="{Binding RelativeSource={RelativeSource Self}}"
-                                                                          SourceParameter="{Binding Source={StaticResource bindingProxy},Path=Data.ItemsSource,Mode=OneTime}"
-                                                                          />-->
-                                        </i:Interaction.Behaviors>
-                                    </local:TimeRangeControl>
-                                </DataTemplate>
-
-                            </ItemsControl.ItemTemplate>
+                                                       
+                                                   
+                            <ItemsControl.Style>
+                                
+                                <Style TargetType="{x:Type ItemsControl}">
+                                    <Setter Property="ItemTemplate" Value="{Binding Source={StaticResource bindingProxy},Path=Data.TimeRangeTemplate,Mode=OneTime, FallbackValue={StaticResource defaultRangeTemplate}}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Source={StaticResource bindingProxy},Path=Data.TimeRangeTemplate}" Value="{x:Null}">
+                                            <Setter Property="ItemTemplate" Value="{StaticResource defaultRangeTemplate}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                
+                                
+                                
+                                </Style>
+                            </ItemsControl.Style>
+                        
                         </ItemsControl>
                     </Grid>
                     <!--</Border>-->
