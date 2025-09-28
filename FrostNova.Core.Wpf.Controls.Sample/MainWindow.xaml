@@ -3,8 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:local="clr-namespace:FrostNova.Core.Wpf.Controls.Sample"
         xmlns:ctrls="clr-namespace:FrostNova.Core.Wpf.Controls;assembly=FrostNova.Core.Wpf.Controls"
+        xmlns:conv="clr-namespace:FrostNova.Core.Wpf.Controls.Converters;assembly=FrostNova.Core.Wpf.Controls"
+        xmlns:behaviors="clr-namespace:FrostNova.Core.Wpf.Behaviors;assembly=FrostNova.Core.Wpf"
+        xmlns:att="clr-namespace:FrostNova.Core.Wpf.AttachedProperties;assembly=FrostNova.Core.Wpf"
         mc:Ignorable="d"
         
         Title="MainWindow" Height="450" Width="800">
@@ -27,14 +31,46 @@
                     <ctrls:ColorSelector />
                     <Button Command="{Binding ShowColorDialogCommand}" Content="select" />
                     <StackPanel Orientation="Horizontal">
-                        <TextBox HorizontalAlignment="Stretch" MinWidth="200" />
-                        <ctrls:ColorPicker />
+                        <TextBox HorizontalAlignment="Stretch" MinWidth="200" Text="{Binding SelectedColor,Converter={StaticResource colorTextConverter}, Mode=TwoWay}" />
+                        <ctrls:ColorPicker SelectedColor="{Binding SelectedColor, Mode=TwoWay}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <TextBox HorizontalAlignment="Stretch" MinWidth="200" />
                         <ctrls:ColorPicker IsDialogMode="True" />
                     </StackPanel>
                 </StackPanel>
+            </TabItem>
+            <TabItem Header="DataGrid1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <DataGrid ItemsSource="{Binding Samples}"
+                              att:DataGridEx.SelectedItems="{Binding SelectedSamples}"
+                              att:DataGridEx.SelectedItemsChangeCommand="{Binding SelectedItemsChangedCommand}"
+                              >
+                        <i:Interaction.Behaviors>
+                            <behaviors:DataGridRowNumberDisplayBehavior />
+                        </i:Interaction.Behaviors>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Column1" Binding="{Binding ColumnValue}" />
+                            <DataGridTextColumn Header="Column2" Binding="{Binding NumValue}" />
+                        </DataGrid.Columns>
+                        
+
+                    </DataGrid>
+                    <ListBox ItemsSource="{Binding SelectedIndices}" Grid.Column="1">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding }" />
+                                    <TextBlock Text="index row is selected." />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
             </TabItem>
         </TabControl>
 

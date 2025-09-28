@@ -27,7 +27,7 @@ namespace FrostNova.Core.Wpf.Controls
             get { return (Color?)GetValue(SelectedColorProperty); }
             set { SetValue(SelectedColorProperty, value); }
         }
-        public static DependencyProperty SelectedColorProperty = DependencyProperty.Register(nameof(SelectedColor), typeof(Color?), typeof(ColorPicker));
+        public static DependencyProperty SelectedColorProperty = DependencyProperty.Register(nameof(SelectedColor), typeof(Color?), typeof(ColorPicker), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
 
         /// <summary>

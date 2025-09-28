@@ -1,20 +1,21 @@
-﻿using System;
+﻿using FrostNova.Core.Wpf.Behaviors;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Controls;
 using System.Windows;
+using System.Windows.Controls;
 
-namespace FrostNova.Core.Wpf.Behaviors
+namespace FrostNova.Core.Wpf.AttachedProperties
 {
-    public class DataGridDragSourceBahavior
+    public class DataGridDragSource
     {
         public static readonly DependencyProperty IsEnabledProperty =
         DependencyProperty.RegisterAttached(
             "IsEnabled",
             typeof(bool),
-            typeof(DataGridDragSourceBahavior),
+            typeof(DataGridDragSource),
             new PropertyMetadata(false, OnIsEnabledChanged));
 
         public static bool GetIsEnabled(DependencyObject obj)
@@ -28,7 +29,7 @@ namespace FrostNova.Core.Wpf.Behaviors
         }
 
 
-        public static DependencyProperty DragDataProperty = DependencyProperty.RegisterAttached("DragData", typeof(object), typeof(DataGridDragSourceBahavior));
+        public static DependencyProperty DragDataProperty = DependencyProperty.RegisterAttached("DragData", typeof(object), typeof(DataGridDragSource));
 
         public static object GetDragData(DependencyObject obj)
         {
@@ -38,7 +39,7 @@ namespace FrostNova.Core.Wpf.Behaviors
         {
             obj.SetValue(DragDataProperty, value);
         }
-        public static DependencyProperty SourceParameterProperty = DependencyProperty.Register("SourceParameter", typeof(object), typeof(DataGridDragSourceBahavior));
+        public static DependencyProperty SourceParameterProperty = DependencyProperty.Register("SourceParameter", typeof(object), typeof(DataGridDragSource));
 
         public static object GetSourceParameter(DependencyObject obj)
         {
@@ -71,14 +72,13 @@ namespace FrostNova.Core.Wpf.Behaviors
                 if (source != null && e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
                 {
                     var item = new DragItemData();
-                    item.DragData = source.GetValue(DataGridDragSourceBahavior.DragDataProperty);
-                    item.SourceParameter = source.GetValue(DataGridDragSourceBahavior.SourceParameterProperty);
+                    item.DragData = source.GetValue(DataGridDragSource.DragDataProperty);
+                    item.SourceParameter = source.GetValue(DataGridDragSource.SourceParameterProperty);
 
                     DragDrop.DoDragDrop(source, item, DragDropEffects.Move);
                 }
             }
         }
-
 
     }
 }

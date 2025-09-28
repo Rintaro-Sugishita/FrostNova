@@ -14,12 +14,16 @@ namespace FrostNova.Core.Wpf.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (targetType != typeof(Color))
-                throw new InvalidOperationException("The target must be a Color");
+            //if (targetType != typeof(Color) && targetType != typeof(Color?))
+            //    throw new InvalidOperationException("The target must be a Color");
 
             if (value is Color c)
             {
                 return Convert(c);
+            }
+            else if (value == null)
+            {
+                return "";
             }
             else
             {
@@ -42,7 +46,15 @@ namespace FrostNova.Core.Wpf.Converters
 
         public static string Convert(Color c)
         {
-            return $"#{c.R.ToString("X2")}{c.G.ToString("X2")}{c.B.ToString("X2")}";
+
+            if (c.A == 255)
+            {
+                return $"#{c.R.ToString("X2")}{c.G.ToString("X2")}{c.B.ToString("X2")}";
+            }
+            else
+            {
+                return $"#{c.A.ToString("X2")}{c.R.ToString("X2")}{c.G.ToString("X2")}{c.B.ToString("X2")}";
+            }
         }
 
         public static Color ConvertBack(string s)
@@ -81,7 +93,7 @@ namespace FrostNova.Core.Wpf.Converters
                 b = blueValueTmp;
             }
 
-            return  new byte[] { r, g, b };
+            return new byte[] { r, g, b };
 
         }
 

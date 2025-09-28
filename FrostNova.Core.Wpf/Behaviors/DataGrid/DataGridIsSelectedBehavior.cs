@@ -1,7 +1,9 @@
-﻿using Microsoft.Xaml.Behaviors;
+﻿using FrostNova.Core.Wpf.AttachedProperties;
+using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,99 +13,75 @@ using System.Windows.Input;
 
 namespace FrostNova.Core.Wpf.Behaviors
 {
-    [Obsolete("Use DataGridUsualBehavior")]
     public class DataGridIsSelectedBehavior : Behavior<DataGrid>
     {
+
         protected override void OnAttached()
         {
             base.OnAttached();
-            SelectedItems = new List<object>();
-            AssociatedObject.SelectionChanged += DataGrid_SelectionChanged;
+            AssociatedObject.SelectedCellsChanged += AssociatedObject_SelectedCellsChanged;
 
         }
 
         protected override void OnDetaching()
         {
             base.OnDetaching();
-            AssociatedObject.SelectionChanged -= DataGrid_SelectionChanged;
+            AssociatedObject.SelectedCellsChanged -= AssociatedObject_SelectedCellsChanged;
         }
 
-        private void DataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void AssociatedObject_SelectedCellsChanged(object sender, SelectedCellsChangedEventArgs e)
         {
-            var grid = (DataGrid)sender;
-
-
-            //foreach (PrismCollectionItem addedItem in e.AddedItems)
-            //{
-            //    addedItem.IsSelected = true;
-            //    SelectedItems.Add(addedItem);
-            //}
-            //foreach (PrismCollectionItem removedItem in e.RemovedItems)
-            //{
-            //    removedItem.IsSelected = false;
-            //    SelectedItems.Remove(removedItem);
-            //}
-
-            //SelectedItemsCount += e.AddedItems.Count - e.RemovedItems.Count;
-
-            //SelectedItems = grid.SelectedItems;
-            //SelectedItemsCount = SelectedItems.Count;
-            //foreach (var item in grid.Items)
-            //{
-            //    if (item is PrismCollectionItem colItem)
-            //    {
-
-            //        colItem.IsSelected = SelectedItems.Cast<PrismCollectionItem>().Where(x => x == colItem).Any();
-            //    }
-            //}
-
-            SelectedItems = grid.SelectedItems;
-            SelectedItemsCount = SelectedItems.Count;
-            //foreach (var item in grid.Items)
-            //{
-            //    if (item is IPrismCollectionItem colItem)
-            //    {
-
-            //        colItem.IsSelected = SelectedItems.Cast<IPrismCollectionItem>().Where(x => x == colItem).Any();
-            //    }
-            //}
-
-            if (Command?.CanExecute(null) == true)
+            Debug.WriteLine("selected cells changed");
+            var selectedList = AssociatedObject.SelectedCells.Select(x => x.Item).Distinct().ToList();
+            try
             {
-                Command?.Execute(SelectedItems);
+                isSettingSelectedItems = true;
+
+                //cell単体を選択しているときはrow自体が選択状態とはみなされない
+                DataGridEx.SetSelectedItems(AssociatedObject, selectedList);
+            }
+            finally
+            {
+                isSettingSelectedItems = false;
             }
 
         }
+        private bool isSettingSelectedItems = false;
 
-
-
-        public int SelectedItemsCount
+        
+        private static void OnSelectedItemsChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e)
         {
-            get { return (int)GetValue(SelectedItemsCountProperty); }
-            set { SetValue(SelectedItemsCountProperty, value); }
-        }
-        public static readonly DependencyProperty SelectedItemsCountProperty =
-            DependencyProperty.Register(nameof(SelectedItemsCount), typeof(int), typeof(DataGridIsSelectedBehavior), new PropertyMetadata(null));
 
-        /// <summary>
-        /// 選択されたアイテムリスト
-        /// </summary>
-        public IList SelectedItems
-        {
-            get { return (IList)GetValue(SelectedItemsProperty); }
-            set { SetValue(SelectedItemsProperty, value); }
-        }
-        public static readonly DependencyProperty SelectedItemsProperty =
-            DependencyProperty.Register(nameof(SelectedItems), typeof(IList), typeof(DataGridIsSelectedBehavior), new PropertyMetadata(null));
+            var behavior = sender as DataGridIsSelectedBehavior;
 
-        public ICommand Command
-        {
-            get { return (ICommand)GetValue(CommandProperty); }
-            set { SetValue(CommandProperty, value); }
-        }
-        public static readonly DependencyProperty CommandProperty =
-            DependencyProperty.Register(nameof(Command), typeof(ICommand), typeof(DataGridIsSelectedBehavior), new PropertyMetadata(null));
 
+            //if (behavior.AssociatedObject is DataGrid grid && behavior.isSettingSelectedItems == false && e.NewValue is IList list)
+            //{
+            //    grid.SelectedCells.Clear();
+            //    foreach (var item in list)
+            //    {
+            //        //全行選択にする
+            //        //カレントセルは指定がなければ最初のやつにする
+            //        foreach (var column in grid.Columns)
+            //        {
+
+            //            var info = new DataGridCellInfo(item, column);
+            //            grid.SelectedCells.Add(info);
+            //            var key = (string)column.GetValue(DataGridColumnEx.KeyProperty);
+            //            if (string.IsNullOrEmpty(behavior.FocusKey) == false && key == behavior.FocusKey)
+            //            {
+            //                FocusCell(grid, info);
+            //            }
+            //            else if (string.IsNullOrEmpty(behavior.FocusKey) && column.DisplayIndex == 0)
+            //            {
+            //                FocusCell(grid, info);
+            //            }
+
+            //        }
+            //        //grid.SelectedItems.Add(item);
+            //    }
+            //}
+        }
 
 
 

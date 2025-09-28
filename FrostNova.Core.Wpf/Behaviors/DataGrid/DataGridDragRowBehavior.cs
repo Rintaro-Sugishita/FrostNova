@@ -28,9 +28,9 @@ namespace FrostNova.Core.Wpf.Behaviors
             this.AssociatedObject.Drop += this.DataGrid_Drop;
             this.AssociatedObject.PreviewMouseLeftButtonDown += this.DataGrid_PreviewMouseLeftButtonDown;
 
-            foreach(var item in this.AssociatedObject.Columns)
+            foreach (var item in this.AssociatedObject.Columns)
             {
-               
+
             }
         }
 
@@ -57,7 +57,7 @@ namespace FrostNova.Core.Wpf.Behaviors
             set
             {
                 SetValue(OnDragMoveProperty, value);
-                           
+
             }
         }
         public static readonly DependencyProperty OnDragMoveProperty =
@@ -122,7 +122,7 @@ namespace FrostNova.Core.Wpf.Behaviors
             if (DragDrop.DoDragDrop(AssociatedObject, selectedItem, dragdropeffects)
                                 != DragDropEffects.None)
             {
-               if (AssociatedObject.SelectionUnit != DataGridSelectionUnit.Cell) AssociatedObject.SelectedItem = selectedItem;
+                if (AssociatedObject.SelectionUnit != DataGridSelectionUnit.Cell) AssociatedObject.SelectedItem = selectedItem;
             }
         }
 
@@ -149,12 +149,11 @@ namespace FrostNova.Core.Wpf.Behaviors
         {
             int curIndex = -1;
 
-            AssociatedObject.Columns.Where(x => DataGridColumnEx.GetCanDragRow(x));
-
             var cell = GetDataGridObject<DataGridCell>(AssociatedObject, pos((IInputElement)AssociatedObject));
             if (cell == null) { return -1; }
 
-           if (!DataGridColumnEx.GetCanDragRow(cell.Column))
+            //if CanDragRow is "false", ignore operation.
+            if (!DataGridColumnEx.GetCanDragRow(cell.Column))
             {
                 return -1;
             }
