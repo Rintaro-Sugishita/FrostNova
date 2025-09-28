@@ -12,9 +12,12 @@
     <DebugType>embedded</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <Version>0.0.4.0</Version>
+    <Version>0.0.6</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
+    <DebugType>embedded</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>true</Optimize>
   </PropertyGroup>
 
 
@@ -26,14 +29,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageVersion Include="FrostNova.Core" Version="0.0.4" />
-    <PackageVersion Include="FrostNova.Core.Wpf" Version="0.0.4" />
-    <PackageVersion Include="FrostNova.Core.Wpf.Controls" Version="0.0.4" />
-    <PackageVersion Include="FrostNova.Core.Registry" Version="0.0.4" />
-    <PackageVersion Include="FrostNova.Core.ExcelWork" Version="0.0.4" />
-    <PackageVersion Include="FrostNova.TimeRangeChart" Version="0.0.4" />
-    <PackageVersion Include="FrostNova.TimeRangeChart.Wpf" Version="0.0.4" />
-    <PackageVersion Include="FrostNova.WindowEventPickers" Version="0.0.4" />
+    <PackageVersion Include="FrostNova.Core" Version="0.0.6" />
+    <PackageVersion Include="FrostNova.Core.Wpf" Version="0.0.6" />
+    <PackageVersion Include="FrostNova.Core.Wpf.Controls" Version="0.0.6" />
+    <PackageVersion Include="FrostNova.Core.Registry" Version="0.0.6" />
+    <PackageVersion Include="FrostNova.Core.ExcelWork" Version="0.0.6" />
+    <PackageVersion Include="FrostNova.TimeRangeChart" Version="0.0.6" />
+    <PackageVersion Include="FrostNova.TimeRangeChart.Wpf" Version="0.0.6" />
+    <PackageVersion Include="FrostNova.WindowEventPickers" Version="0.0.6" />
   </ItemGroup>
 
 

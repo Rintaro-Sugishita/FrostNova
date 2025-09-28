@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="FrostNova.Core" Version="0.0.4" />
+    <PackageReference Include="FrostNova.Core" Version="0.0.6" />
   </ItemGroup>
 
 

@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FrostNova.Core.Wpf.Controls\FrostNova.Core.Wpf.Controls.csproj" />
+    <ProjectReference Include="..\FrostNova.Core.Wpf\FrostNova.Core.Wpf.csproj" />
     <ProjectReference Include="..\FrostNova.TimeRangeChart\FrostNova.TimeRangeChart.Wpf\FrostNova.TimeRangeChart.Wpf.csproj" />
   </ItemGroup>
 
