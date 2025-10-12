@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using FrostNova.Core.JsonData;
+using FrostNova.Core.TypeToolkit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,7 +49,11 @@ namespace FrostNova.Core.Common
 
         public virtual T LoadFromJsonText(string? text)
         {
-            return JsonDataHelper.LoadFromJsonText<T>(text) ?? new T();
+           var val = JsonDataHelper.LoadFromJsonText<T>(text) ?? new T();
+
+            DeepCloneHelper.CopyProperty<BindableDataModel<T>>((BindableDataModel<T>)(object)val, this);
+
+            return val;
         }
         public string ToJsonText()
         {
