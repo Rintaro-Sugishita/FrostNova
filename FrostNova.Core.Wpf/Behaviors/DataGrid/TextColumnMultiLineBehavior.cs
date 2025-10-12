@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 
-namespace FrostNova.Core.Wpf.Behaviors.DataGrid
+namespace FrostNova.Core.Wpf.Behaviors
 {
     public class TextColumnMultiLineBehavior  : Behavior<DataGridTextColumn>
     {
