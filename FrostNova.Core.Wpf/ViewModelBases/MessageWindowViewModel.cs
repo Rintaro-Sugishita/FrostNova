@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace FrostNova.Core.Wpf.ViewModelBases
 {
@@ -22,7 +23,7 @@ namespace FrostNova.Core.Wpf.ViewModelBases
 
         [ObservableProperty]
 
-        public MessageBoxResult _result = MessageBoxResult.None;
+        private MessageBoxResult _result = MessageBoxResult.None;
 
         [ObservableProperty]
 
@@ -30,21 +31,48 @@ namespace FrostNova.Core.Wpf.ViewModelBases
 
         [ObservableProperty]
 
-        public ICommand? _ButtonClickCommand;
+        private ICommand? _ButtonClickCommand;
+
 
         [ObservableProperty]
 
-        private Color _IconBackGroundColor;
-
-        [ObservableProperty]
-
-        public Brush? _iconBackgroundBrush;
+        private Brush? _iconBackgroundBrush;
 
         [ObservableProperty]
         private string _IconBackgroundText = string.Empty;
 
         [ObservableProperty]
         private string _IconForegroundText = string.Empty;
+
+
+        [RelayCommand]
+        private void OnKey()
+        {
+            if ((Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)) && Keyboard.IsKeyDown(Key.C))
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("---------------------------");
+                sb.AppendLine(TitleText ?? "");
+                sb.AppendLine("---------------------------");
+                sb.AppendLine(Message ?? "");
+                Clipboard.SetText(sb.ToString());
+            }
+        }
+
+        [RelayCommand]
+        private void ClickButton(MessageBoxResult? result)
+        {
+            if (result == null)
+            {
+                Result = MessageBoxResult.None;
+            }
+            else
+            {
+                Result = result.Value;
+            }
+            RequestClose?.Invoke();
+
+        }
 
     }
 }

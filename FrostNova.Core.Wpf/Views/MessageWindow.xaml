@@ -5,19 +5,70 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        xmlns:conv="clr-namespace:FrostNova.Core.Wpf.Converters"
         xmlns:behaviors="clr-namespace:FrostNova.Core.Wpf.Behaviors"
         xmlns:local="clr-namespace:FrostNova.Core.Wpf.Views"
         xmlns:vm="clr-namespace:FrostNova.Core.Wpf.ViewModelBases"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type={x:Type vm:MessageWindowViewModel}, IsDesignTimeCreatable=True}"
-        Title="MessageWindow" Height="450" Width="800">
+        Width="462"
+        SizeToContent="Height"
+        MaxHeight="600" MinHeight="70"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding TitleText}"
+        
+
+        >
     <Window.InputBindings>
         <KeyBinding Gesture="Ctrl+C" Command="{Binding KeyCommand}"/>
     </Window.InputBindings>
     <i:Interaction.Behaviors>
         <behaviors:NotMinimumMaximumWindowBehavior/>
+        <behaviors:FocusOnLoadedBehavior />
     </i:Interaction.Behaviors>
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition Height="50"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="60"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid HorizontalAlignment="Center" Margin="4, 14 0, 10">
+            <TextBlock FontFamily="Segoe Fluent Icons" FontSize="40" Foreground="{Binding IconBackgroundBrush}" Text="{Binding IconBackgroundText}"></TextBlock>
+            <TextBlock FontFamily="Segoe Fluent Icons" FontSize="40" Foreground="White" Text="{Binding IconForegroundText}" />
+
+
+        </Grid>
+        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible" >
+
+            <TextBlock  TextWrapping="Wrap" Text="{Binding Message}"  />
+        </ScrollViewer>
+        <Border Grid.Row="1" Grid.Column="0" Background="#f0f0f0"/>
+        <ItemsControl Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Buttons}" Background="#f0f0f0" BorderThickness="0" IsTabStop="False" 
+                      Padding="0,0,10,0"
+                      >
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button IsDefault="{Binding IsDefaultButton}" IsCancel="{Binding IsCancelButton}" ForceCursor="{Binding IsDefaultButton}"
+                            
+                            Command="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.ClickButtonCommand}" 
+                            CommandParameter="{Binding MessageBoxResult}" 
+                            Focusable="True"
+                            
+                            Width="90"
+                            Height="28"                     
+                            >
+                        <AccessText Text="{Binding ButtonContent}"/>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+        </ItemsControl>
     </Grid>
 </Window>

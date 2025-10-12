@@ -1,5 +1,6 @@
 ﻿
 using FrostNova.Core.Wpf.ViewModelBases;
+using FrostNova.Core.Wpf.Views;
 using FrostNova.Core.Wpf.ViewServices;
 using System;
 using System.Collections.Generic;
@@ -61,7 +62,7 @@ namespace FrostNova.Core.Wpf.Messages
             if (Environment.UserInteractive)
             {
                 var w = CreateMessageVm(messageBoxText, caption, button, icon, defaultResult);
-                var r = AbstractWindowService.ShowDialogWindow(w,typeof(FrostNovaMessageBox), w.WindowService!, null, WindowStartupLocation.CenterScreen);
+                var r = AbstractWindowService.ShowDialogWindow(w, typeof(MessageWindow), w.WindowService!, null, WindowStartupLocation.CenterScreen);
                 Application.Current.MainWindow.Activate();
                 return w?.Result ?? MessageBoxResult.None;
             }
@@ -75,7 +76,7 @@ namespace FrostNova.Core.Wpf.Messages
             if (Environment.UserInteractive)
             {
                 var w = CreateMessageVm(messageBoxText, caption, button, icon, defaultResult);
-                var r = AbstractWindowService.ShowDialogWindow(w,typeof(FrostNovaMessageBox), w.WindowService!, owner, WindowStartupLocation.CenterOwner);
+                var r = AbstractWindowService.ShowDialogWindow(w, typeof(MessageWindow), w.WindowService!, owner, WindowStartupLocation.CenterOwner);
                 owner.Activate();
 
                 return w?.Result ?? MessageBoxResult.None;
@@ -96,22 +97,22 @@ namespace FrostNova.Core.Wpf.Messages
                 case MessageBoxImage.None:
                     break;
                 case MessageBoxImage.Error:
-                    w.IconBackGroundColor = Color.FromRgb(0xDD, 0, 0);
+                    w.IconBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xDD, 0, 0));
                     w.IconBackgroundText = "\uF136";
                     w.IconForegroundText = "\uF13D";
                     break;
                 case MessageBoxImage.Question:
-                    w.IconBackGroundColor = Color.FromRgb(0x0, 0x6C, 0xDF);
+                    w.IconBackgroundBrush = new SolidColorBrush(Color.FromRgb(0x0, 0x6C, 0xDF));
                     w.IconBackgroundText = "\uF136";
                     w.IconForegroundText = "\uF142";
                     break;
                 case MessageBoxImage.Warning:
-                    w.IconBackGroundColor = Color.FromRgb(0xFE, 0xB0, 0);
+                    w.IconBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xFE, 0xB0, 0));
                     w.IconBackgroundText = "\uF139";
                     w.IconForegroundText = "\uF13B";
                     break;
                 case MessageBoxImage.Information:
-                    w.IconBackGroundColor = Color.FromRgb(0x0, 0x6C, 0xDF);
+                    w.IconBackgroundBrush = new SolidColorBrush(Color.FromRgb(0x0, 0x6C, 0xDF));
                     w.IconBackgroundText = "\uF136";
                     w.IconForegroundText = "\uF13C";
                     break;
@@ -121,12 +122,12 @@ namespace FrostNova.Core.Wpf.Messages
 
             if (button == MessageBoxButton.OK)
             {
-                w.Buttons.Add(new ButtonBindClass() { ButtonContent = "OK", MessageBoxResult = MessageBoxResult.OK, IsDefaultButton = defaultResult == MessageBoxResult.OK });
+                w.Buttons.Add(new ButtonBindClass() { ButtonContent = "OK", MessageBoxResult = MessageBoxResult.OK, IsDefaultButton = true });
             }
             else if (button == MessageBoxButton.OKCancel)
             {
-                w.Buttons.Add(new ButtonBindClass() { ButtonContent = "OK", MessageBoxResult = MessageBoxResult.OK, IsDefaultButton = defaultResult == MessageBoxResult.OK });
-                w.Buttons.Add(new ButtonBindClass() { ButtonContent = "Cancel", MessageBoxResult = MessageBoxResult.Cancel, IsDefaultButton = defaultResult == MessageBoxResult.Cancel });
+                w.Buttons.Add(new ButtonBindClass() { ButtonContent = "OK", MessageBoxResult = MessageBoxResult.OK, IsDefaultButton = true });
+                w.Buttons.Add(new ButtonBindClass() { ButtonContent = "Cancel", MessageBoxResult = MessageBoxResult.Cancel, IsDefaultButton = defaultResult == MessageBoxResult.Cancel, IsCancelButton = true });
             }
             else if (button == MessageBoxButton.YesNo)
             {
@@ -137,11 +138,11 @@ namespace FrostNova.Core.Wpf.Messages
             {
                 w.Buttons.Add(new ButtonBindClass() { ButtonContent = "Yes (_Y)", MessageBoxResult = MessageBoxResult.Yes, IsDefaultButton = defaultResult == MessageBoxResult.Yes });
                 w.Buttons.Add(new ButtonBindClass() { ButtonContent = "No (_N)", MessageBoxResult = MessageBoxResult.No, IsDefaultButton = defaultResult == MessageBoxResult.No });
-                w.Buttons.Add(new ButtonBindClass() { ButtonContent = "Cancel (_C)", MessageBoxResult = MessageBoxResult.Cancel, IsDefaultButton = defaultResult == MessageBoxResult.Cancel });
+                w.Buttons.Add(new ButtonBindClass() { ButtonContent = "Cancel (_C)", MessageBoxResult = MessageBoxResult.Cancel, IsDefaultButton = defaultResult == MessageBoxResult.Cancel, IsCancelButton = true });
             }
             else
             {
-                w.Buttons.Add(new ButtonBindClass() { ButtonContent = "OK", MessageBoxResult = MessageBoxResult.OK, IsDefaultButton = defaultResult == MessageBoxResult.OK });
+                w.Buttons.Add(new ButtonBindClass() { ButtonContent = "OK", MessageBoxResult = MessageBoxResult.OK, IsDefaultButton = true });
             }
 
             return w;

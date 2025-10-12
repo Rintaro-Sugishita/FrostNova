@@ -63,7 +63,7 @@
                     <ListBox ItemsSource="{Binding SelectedIndices}" Grid.Column="1">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel>
+                                <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{Binding }" />
                                     <TextBlock Text="index row is selected." />
                                 </StackPanel>
@@ -71,6 +71,18 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </Grid>
+            </TabItem>
+            <TabItem Header="messagebox">
+                <StackPanel>
+                    <StackPanel.Resources>
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+                            <Setter Property="Height" Value="40" />
+                        </Style>
+                    </StackPanel.Resources>
+                    <Button Command="{Binding ShowErrorMessageCommand}" Content="show error" />
+                    <Button Command="{Binding ShowMultiLineMessageCommand}" Content="show error" />
+                    <Button Command="{Binding ShowWarningMessageCommand}" Content="show error" />
+                </StackPanel>
             </TabItem>
         </TabControl>
 
