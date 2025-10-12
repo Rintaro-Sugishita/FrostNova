@@ -62,6 +62,7 @@
                 <DataTemplate DataType="{x:Type local:RuledLineData}">
                     <Border Width="{Binding WidthPerRuledLine }"
                             BorderBrush="{Binding RuledLineFill}"
+                            Background="Transparent"
                             >
                         <Border.BorderThickness>
                             <MultiBinding  Converter="{StaticResource borderThicknessConverter}"
@@ -126,6 +127,9 @@
                                     ReflectViewer="{Binding ElementName=chartScrollViewer}"
                                     IsHorizontalSync="False" IsVerticalSync="True"
                                     />
+                                <behaviors:ScrollViewerTopLeftItemBehavior TargetItemsControl="{Binding ElementName=rowHeaderListBox}"
+                                                                           TopVisibleItem="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:GridTimeRangeChart}}, Path=ScrollTopItem,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
+                                                                           />
                             </i:Interaction.Behaviors>
                             <!--<ItemsControl
                                       ItemsSource="{TemplateBinding ItemsSource}"
@@ -144,7 +148,9 @@
                                     </Style>
                                 </ItemsControl.ItemContainerStyle>
                             </ItemsControl>-->
-                            <ListBox ItemsSource="{TemplateBinding ItemsSource}"
+                            <ListBox
+                                x:Name="rowHeaderListBox"
+                                ItemsSource="{TemplateBinding ItemsSource}"
                                      Style="{StaticResource virtualContainerListBoxStyle}"
                                      ItemTemplate="{TemplateBinding RowHeaderTemplate}"
                                      ItemTemplateSelector="{TemplateBinding RowHeaderTemplateSelector}"
@@ -179,6 +185,9 @@
                                     ReflectViewer="{Binding ElementName=columnScrollViewer}"
                                     IsHorizontalSync="True" IsVerticalSync="False"
                                     />
+                                <behaviors:ScrollViewerTopLeftItemBehavior TargetItemsControl="{Binding ElementName=columnHeaderControl}"
+                                                                           TopVisibleItem="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:GridTimeRangeChart}},Path=ScrollLeftDate,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                           />
                             </i:Interaction.Behaviors>
                             <Grid Grid.Column="2" Grid.Row="0">
                             <Grid.RowDefinitions>
@@ -193,7 +202,9 @@
 
                             <!--細かい方-->
                                 
-                            <ItemsControl Grid.Row="1"
+                            <ItemsControl
+                                x:Name="columnHeaderControl"
+                                Grid.Row="1"
                                           ItemTemplate="{TemplateBinding Property=ColumnHeaderTemplate}"
                                           ItemTemplateSelector="{TemplateBinding Property=ColumnHeaderTemplateSelector}"
                                           ItemsSource="{TemplateBinding TimeTicks}"

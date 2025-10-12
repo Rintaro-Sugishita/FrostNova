@@ -294,6 +294,22 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty SelectedValuesProperty = DependencyProperty.Register(nameof(SelectedValues), typeof(IList), typeof(GridTimeRangeChart));
 
+        public object ScrollTopItem
+        {
+            get { return (object)GetValue(ScrollTopItemProperty); }
+            set { SetValue(ScrollTopItemProperty, value); }
+        }
+        public static DependencyProperty ScrollTopItemProperty = DependencyProperty.Register(nameof(ScrollTopItem), typeof(object), typeof(GridTimeRangeChart));
+
+        public object ScrollLeftDate
+        {
+            get { return (object)GetValue(ScrollLeftDateProperty); }
+            set { SetValue(ScrollLeftDateProperty, value); }
+        }
+        public static DependencyProperty ScrollLeftDateProperty = DependencyProperty.Register(nameof(ScrollLeftDate), typeof(object), typeof(GridTimeRangeChart));
+
+
+
 
         private static void OnMyPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -330,7 +346,8 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             base.OnApplyTemplate();
 
-            //ganttCanvas = GetTemplateChild("ganttCanvas") as ItemsControl;
+            var scrollViewer = GetTemplateChild("chartScrollViewer") as ScrollViewer;
+
             this.Loaded += (s, e) =>
             {
                 this.DrawBorder();
@@ -338,6 +355,10 @@ namespace FrostNova.TimeRangeChart.Wpf
             AddHandler(TimeRangeChart.TaskDropEvent, new EventHandler<DropOnRowEventArgs>(OnTaskDrop));
             AddHandler(TimeRangeChart.PreviewTaskDropEvent, new EventHandler<DropOnRowEventArgs>(OnPreviewTaskDrop));
 
+            if (scrollViewer != null)
+            {
+                scrollViewer.ScrollChanged += ScrollViewer_ScrollChanged;
+            }
 
             this.MouseLeftButtonDown += (s, e) =>
             {
@@ -357,6 +378,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             var newArgs = new DropOnRowEventArgs(TaskDropEvent, e.DropPoint, e.TaskObject!);
             RaiseEvent(newArgs);
         }
+
 
 
         public bool CanDragTasksBetweenRows
@@ -401,6 +423,13 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         }
 
+        private void ScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            var vOffset = e.VerticalOffset;
+            var hOffset = e.HorizontalOffset;
+
+
+        }
 
 
     }

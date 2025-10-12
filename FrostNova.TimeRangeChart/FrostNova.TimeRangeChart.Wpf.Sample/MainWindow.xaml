@@ -97,8 +97,17 @@
         </StackPanel>
         <TabControl Grid.Row="1">
             <TabItem Header="grid">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="80" />
+                    </Grid.ColumnDefinitions>
 
-                <chart:GridTimeRangeChart StartTime="{Binding GridVm.ChartStart}" EndTime="{Binding GridVm.ChartEnd}" WidthPerRuledLine="100"
+
+                    <chart:GridTimeRangeChart
+                        x:Name="gridChart"
+                        StartTime="{Binding GridVm.ChartStart}" EndTime="{Binding GridVm.ChartEnd}" WidthPerRuledLine="100"
                                           MinSpan="{StaticResource minSpan}" ScaleIncrement="{StaticResource minSpan}"
                                           ItemsSource="{Binding GridVm.ModelList}"
                                           MinRowWidth="200"
@@ -111,22 +120,35 @@
                                           NonWorkingRangeBackground="#eecccc"
                                           Background="#ddddff"
                                           >
-                    <chart:GridTimeRangeChart.CornerHeaderSource>
-                        <TextBlock Text="aaaa" />
-                    </chart:GridTimeRangeChart.CornerHeaderSource>
-                    <chart:GridTimeRangeChart.RowHeaderTemplate>
-                        <DataTemplate DataType="{x:Type local:GridSampleData}">
-                            <TextBlock Text="{Binding Name}" Height="150" />
-                        </DataTemplate>
-                    </chart:GridTimeRangeChart.RowHeaderTemplate>
-                    <chart:GridTimeRangeChart.ChartStyle>
-                        <Style TargetType="{x:Type chart:TimeRangeChart}" >
-                            <Setter Property="ItemsSource" Value="{Binding Tasks}" />
-                            <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.GridVm.NonWorkingTimes}" />
-                        </Style>
-                    </chart:GridTimeRangeChart.ChartStyle>
+                        <chart:GridTimeRangeChart.CornerHeaderSource>
+                            <TextBlock Text="aaaa" />
+                        </chart:GridTimeRangeChart.CornerHeaderSource>
+                        <chart:GridTimeRangeChart.RowHeaderTemplate>
+                            <DataTemplate DataType="{x:Type local:GridSampleData}">
+                                <TextBlock Text="{Binding Name}" Height="150" />
+                            </DataTemplate>
+                        </chart:GridTimeRangeChart.RowHeaderTemplate>
+                        <chart:GridTimeRangeChart.ChartStyle>
+                            <Style TargetType="{x:Type chart:TimeRangeChart}" >
+                                <Setter Property="ItemsSource" Value="{Binding Tasks}" />
+                                <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.GridVm.NonWorkingTimes}" />
+                            </Style>
+                        </chart:GridTimeRangeChart.ChartStyle>
 
-                </chart:GridTimeRangeChart>
+                    </chart:GridTimeRangeChart>
+                    <GridSplitter Grid.Column="1" Width="4" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ResizeDirection="Columns"  />
+                    <StackPanel Grid.Column="2">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="scroll top: " />
+                            <TextBlock Text="{Binding ElementName=gridChart, Path=ScrollTopItem.Name}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="scroll left: " />
+                            <TextBlock Grid.Row="1" Text="{Binding ElementName=gridChart, Path=ScrollLeftDate.DateValue,StringFormat='yyyy-MM-dd'}" />
+
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
             </TabItem>
             <TabItem Header="month grid">
 
