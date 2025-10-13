@@ -27,9 +27,6 @@ namespace FrostNova.Core.Wpf.Behaviors
             // ItemsPresenter がロードされるまで遅延実行
             AssociatedObject.Dispatcher.BeginInvoke(() =>
             {
-                //var container = AssociatedObject.ItemContainerGenerator.ContainerFromIndex(0) as FrameworkElement;
-                //if (container == null) return;
-
                 // Button などのフォーカス可能な子を探す
                 var focusable = FindFocusableChild(AssociatedObject);
                 focusable?.Focus();

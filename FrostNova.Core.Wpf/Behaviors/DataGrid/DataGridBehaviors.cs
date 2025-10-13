@@ -176,6 +176,67 @@ namespace FrostNova.Core.Wpf.Behaviors
 
 
 
+        public static readonly DependencyProperty DataGridColumnIsSelectProperty =
+                    DependencyProperty.RegisterAttached(
+                        "DataGridColumnIsSelect",
+                        typeof(bool),
+                        typeof(DataGridBehaviors),
+                        new PropertyMetadata(false, OnChanged));
+
+        public static bool GetDataGridColumnIsSelect(DataGrid element) => (bool)element.GetValue(DataGridColumnIsSelectProperty);
+
+        public static void SetDataGridColumnIsSelect(DataGrid element, bool value) => element.SetValue(DataGridColumnIsSelectProperty, value);
+
+        private static void OnChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DataGrid ctrl)
+            {
+                GeneralHelper.SetBehavior<DataGridColumnIsSelectBehavior>(ctrl, e);
+            }
+        }
+
+
+        public static readonly DependencyProperty DataGridHeaderClickSelectProperty =
+            DependencyProperty.RegisterAttached(
+                "DataGridHeaderClickSelect",
+                typeof(bool),
+                typeof(DataGridBehaviors),
+                new PropertyMetadata(false, OnDataGridHeaderClickSelectChanged));
+
+        public static bool GetDataGridHeaderClickSelect(DataGrid element) => (bool)element.GetValue(DataGridHeaderClickSelectProperty);
+
+        public static void SetDataGridHeaderClickSelect(DataGrid element, bool value) => element.SetValue(DataGridHeaderClickSelectProperty, value);
+
+        private static void OnDataGridHeaderClickSelectChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DataGrid ctrl)
+            {
+                GeneralHelper.SetBehavior<DataGridHeaderClickSelectBehavior>(ctrl, e);
+            }
+        }
+
+
+        //public static readonly DependencyProperty ColumnVisibilityMenuProperty =
+        //    DependencyProperty.RegisterAttached(
+        //        "ColumnVisibilityMenu",
+        //        typeof(bool),
+        //        typeof(DataGridBehaviors),
+        //        new PropertyMetadata(false, OnColumnVisibilityMenuChanged));
+
+        //public static bool GetColumnVisibilityMenu(DataGrid element) => (bool)element.GetValue(ColumnVisibilityMenuProperty);
+
+        //public static void SetColumnVisibilityMenu(DataGrid element, bool value) => element.SetValue(ColumnVisibilityMenuProperty, value);
+
+        //private static void OnColumnVisibilityMenuChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        //{
+        //    if (d is DataGrid ctrl)
+        //    {
+        //        GeneralHelper.SetBehavior<ColumnVisibilityMenuBehavior>(ctrl, e);
+        //    }
+        //}
+
+
+
 
 
 

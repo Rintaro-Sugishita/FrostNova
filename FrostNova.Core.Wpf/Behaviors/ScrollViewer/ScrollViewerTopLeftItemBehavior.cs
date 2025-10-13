@@ -10,32 +10,54 @@ using System.Windows.Media;
 
 namespace FrostNova.Core.Wpf.Behaviors
 {
+
+    /// <summary>
+    /// Represents a behavior that tracks the topmost visible item in a <see cref="ScrollViewer"/>  and updates the <see cref="TopVisibleItem"/> property accordingly.
+    /// </summary>
     public class ScrollViewerTopLeftItemBehavior : Behavior<ScrollViewer>
     {
+        /// <summary>
+        /// Dependency property of the <see cref="ItemsControl"/> that serves as the target for this operation.
+        /// </summary>
         public static readonly DependencyProperty TargetItemsControlProperty =
           DependencyProperty.Register(nameof(TargetItemsControl), typeof(ItemsControl), typeof(ScrollViewerTopLeftItemBehavior));
 
+        /// <summary>
+        /// Gets or sets the <see cref="ItemsControl"/> that serves as the target for this operation.
+        /// </summary>
         public ItemsControl TargetItemsControl
         {
             get => (ItemsControl)GetValue(TargetItemsControlProperty);
             set => SetValue(TargetItemsControlProperty, value);
         }
 
+        /// <summary>
+        /// Dependency property of the topmost visible item in the current view.
+        /// </summary>
         public static readonly DependencyProperty TopVisibleItemProperty =
-            DependencyProperty.Register(nameof(TopVisibleItem), typeof(object), typeof(ScrollViewerTopLeftItemBehavior));
+            DependencyProperty.Register(nameof(TopVisibleItem), typeof(object), typeof(ScrollViewerTopLeftItemBehavior), new PropertyMetadata(null));
 
-        public object TopVisibleItem
+        /// <summary>
+        /// Gets or sets the topmost visible item in the current view.
+        /// </summary>
+        public object? TopVisibleItem
         {
             get => GetValue(TopVisibleItemProperty);
             set => SetValue(TopVisibleItemProperty, value);
         }
 
+        /// <summary>
+        /// OnAttached
+        /// </summary>
         protected override void OnAttached()
         {
             base.OnAttached();
             AssociatedObject.ScrollChanged += OnScrollChanged;
         }
 
+        /// <summary>
+        /// OnDetaching
+        /// </summary>
         protected override void OnDetaching()
         {
             base.OnDetaching();
