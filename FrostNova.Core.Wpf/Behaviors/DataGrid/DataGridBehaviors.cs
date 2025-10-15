@@ -216,24 +216,24 @@ namespace FrostNova.Core.Wpf.Behaviors
         }
 
 
-        //public static readonly DependencyProperty ColumnVisibilityMenuProperty =
-        //    DependencyProperty.RegisterAttached(
-        //        "ColumnVisibilityMenu",
-        //        typeof(bool),
-        //        typeof(DataGridBehaviors),
-        //        new PropertyMetadata(false, OnColumnVisibilityMenuChanged));
+        public static readonly DependencyProperty ColumnVisibilityMenuProperty =
+            DependencyProperty.RegisterAttached(
+                "ColumnVisibilityMenu",
+                typeof(bool),
+                typeof(DataGridBehaviors),
+                new PropertyMetadata(false, OnColumnVisibilityMenuChanged));
 
-        //public static bool GetColumnVisibilityMenu(DataGrid element) => (bool)element.GetValue(ColumnVisibilityMenuProperty);
+        public static bool GetColumnVisibilityMenu(DataGrid element) => (bool)element.GetValue(ColumnVisibilityMenuProperty);
 
-        //public static void SetColumnVisibilityMenu(DataGrid element, bool value) => element.SetValue(ColumnVisibilityMenuProperty, value);
+        public static void SetColumnVisibilityMenu(DataGrid element, bool value) => element.SetValue(ColumnVisibilityMenuProperty, value);
 
-        //private static void OnColumnVisibilityMenuChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        //{
-        //    if (d is DataGrid ctrl)
-        //    {
-        //        GeneralHelper.SetBehavior<ColumnVisibilityMenuBehavior>(ctrl, e);
-        //    }
-        //}
+        private static void OnColumnVisibilityMenuChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DataGrid ctrl)
+            {
+                GeneralHelper.SetBehavior<ColumnVisibilityMenuBehavior>(ctrl, e);
+            }
+        }
 
 
 

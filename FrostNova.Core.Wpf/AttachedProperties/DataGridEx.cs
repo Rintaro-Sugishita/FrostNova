@@ -74,5 +74,27 @@ namespace FrostNova.Core.Wpf.AttachedProperties
         }
 
 
+        public static readonly DependencyProperty SaveKeyProperty =
+            DependencyProperty.RegisterAttached(
+                "SaveKey",
+                typeof(string),
+                typeof(DataGridEx),
+                new PropertyMetadata(null, OnSaveKeyChanged));
+
+        public static string GetSaveKey(DataGrid element) => (string)element.GetValue(SaveKeyProperty);
+
+        public static void SetSaveKey(DataGrid element, string value) => element.SetValue(SaveKeyProperty, value);
+
+        private static void OnSaveKeyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DataGrid ctrl)
+            {
+
+            }
+        }
+
+
+
+
     }
 }
