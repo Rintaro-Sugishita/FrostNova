@@ -9,6 +9,9 @@ using FrostNova.TimeRangeChart.TimeRangeHelpers;
 namespace FrostNova.TimeRangeChart
 {
 
+    /// <summary>
+    /// Task model class for TimeRangeChart.
+    /// </summary>
     public partial class TimeRange : ObservableObject, ITimeRange
     {
         [ObservableProperty]
@@ -55,10 +58,17 @@ namespace FrostNova.TimeRangeChart
 
         }
 
+        public void MoveTo(DateTime newStartTime, IEnumerable<ITimeRange>? nonWorkingTimes)
+        {
+            TimeRangeHelper.MoveTo(this, newStartTime, nonWorkingTimes);
+        }
+
+
         public void ExpandWorkingSpan(TimeSpan newSpan, IEnumerable<ITimeRange>? nonWorkingTimes)
         {
             TimeRangeHelper.ExpandSpan(this, newSpan, nonWorkingTimes);
         }
+
 
         //partial void OnWorkingSpanChanged(TimeSpan? oldValue, TimeSpan? newValue)
         //{ 

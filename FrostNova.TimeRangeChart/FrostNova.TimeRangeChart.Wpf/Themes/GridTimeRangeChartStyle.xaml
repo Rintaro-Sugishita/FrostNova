@@ -207,7 +207,7 @@
                                 Grid.Row="1"
                                           ItemTemplate="{TemplateBinding Property=ColumnHeaderTemplate}"
                                           ItemTemplateSelector="{TemplateBinding Property=ColumnHeaderTemplateSelector}"
-                                          ItemsSource="{TemplateBinding TimeTicks}"
+                                          ItemsSource="{TemplateBinding TimeTicksForColumnHeader}"
                                           >
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -297,13 +297,14 @@
                                 </ItemsControl.ItemContainerStyle>
                             </ItemsControl>-->
                             <ListBox x:Name="chartItemsControl"
-                                 ItemsSource="{TemplateBinding ItemsSource}"
-                                 ScrollViewer.CanContentScroll="True"
-                                 VirtualizingStackPanel.IsVirtualizing="True"
-                                 VirtualizingStackPanel.VirtualizationMode="Recycling"
-                                     Padding="0" Margin="0" BorderThickness="0"
-                                     Style="{StaticResource virtualContainerListBoxStyle}"
-                                     >
+                                    ItemsSource="{TemplateBinding ItemsSource}"
+                                    ScrollViewer.CanContentScroll="True"
+                                    VirtualizingStackPanel.IsVirtualizing="True"
+                                    VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                    HorizontalAlignment="Left"
+                                    Padding="0" Margin="0" BorderThickness="0"
+                                    Style="{StaticResource virtualContainerListBoxStyle}"
+                                    >
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <local:TimeRangeChart StartTime="{Binding Source={StaticResource gridChartProxy}, Path=Data.StartTime}"
@@ -326,7 +327,8 @@
                                                               IsControlTick="False"
                                                               Height="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=ActualHeight}"
                                                               BorderBrush="Gray"
-                                                              
+                                                              ParentGridChart="{Binding Source={StaticResource gridChartProxy},Path=Data,Mode=OneTime}"
+
                                                               >
                                             <!--<i:Interaction.Behaviors>
                                                 <behaviors:DragDropBehavior />

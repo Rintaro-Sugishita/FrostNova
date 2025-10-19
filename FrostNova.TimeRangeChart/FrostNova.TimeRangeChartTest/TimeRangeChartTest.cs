@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -87,6 +88,34 @@ namespace FrostNova.TimeRangeChartTest
 
 
         };
+
+        [Theory]
+        [MemberData(nameof(TimeToPointMonthTestData))]
+        public void TimeToPointMonth(DateTime dateTime, double widthPerRuledLine, List<DateTime> ruledLines, double answer)
+        {
+            Assert.Equal(answer, TimeScreenHelper.TimeToPointMonth(dateTime, widthPerRuledLine, ruledLines));
+            Assert.Equal(answer, TimeScreenHelper.TimeToPointMonth(dateTime, widthPerRuledLine, ruledLines.Select(x=> new RuledLine() { DateValue = x} ).ToList<IRuledLine>()));
+        }
+
+        public static object[][] TimeToPointMonthTestData => new object[][]
+        {
+            new object[] {new DateTime (2025, 10, 1), 100,new List<DateTime>() { new DateTime(2025, 10, 1), new DateTime(2025, 11, 1), new DateTime(2025, 12, 1) }, 0.0d },
+            new object[] {new DateTime (2025, 12, 1), 100,new List<DateTime>() { new DateTime(2025, 10, 1), new DateTime(2025, 11, 1), new DateTime(2025, 12, 1) }, 200.0d },
+            new object[] {new DateTime (2025, 11, 1), 100,new List<DateTime>() { new DateTime(2025, 10, 1), new DateTime(2025, 11, 1), new DateTime(2025, 12, 1) }, 100.0d },
+            new object[] {new DateTime (2025, 11, 16), 100,new List<DateTime>() { new DateTime(2025, 10, 1), new DateTime(2025, 11, 1), new DateTime(2025, 12, 1) }, 150.0d },
+            new object[] {new DateTime (2025, 11, 15), 300,new List<DateTime>() { new DateTime(2025, 10, 1), new DateTime(2025, 11, 1), new DateTime(2025, 12, 1) }, 440.0d },
+            new object[] {new DateTime (2025, 11, 14), 300,new List<DateTime>() { new DateTime(2025, 10, 1), new DateTime(2025, 11, 1), new DateTime(2025, 12, 1) }, 430.0d },
+            new object[] {new DateTime (2025, 11, 17), 300,new List<DateTime>() { new DateTime(2025, 10, 1), new DateTime(2025, 11, 1), new DateTime(2025, 12, 1) }, 460.0d },
+            new object[] {new DateTime (2025, 10, 2), 310,new List<DateTime>() { new DateTime(2025, 10, 1), new DateTime(2025, 11, 1), new DateTime(2025, 12, 1) }, 10.0d },
+        };
+
+        [DebuggerDisplay("Date: {DateValue}, Left: {LeftPoint}")]
+        internal class RuledLine : IRuledLine
+        {
+            public double LeftPoint { get; set; }
+
+            public DateTime DateValue { get; set; }
+        }
 
 
         [Theory]

@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:FrostNova.TimeRangeChart.Wpf.Sample"
         xmlns:chart="clr-namespace:FrostNova.TimeRangeChart.Wpf;assembly=FrostNova.TimeRangeChart.Wpf"
@@ -96,7 +97,7 @@
             <Button Command="{Binding SetDataCommand}" Content="データセット" />
         </StackPanel>
         <TabControl Grid.Row="1">
-            <TabItem Header="grid">
+            <TabItem Header="grid" Visibility="Collapsed">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
@@ -150,11 +151,11 @@
                     </StackPanel>
                 </Grid>
             </TabItem>
-            <TabItem Header="month grid">
+            <TabItem Header="month grid" Selector.IsSelected="True">
 
                 <chart:GridTimeRangeChart StartTime="{Binding MonthGridVm.ChartStart}" EndTime="{Binding MonthGridVm.ChartEnd}" WidthPerRuledLine="200"
                                           MinSpan="{StaticResource minSpan}" ScaleIncrement="{StaticResource minSpan}"
-                                          TimeUnit="Month" MonthSpan="2"
+                                          TimeUnit="Month" MonthSpan="1"
                                           ItemsSource="{Binding MonthGridVm.ModelList}"
                                           MinRowWidth="200"
                                           HeaderFormat="yyyy/MM"
@@ -181,7 +182,7 @@
 
                 </chart:GridTimeRangeChart>
             </TabItem>
-            <TabItem Header="chart">
+            <TabItem Header="chart" Visibility="Collapsed">
                 <chart:TimeRangeChart StartTime="{Binding ChartVm.ChartStart}" EndTime="{Binding ChartVm.ChartEnd}"
                                   MinSpan="{StaticResource minSpan}" ScaleIncrement="{StaticResource minSpan}"
                                   ItemsSource="{Binding ChartVm.Model.Tasks}"
@@ -229,6 +230,66 @@
                     </chart:TimeRangeChart.TimeRangeStyle>
                 </chart:TimeRangeChart>
 
+            </TabItem>
+            <TabItem Header="holiday" Visibility="Collapsed">
+                <chart:GridTimeRangeChart
+                    StartTime="{Binding HolidayVM.StartTime}"
+                    EndTime="{Binding HolidayVM.EndTime}"
+                    ItemsSource="{Binding HolidayVM.Items}"
+                    
+                    RowHeight="200"
+                    WidthPerRuledLine="100"
+                    HeaderFormat="MM/dd"
+                    TimeUnit="Normal"
+                    
+                    MinSpan="{StaticResource minSpan}" 
+                    ScaleIncrement="{StaticResource minSpan}"
+                    RuledLineFill="Gray"
+                    >
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="PreviewTaskDrop">
+                            <i:InvokeCommandAction Command="{Binding }" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+
+                    <chart:GridTimeRangeChart.ChartStyle>
+                        <Style TargetType="{x:Type chart:TimeRangeChart}" BasedOn="{StaticResource {x:Type chart:TimeRangeChart}}">
+                            <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.HolidayVM.NonWorkingTimes}" />
+                            <Setter Property="ItemsSource" Value="{Binding Tasks}" />
+                        </Style>
+                    </chart:GridTimeRangeChart.ChartStyle>
+                    <chart:GridTimeRangeChart.RowHeaderTemplate>
+                        <DataTemplate DataType="{x:Type local:GridSampleData}"                                      
+                                      >
+                            <TextBlock Text="{Binding Name}" Height="200" />
+                        </DataTemplate>
+                    </chart:GridTimeRangeChart.RowHeaderTemplate>
+                    <chart:GridTimeRangeChart.TimeRangeStyle>
+                        <Style TargetType="{x:Type chart:TimeRangeControl}" BasedOn="{StaticResource rangeStyle}">
+                            <Setter Property="Background" Value="Orange" />
+                            <Setter Property="Height" Value="60" />
+                            <Setter Property="ContentTemplate">
+                                <Setter.Value>
+                                    <DataTemplate DataType="{x:Type local:SampleModel}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding StartTime,StringFormat='yyyy/MM/dd'}" />
+
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="Actual :   " />
+                                                <TextBlock Text="{Binding ActualSpan}" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="Working: " />
+                                                <TextBlock Text="{Binding WorkingSpan}" />
+                                            </StackPanel>
+
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </chart:GridTimeRangeChart.TimeRangeStyle>
+                </chart:GridTimeRangeChart>
             </TabItem>
         </TabControl>
 

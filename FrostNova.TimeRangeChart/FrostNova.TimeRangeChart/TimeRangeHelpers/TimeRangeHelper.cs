@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace FrostNova.TimeRangeChart.TimeRangeHelpers
 {
+    /// <summary>
+    /// Helper functions of TimeRange.
+    /// </summary>
     public static class TimeRangeHelper
     {
 
@@ -41,6 +44,12 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
 
             SetActualSpan(range, nonWorkingTimes);
 
+        }
+
+        public static void MoveTo(ITimeRange range, DateTime newStartTime, IEnumerable<ITimeRange>? nonWorkingTimes = null)
+        {
+            var delta = newStartTime - range.StartTime;
+            Move(range, delta, nonWorkingTimes);
         }
 
         public static void SetActualSpan(this ITimeRange range, IEnumerable<ITimeRange>? nonWorkingTimes = null)
@@ -86,6 +95,14 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
             range.WorkingSpan = newSpan;
             var newEndTime = TimeRangeHelper.CalculateEndTime(range, nonWorkingTimes);
             range.EndTime = newEndTime;
+        }
+
+
+        public static bool Contains(this ITimeRange range, DateTime time) => range.StartTime <= time && time <= range.EndTime;
+
+        public static bool IsOverlap(this ITimeRange range, ITimeRange target)
+        {
+            return !(target.EndTime <= range.StartTime || range.EndTime <= target.StartTime);
         }
 
 

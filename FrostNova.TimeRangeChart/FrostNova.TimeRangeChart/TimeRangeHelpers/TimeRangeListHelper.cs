@@ -29,15 +29,15 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
             //    非稼働時間も考慮
             //    まず、rangeの終了時刻を基準にする
             DateTime prevEnd = range.EndTime;
-            DateTime? prevTaskMovindEnd =null;
+            DateTime? prevTaskMovingEnd =null;
 
             foreach (var pushRange in pushList)
             {
                 // 元のギャップ（前タスク移動前の終了～現ループタスクの移動前の開始）
-                TimeSpan gap = prevTaskMovindEnd.HasValue ? pushRange.StartTime - prevTaskMovindEnd.Value : TimeSpan.Zero;
+                TimeSpan gap = prevTaskMovingEnd.HasValue ? pushRange.StartTime - prevTaskMovingEnd.Value : TimeSpan.Zero;
 
                 // 次のループ用(移動前の値)
-                prevTaskMovindEnd = pushRange.EndTime;
+                prevTaskMovingEnd = pushRange.EndTime;
 
                 // 新しい開始時刻 = 直前タスクの終了時刻 + 元のギャップ
                 DateTime newStart = prevEnd + gap;

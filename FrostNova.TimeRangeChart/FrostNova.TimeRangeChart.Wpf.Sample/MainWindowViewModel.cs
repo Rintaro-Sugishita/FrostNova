@@ -45,7 +45,8 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         [ObservableProperty]
         ChartViewModel _chartVm = new ChartViewModel();
 
-
+        [ObservableProperty]
+        HolidayViewModel _holidayVM = new HolidayViewModel();
         protected override void InitializeOnDesign()
         {
             base.InitializeOnDesign();

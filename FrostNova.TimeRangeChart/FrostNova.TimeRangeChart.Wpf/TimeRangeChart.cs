@@ -62,6 +62,8 @@ namespace FrostNova.TimeRangeChart.Wpf
             GetEndTimeFunc = GetEndTime;
             GetWorkingSpanFunc = GetWorkingSpan;
             TaskClickAction = OnTaskClicked;
+            TaskDragStartAction = OnTaskDragStart;
+            TaskDragEndAction = OnTaskDragEnd;
             if (TimeTicks == null)
             {
                 //TimeTicks = new ObservableCollection<IRuledLine>();
@@ -76,8 +78,21 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         public Action<TimeRangeControl> TaskClickAction { get; private set; }
 
+        public Action<TimeRangeControl, DragDropRangeEventArgs> TaskDragStartAction { get; private set; }
+        public Action<TimeRangeControl, DragDropRangeEventArgs> TaskDragEndAction { get; private set; }
 
         public event EventHandler<EventArgs>? TimeRangeNeedRefresh;
+
+        /// <summary>
+        /// string
+        /// </summary>
+        public GridTimeRangeChart ParentGridChart
+        {
+            get { return (GridTimeRangeChart)GetValue(ParentGridChartProperty); }
+            set { SetValue(ParentGridChartProperty, value); }
+        }
+        public static DependencyProperty ParentGridChartProperty = DependencyProperty.Register(nameof(ParentGridChart), typeof(GridTimeRangeChart), typeof(TimeRangeChart));
+
 
         public DateTime StartTime
         {
@@ -309,7 +324,9 @@ namespace FrostNova.TimeRangeChart.Wpf
             {
                 //自身で罫線を管理する場合は再計算する
                 //そうでない場合は親から指定された値を使用する
-                var newTicks = TimeUnit == TimeUnitType.Normal ? TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement) : TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1);
+                var newTicks = TimeUnit == TimeUnitType.Normal ? 
+                    TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement) : 
+                    TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1);
 
                 TimeTicks.Clear();
 
@@ -417,6 +434,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             OnTaskClicked(this, ctrl);
         }
 
+
         private static void ClearSelectRange(TimeRangeChart chart)
         {
 
@@ -457,7 +475,8 @@ namespace FrostNova.TimeRangeChart.Wpf
                 case TimeUnitType.Normal:
                     return TimeScreenHelper.TimeToPoint(time, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth);
                 case TimeUnitType.Month:
-                    return TimeScreenHelper.TimeToPointMonth(time, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, TimeTicks);
+                    //return TimeScreenHelper.TimeToPointMonth(time, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, TimeTicks);
+                    return TimeScreenHelper.TimeToPointMonth(time, WidthPerRuledLine, TimeTicks);
                 default:
                     break;
             }
@@ -471,7 +490,8 @@ namespace FrostNova.TimeRangeChart.Wpf
                 case TimeUnitType.Normal:
                     return TimeScreenHelper.PointToTime(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, minSpan ?? MinSpan);
                 case TimeUnitType.Month:
-                    return TimeScreenHelper.PointToTimeMonth(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, minSpan ?? MinSpan, TimeTicks);
+                    //return TimeScreenHelper.PointToTimeMonth(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, minSpan ?? MinSpan, TimeTicks);
+                    return TimeScreenHelper.PointToTimeMonth(point, WidthPerRuledLine, minSpan ?? MinSpan, TimeTicks);
                 default:
                     break;
             }
@@ -574,6 +594,27 @@ namespace FrostNova.TimeRangeChart.Wpf
             add { AddHandler(PreviewTaskDropEvent, value); }
             remove { RemoveHandler(PreviewTaskDropEvent, value); }
         }
+
+        #region events
+
+        public event EventHandler<DragDropRangeEventArgs>? OnDragStart;
+
+        public event EventHandler<DragDropRangeEventArgs>? OnDragEnd;
+
+        internal void OnTaskDragStart(TimeRangeControl ctrl, DragDropRangeEventArgs e)
+        {
+            OnDragStart?.Invoke(ctrl, e);
+            ParentGridChart?.OnTaskDragStart(ctrl, e);
+        }
+
+        internal void OnTaskDragEnd(TimeRangeControl ctrl, DragDropRangeEventArgs e)
+        {
+            OnDragEnd?.Invoke(ctrl, e);
+            ParentGridChart?.OnTaskDragEnd(ctrl, e);
+        }
+
+        #endregion
+
 
     }
 }

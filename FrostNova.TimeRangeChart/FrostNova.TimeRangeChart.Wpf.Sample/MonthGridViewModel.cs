@@ -21,10 +21,10 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
 
 
         [ObservableProperty]
-        private DateTime _chartStart = DateTime.Now.Date.AddMonths(-5);
+        private DateTime _chartStart = DateTime.Now.Date.AddMonths(-3);
 
         [ObservableProperty]
-        private DateTime _chartEnd = DateTime.Now.Date.AddMonths(10);
+        private DateTime _chartEnd = DateTime.Now.Date.AddMonths(2);
 
         [ObservableProperty]
         private TimeSpan _minSpan = TimeSpan.FromDays(1);
@@ -43,14 +43,14 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         protected override void InitializeOnExecute()
         {
             base.InitializeOnExecute();
-            SetData(24, 10, 10);
+            SetData(5, 10, 2);
         }
 
         private void SetData(int months, int r, int c)
         {
             var nowDay = DateTime.Now.Date;
             ChartStart = new DateTime(nowDay.Year, nowDay.Month, 1).AddMonths(-2);
-            ChartEnd = new DateTime(nowDay.Year, nowDay.Month, 1).AddMonths(months);
+            ChartEnd = ChartStart.AddMonths(months);
 
             //土日を非稼働時間にする
             for (DateTime i = ChartStart; i <= ChartEnd; i = i.AddDays(1))

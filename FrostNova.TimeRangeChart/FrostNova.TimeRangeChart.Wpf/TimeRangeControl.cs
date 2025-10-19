@@ -327,7 +327,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             get { return (bool)GetValue(IsExpandThumbAnyTimeVisibleProperty); }
             set { SetValue(IsExpandThumbAnyTimeVisibleProperty, value); }
         }
-        public static DependencyProperty IsExpandThumbAnyTimeVisibleProperty = DependencyProperty.Register(nameof(IsExpandThumbAnyTimeVisible), typeof(bool), typeof(TimeRangeControl),new PropertyMetadata(false));
+        public static DependencyProperty IsExpandThumbAnyTimeVisibleProperty = DependencyProperty.Register(nameof(IsExpandThumbAnyTimeVisible), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(false));
 
 
         /// <summary>
@@ -443,7 +443,7 @@ namespace FrostNova.TimeRangeChart.Wpf
                         }
                         else if (this.DataContext is ITimeRange timeRange)
                         {
-                            timeRange.Move(deltaTime, ParentChart.NonWorkingTimes);
+                            timeRange.Move(deltaTime, ParentChart.SortedNonWorkingTimes);
                         }
 
                     }
@@ -484,7 +484,7 @@ namespace FrostNova.TimeRangeChart.Wpf
                         }
                         else if (this.DataContext is ITimeRange timeRange)
                         {
-                            timeRange.ExpandStartTime(newStart, ParentChart.NonWorkingTimes);
+                            timeRange.ExpandStartTime(newStart, ParentChart.SortedNonWorkingTimes);
                         }
 
                     }
@@ -522,7 +522,7 @@ namespace FrostNova.TimeRangeChart.Wpf
                         }
                         else if (this.DataContext is ITimeRange timeRange)
                         {
-                            timeRange.ExpandEndTime(newEnd, ParentChart.NonWorkingTimes);
+                            timeRange.ExpandEndTime(newEnd, ParentChart.SortedNonWorkingTimes);
                         }
 
                     }
@@ -615,16 +615,28 @@ namespace FrostNova.TimeRangeChart.Wpf
         private Point _dragStartPoint;
 
         //start time when start drag
-        private DateTime? _dragStartTime=null;
+        private DateTime? _dragStartTime = null;
+        private TimeSpan? _dragActualSpan = null;
+        private TimeSpan? _dragWorkingSpan = null;
+        private DateTime? _dragEndTime = null;
 
         protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnPreviewMouseLeftButtonDown(e);
             _dragStartPoint = e.GetPosition(this);
             _dragStartTime = StartTime;
+            _dragActualSpan = ActualSpan;
+            _dragWorkingSpan = WorkingSpan;
+            _dragEndTime = EndTime;
             //var startTime = ParentChart?.PointToTimeFunc(_dragStartPoint.X, MinSpan);
-            OnDragStart?.Invoke(this, new DragDropRangeEventArgs());
-           
+            var e2 = new DragDropRangeEventArgs();
+            e2.DragStartTime = _dragStartTime;
+            e2.DragActualSpan = _dragActualSpan.Value;
+            if (_dragWorkingSpan != null) e2.DragWorkingSpan = _dragWorkingSpan.Value;
+
+            OnDragStart?.Invoke(this, e2);
+            ParentChart?.TaskDragStartAction.Invoke(this, e2);
+
         }
 
         protected override void OnPreviewMouseMove(MouseEventArgs e)
@@ -673,14 +685,78 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         }
 
+        protected override void OnPreviewMouseLeftButtonUp(MouseButtonEventArgs e)
+        {
+            base.OnPreviewMouseLeftButtonUp(e);
+
+            if (_dragStartTime == null) return;
+
+            var dragEndPosition = e.GetPosition(this);
+            var e2 = new DragDropRangeEventArgs();
+            e2.DragData = this.DataContext;
+            e2.DragStartTime = _dragStartTime;
+            e2.DragEndTime = _dragEndTime;
+            if (_dragActualSpan != null) e2.DragActualSpan = _dragActualSpan.Value;
+            if (_dragWorkingSpan != null) e2.DragWorkingSpan = _dragWorkingSpan.Value;
+
+            e2.DropStartTime = StartTime;
+            e2.DropWorkingSpan = WorkingSpan;
+            e2.DropActualSpan = ActualSpan;
+
+            var minSpan = MinSpan ?? ParentChart?.MinSpan;
+
+            if (minSpan != null && (ActualSpan < minSpan.Value || (IgnoreNonWorkingTimes ==false && WorkingSpan != null && WorkingSpan.Value < minSpan.Value))) e2.Cancel = true;
+
+            OnDragEnd?.Invoke(this, e2);
+            ParentChart?.TaskDragStartAction.Invoke(this, e2);
+
+            if (e2.Cancel)
+            {
+                if (_dragStartTime == null || _dragActualSpan == null) return;
+
+                //StartTime = _dragStartTime.Value;
+                //ActualSpan = _dragActualSpan.Value;
+                //if (_dragWorkingSpan != null) WorkingSpan = _dragWorkingSpan.Value;
+
+                if (this.DataContext is ITimeRange timeRange)
+                {
+                    //開始と終了が変わっていたらMoveで戻す
+                    //どっちかだけ変わってたらExpandで戻す
+                    if (WorkingSpan == _dragWorkingSpan)
+                    {
+                        //移動しているので元の場所に戻す
+                        timeRange.MoveTo(_dragStartTime.Value, ParentChart?.SortedNonWorkingTimes);
+                    }
+                    else
+                    {
+                        if (_dragStartTime.Value != StartTime)
+                        {
+                            timeRange.ExpandStartTime(_dragStartTime.Value, ParentChart?.SortedNonWorkingTimes);
+                        }
+                        else if(_dragEndTime.Value != EndTime)
+                        {
+                            timeRange.ExpandEndTime(_dragEndTime.Value, ParentChart?.SortedNonWorkingTimes);
+                        }
+                    }
+                }
+            }
+
+            _dragStartTime = null;
+            _dragActualSpan = null;
+            _dragWorkingSpan = null;
+            _dragEndTime = null;
+
+
+        }
+
         #region events
 
         public event EventHandler<DragDropRangeEventArgs>? OnDragStart;
-       
+
         public event EventHandler<DragDropRangeEventArgs>? OnDragEnd;
 
-      
-        
+
+
 
         #endregion
 

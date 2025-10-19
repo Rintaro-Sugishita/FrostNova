@@ -8,8 +8,11 @@ using System.Threading.Tasks;
 
 namespace FrostNova.TimeRangeChart.TimeRangeHelpers
 {
-    [DebuggerDisplay($"{nameof(FixedTimeRange)}: {nameof(StartTime)}:{{StartTime}}, {nameof(EndTime)}:{{EndTime}} ")]
 
+    /// <summary>
+    /// fixed range task model class for 'TimeRangeChart'.
+    /// </summary>
+    [DebuggerDisplay($"{nameof(FixedTimeRange)}: {nameof(StartTime)}:{{StartTime}}, {nameof(EndTime)}:{{EndTime}} ")]
     public partial class FixedTimeRange : ObservableObject, ITimeRange
     {
         [ObservableProperty]
@@ -54,8 +57,15 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
             TimeRangeHelper.Move(this, delta, nonWorkingTimes);
 
         }
+
+        public void MoveTo(DateTime newStartTime, IEnumerable<ITimeRange>? nonWorkingTimes)
+        {
+            TimeRangeHelper.MoveTo(this, newStartTime, nonWorkingTimes);
+        }
+
         public void ExpandWorkingSpan(TimeSpan newSpan, IEnumerable<ITimeRange>? nonWorkingTimes)
         {
         }
+
     }
 }

@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 
 namespace FrostNova.TimeRangeChart.Wpf
 {
-   public partial class ColumnHeaderData : ObservableObject
+
+    public partial class ColumnHeaderData : ObservableObject
     {
         [ObservableProperty]
         private DateTime _dateValue;
@@ -21,7 +22,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             ParentGridChart = gridChart;
         }
 
-        
+
 
 
     }

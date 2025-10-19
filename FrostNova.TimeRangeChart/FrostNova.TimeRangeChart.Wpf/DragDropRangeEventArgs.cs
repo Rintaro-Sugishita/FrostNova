@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Controls.Primitives;
 
 namespace FrostNova.TimeRangeChart.Wpf
 {
@@ -17,8 +18,13 @@ namespace FrostNova.TimeRangeChart.Wpf
     
         public TimeSpan DragWorkingSpan { get; internal set; }
         public TimeSpan? DropWorkingSpan { get; internal set; }
+
+        public DateTime? DragEndTime { get; internal set; }
+
+
     
         public object? DragData { get; internal set; }
-    
+
+        public bool Cancel { get; set; } = false;
     }
 }

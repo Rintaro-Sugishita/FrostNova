@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace FrostNova.TimeRangeChart.TimeRangeHelpers
 {
+
     public interface IRuledLine
     {
         double LeftPoint { get; }
