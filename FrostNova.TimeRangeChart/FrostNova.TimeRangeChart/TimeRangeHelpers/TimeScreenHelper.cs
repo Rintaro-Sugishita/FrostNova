@@ -222,7 +222,7 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
             DateTime? innerDate = null;
             if (firstPoint != null && nextPoint != default)
             {
-                innerDate = PointToTime(point, firstPoint.DateValue, nextPoint.DateValue, widthPerRuledLine, minSpan);
+                innerDate = PointToTime(point - firstPoint.LeftPoint, firstPoint.DateValue, nextPoint.DateValue, widthPerRuledLine, minSpan);
                 //innerPoint = TimeToPoint(time, firstPoint.DateValue, nextPoint.DateValue, widthPerRuledLine);
                 return innerDate.Value;
             }
