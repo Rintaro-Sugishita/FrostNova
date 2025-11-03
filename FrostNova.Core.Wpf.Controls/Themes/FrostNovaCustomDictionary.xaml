@@ -1,0 +1,19 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/Customs/DataGridStyleDictionary.xaml" />
+        <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/Customs/ButtonStyleDictionary.xaml" />
+        <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/Customs/ScrollViewerStyleDictionary.xaml" />
+        <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/Customs/TextBoxStyleDictionary.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource emptyTextBox}" />
+    <Style TargetType="{x:Type DataGridCell}" BasedOn="{StaticResource FrostNovaDataGridCellStyle}" />
+    <Style TargetType="{x:Type DataGridRow}" BasedOn="{StaticResource FrostNovaDataGridRowStyle}" />
+    <Style TargetType="{x:Type DataGridColumnHeader}" BasedOn="{StaticResource FrostNovaDataGridColumnHeaderStyle}" />
+    <Style TargetType="{x:Type DataGridRowHeader}" BasedOn="{StaticResource FrostNovaDataGridRowHeaderStyle}" />
+    <Style TargetType="{x:Type DataGrid}" BasedOn="{StaticResource FrostNovaDataGridStyle}" />
+    <Style TargetType="{x:Type ScrollViewer}" BasedOn="{StaticResource FrostNovaScrollViewerStyle}" />
+    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FrostNovaButtonStyle}" />
+</ResourceDictionary>

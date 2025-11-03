@@ -276,18 +276,37 @@ namespace FrostNova.Core.TypeToolkit
 
         }
 
-        public static DateTime ConvToDateTime(object obj, DateTime def = default)
+        public static DateTime ConvToDateTime(object obj, DateTime def = default, string? parseFormat = null)
         {
-            var retValue = ConvToDateTimeNull(obj, def);
+            var retValue = ConvToDateTimeNull(obj, def, parseFormat);
             return retValue ?? def;
         }
-        public static DateTime? ConvToDateTimeNull(object? obj, DateTime? def = null)
+        public static DateTime? ConvToDateTimeNull(object? obj, DateTime? def = null, string? parseFormat = null)
         {
             if (obj == null) { return def; }
             if (obj is DateTime dateValue)
             {
                 return dateValue;
             }
+            else if (obj is string text)
+            {
+                if (parseFormat == null)
+                {
+                    return StrToAnyNull<DateTime>(text, def);
+                }
+                else
+                {
+                    if (DateTime.TryParseExact(text, parseFormat, null, System.Globalization.DateTimeStyles.None, out var retValue))
+                    {
+                        return retValue;
+                    }
+                }
+            }
+            else if (obj is double dblValue)
+            {
+                return DateTime.FromOADate(dblValue);
+            }
+
             try
             {
                 return Convert.ToDateTime(obj);
@@ -426,7 +445,7 @@ namespace FrostNova.Core.TypeToolkit
             }
         }
 
-        public static T ConvToAny<T>(object? value,[AllowNull] T defaultValue = default)
+        public static T ConvToAny<T>(object? value, [AllowNull] T defaultValue = default)
         {
             var aa = ConvToAnyNull<T>(value, defaultValue);
             if (aa == null)

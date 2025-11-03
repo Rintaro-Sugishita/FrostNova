@@ -17,7 +17,7 @@
     <ProjectReference Include="..\FrostNova.Core\FrostNova.Core.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="FrostNova.Core" Version="0.0.6" />
+    <PackageReference Include="FrostNova.Core" Version="0.0.8" />
   </ItemGroup>
 
 </Project>
