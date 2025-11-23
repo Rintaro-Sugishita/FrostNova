@@ -1,35 +1,45 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:local="clr-namespace:FrostNova.Core.Wpf.Controls"
-                    >
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:att="clr-namespace:FrostNova.Core.Wpf.AttachedProperties;assembly=FrostNova.Core.Wpf"
+    xmlns:local="clr-namespace:FrostNova.Core.Wpf.Controls">
 
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/ColorSliderStyle.xaml" />
         <ResourceDictionary Source="/FrostNova.Core.Wpf;component/Resources/Converters.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
-    <Style TargetType="{x:Type Slider}" x:Key="colorSelectorSliderStyle" BasedOn="{StaticResource colorSliderStyle}">
+    <Style
+        x:Key="colorSelectorSliderStyle"
+        BasedOn="{StaticResource colorSliderStyle}"
+        TargetType="{x:Type Slider}">
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Minimum" Value="0"/>
+        <Setter Property="Minimum" Value="0" />
         <Setter Property="Maximum" Value="255" />
         <Setter Property="LargeChange" Value="1" />
         <Setter Property="SmallChange" Value="1" />
     </Style>
 
-    <Style TargetType="{x:Type Slider}" x:Key="colorSelectorVSliderStyle" BasedOn="{StaticResource colorSliderStyle}">
+    <Style
+        x:Key="colorSelectorVSliderStyle"
+        BasedOn="{StaticResource colorSliderStyle}"
+        TargetType="{x:Type Slider}">
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Orientation" Value="Vertical" />
-        <Setter Property="Minimum" Value="0"/>
+        <Setter Property="Minimum" Value="0" />
         <Setter Property="Maximum" Value="255" />
         <Setter Property="HorizontalAlignment" Value="Center" />
 
     </Style>
-    <Style TargetType="{x:Type Slider}" x:Key="colorSelectorVdoubleSliderStyle" BasedOn="{StaticResource colorSliderStyle}">
+    <Style
+        x:Key="colorSelectorVdoubleSliderStyle"
+        BasedOn="{StaticResource colorSliderStyle}"
+        TargetType="{x:Type Slider}">
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Orientation" Value="Vertical" />
-        <Setter Property="Minimum" Value="0"/>
+        <Setter Property="Minimum" Value="0" />
         <Setter Property="Maximum" Value="1.0" />
         <Setter Property="LargeChange" Value="0.02" />
         <Setter Property="SmallChange" Value="0.01" />
@@ -40,45 +50,48 @@
     </Style>
 
 
-    <Style TargetType="{x:Type local:ColorSelector}" x:Key="defaultColorSelectorStyle">
+    <Style x:Key="defaultColorSelectorStyle" TargetType="{x:Type local:ColorSelector}">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate>
-                    <Grid x:Name="gridMain" Background="Transparent" DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:ColorSelector}}}">
+                    <Grid
+                        x:Name="gridMain"
+                        Background="Transparent"
+                        DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:ColorSelector}}}">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition/>
+                            <RowDefinition Height="30" />
+                            <RowDefinition />
                         </Grid.RowDefinitions>
-                        <Canvas x:Name="gradientCanvas"  >
+                        <Canvas x:Name="gradientCanvas">
                             <Canvas.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                    <GradientStop Color="{Binding ColorFF0000Brush,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="{Binding GradientOffsetFF0000}" />
-                                    <GradientStop Color="{Binding ColorFFFF00Brush,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="{Binding GradientOffsetFFFF00}" />
-                                    <GradientStop Color="{Binding Color00FF00Brush,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="{Binding GradientOffset00FF00}" />
-                                    <GradientStop Color="{Binding Color00FFFFBrush,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="{Binding GradientOffset00FFFF}" />
-                                    <GradientStop Color="{Binding Color0000FFBrush,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="{Binding GradientOffset0000FF}" />
-                                    <GradientStop Color="{Binding ColorFF00FFBrush,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="{Binding GradientOffsetFF00FF}" />
-                                    <GradientStop Color="{Binding ColorFF0000Brush2,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="{Binding GradientOffsetFF00002}" />
+                                    <GradientStop Offset="{Binding GradientOffsetFF0000}" Color="{Binding ColorFF0000Brush, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <GradientStop Offset="{Binding GradientOffsetFFFF00}" Color="{Binding ColorFFFF00Brush, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <GradientStop Offset="{Binding GradientOffset00FF00}" Color="{Binding Color00FF00Brush, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <GradientStop Offset="{Binding GradientOffset00FFFF}" Color="{Binding Color00FFFFBrush, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <GradientStop Offset="{Binding GradientOffset0000FF}" Color="{Binding Color0000FFBrush, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <GradientStop Offset="{Binding GradientOffsetFF00FF}" Color="{Binding ColorFF00FFBrush, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <GradientStop Offset="{Binding GradientOffsetFF00002}" Color="{Binding ColorFF0000Brush2, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                                 </LinearGradientBrush>
                             </Canvas.Background>
                             <Canvas.Children>
-                                <Slider x:Name="gradientSlider"  
-                                    IsTabStop="False"
-                                    Foreground="White" 
+                                <Slider
+                                    x:Name="gradientSlider"
                                     Width="{Binding RelativeSource={RelativeSource AncestorType={x:Type Canvas}}, Path=ActualWidth}"
+                                    Foreground="White"
+                                    IsTabStop="False"
+                                    Maximum="{Binding MAX_GRADIENT_SLIDER}"
+                                    Minimum="0"
                                     Orientation="Horizontal"
-                                    Minimum="0" Maximum="{Binding MAX_GRADIENT_SLIDER}"
+                                    Style="{StaticResource colorSliderStyle}"
                                     TickFrequency="1"
-                                        Style="{StaticResource colorSliderStyle}"
-                                    Value="{Binding SelectedHue}"
-                                    >
-                                </Slider>
+                                    Value="{Binding SelectedHue}" />
                             </Canvas.Children>
                         </Canvas>
                         <Grid Grid.Row="1">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="2*" />
                                 <ColumnDefinition />
                             </Grid.ColumnDefinitions>
                             <Grid>
@@ -91,75 +104,105 @@
                                 <Grid Grid.Row="0" Background="White">
 
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="22"/>
-                                        <RowDefinition Height="22"/>
-                                        <RowDefinition Height="22"/>
+                                        <RowDefinition Height="22" />
+                                        <RowDefinition Height="22" />
+                                        <RowDefinition Height="22" />
                                     </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="10"/>
-                                        <ColumnDefinition Width="35"/>
+                                        <ColumnDefinition Width="10" />
+                                        <ColumnDefinition Width="55" />
                                         <ColumnDefinition />
                                     </Grid.ColumnDefinitions>
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0"  
-                                       Text="R" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Row="0" Grid.Column="1"
-              
-                                         TextAlignment="Right" VerticalContentAlignment="Center"
-                                         Text="{Binding SelectedRed, UpdateSourceTrigger=LostFocus}"
-                                         />
-                                    <Slider x:Name="redSlider" Grid.Row="0" Grid.Column="2"
-                                            Value="{Binding  SelectedRed, UpdateSourceTrigger=PropertyChanged}" 
-                                            Style="{StaticResource colorSelectorSliderStyle}"
-                                            Foreground="Red"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="0"
-                                         Text="G" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Row="1" Grid.Column="1"
-                                         Text="{Binding SelectedGreen}" 
-                                         TextAlignment="Right" VerticalContentAlignment="Center"/>
-                                    <Slider x:Name="greenSlider" Grid.Row="1" Grid.Column="2"
-                                            Value="{Binding SelectedGreen, UpdateSourceTrigger=PropertyChanged}" 
-                                            TickFrequency="1"
-                                            IsSnapToTickEnabled="True"
-                                            Style="{StaticResource colorSelectorSliderStyle}"
-                                            Foreground="Green"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="B" VerticalAlignment="Center" />
-                                    <TextBox Grid.Row="2" Grid.Column="1" Width="35" Height="20" Text="{Binding SelectedBlue}"
-                                         TextAlignment="Right" VerticalContentAlignment="Center"/>
-                                    <Slider x:Name="blueSlider" Grid.Row="2" Grid.Column="2"
-                                            Value="{Binding SelectedBlue, UpdateSourceTrigger=PropertyChanged}"
-                                            Style="{StaticResource colorSelectorSliderStyle}"
-                                            Foreground="Blue"
-                                    />
+                                    <TextBlock
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        Text="R" />
+                                    <TextBox
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        VerticalContentAlignment="Center"
+                                        Text="{Binding SelectedRed, UpdateSourceTrigger=LostFocus}"
+                                        TextAlignment="Right" />
+                                    <Slider
+                                        x:Name="redSlider"
+                                        Grid.Row="0"
+                                        Grid.Column="2"
+                                        Foreground="Red"
+                                        Style="{StaticResource colorSelectorSliderStyle}"
+                                        Value="{Binding SelectedRed, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBlock
+                                        Grid.Row="1"
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        Text="G" />
+                                    <TextBox
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        VerticalContentAlignment="Center"
+                                        Text="{Binding SelectedGreen}"
+                                        TextAlignment="Right" />
+                                    <Slider
+                                        x:Name="greenSlider"
+                                        Grid.Row="1"
+                                        Grid.Column="2"
+                                        Foreground="Green"
+                                        IsSnapToTickEnabled="True"
+                                        Style="{StaticResource colorSelectorSliderStyle}"
+                                        TickFrequency="1"
+                                        Value="{Binding SelectedGreen, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBlock
+                                        Grid.Row="2"
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        Text="B" />
+                                    <TextBox
+                                        Grid.Row="2"
+                                        Grid.Column="1"
+                                        VerticalContentAlignment="Center"
+                                        Text="{Binding SelectedBlue}"
+                                        TextAlignment="Right" />
+                                    <Slider
+                                        x:Name="blueSlider"
+                                        Grid.Row="2"
+                                        Grid.Column="2"
+                                        Foreground="Blue"
+                                        Style="{StaticResource colorSelectorSliderStyle}"
+                                        Value="{Binding SelectedBlue, UpdateSourceTrigger=PropertyChanged}" />
 
                                 </Grid>
                                 <StackPanel Grid.Row="1" Background="White">
-                                    <TextBlock Text="HEX" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                                    <TextBlock
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        Text="HEX" />
 
-                                    <TextBox 
-                                         Width="80" HorizontalAlignment="Left"
-                                         Text="{Binding HexColorText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                         >
-                                    </TextBox>
+                                    <TextBox
+                                        Width="80"
+                                        HorizontalAlignment="Left"
+                                        Text="{Binding HexColorText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                 </StackPanel>
 
-                                <Border Grid.Row="2" BorderThickness="1" BorderBrush="Gray">
+                                <Border
+                                    Grid.Row="2"
+                                    BorderBrush="Gray"
+                                    BorderThickness="1">
 
-                                    <Grid Background="Transparent" MinHeight="40" >
+                                    <Grid MinHeight="40" Background="Transparent">
                                         <Grid.RowDefinitions>
                                             <RowDefinition />
                                             <RowDefinition />
                                         </Grid.RowDefinitions>
-                                        <Canvas x:Name="selectedColorCanvas" Grid.Row="0"
-                                                Background="{Binding SelectedColor,Converter={StaticResource colorToSolidBrushConverter},ConverterParameter=Colors.Red}"
-                                                >
+                                        <Canvas
+                                            x:Name="selectedColorCanvas"
+                                            Grid.Row="0"
+                                            Background="{Binding SelectedColor, Converter={StaticResource colorToSolidBrushConverter}, ConverterParameter=Colors.Red}">
                                             <!--<Canvas.Background>
                                                 <SolidColorBrush Color="{Binding SelectedColor}" />
                                             </Canvas.Background>-->
                                         </Canvas>
-                                        <Canvas Grid.Row="1"  
-                                                Background="{Binding OldColor,Converter={StaticResource colorToSolidBrushConverter},ConverterParameter=Colors.Transparent}"                                                
-                                                >
+                                        <Canvas Grid.Row="1" Background="{Binding OldColor, Converter={StaticResource colorToSolidBrushConverter}, ConverterParameter=Colors.Transparent}">
                                             <!--<Canvas.Background>
                                                 <SolidColorBrush Color="{Binding OldColor}" />
                                             </Canvas.Background>-->
@@ -173,66 +216,87 @@
 
                             <Grid Grid.Column="1" Background="White">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition/>
-                                    <ColumnDefinition/>
-                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="20"/>
-                                    <RowDefinition Height="20"/>
-                                    <RowDefinition/>
+                                    <RowDefinition Height="20" />
+                                    <RowDefinition Height="20" />
+                                    <RowDefinition />
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0"  Text="A" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1"  Text="S" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Row="0" Grid.Column="2"  Text="L" HorizontalAlignment="Center"/>
-                                <TextBox Grid.Row="1" Grid.Column="0"
-                                     HorizontalContentAlignment="Right"
-                                     Text="{Binding SelectedA}"
-                                     />
-                                <TextBox Grid.Row="1" Grid.Column="1" 
-                                     HorizontalContentAlignment="Right"
-                                     Text="{Binding SelectedSaturation,StringFormat='0.00'}" />
-                                <TextBox Grid.Row="1" Grid.Column="2" 
-                                     HorizontalContentAlignment="Right"
-                                     Text="{Binding SelectedLightness,StringFormat='0.00'}" />
-                                <Slider  Grid.Row="2" Grid.Column="0" 
-                                         Style="{StaticResource colorSelectorVSliderStyle}"
-                                         Value="{Binding SelectedA,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    />
-                                <Canvas Grid.Row="2" Grid.Column="1" >
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    HorizontalAlignment="Center"
+                                    Text="A" />
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Center"
+                                    Text="S" />
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="2"
+                                    HorizontalAlignment="Center"
+                                    Text="L" />
+                                <TextBox
+                                    Grid.Row="1"
+                                    Grid.Column="0"
+                                    HorizontalContentAlignment="Right"
+                                    att:TextBoxEx.ClearValue="255"
+                                    Text="{Binding SelectedA}" />
+                                <TextBox
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    HorizontalContentAlignment="Right"
+                                    att:TextBoxEx.ClearValue="1.00"
+                                    Text="{Binding SelectedSaturation, StringFormat='0.00'}" />
+                                <TextBox
+                                    Grid.Row="1"
+                                    Grid.Column="2"
+                                    HorizontalContentAlignment="Right"
+                                    att:TextBoxEx.ClearValue="0.50"
+                                    Text="{Binding SelectedLightness, StringFormat='0.00'}" />
+                                <Slider
+                                    Grid.Row="2"
+                                    Grid.Column="0"
+                                    Style="{StaticResource colorSelectorVSliderStyle}"
+                                    Value="{Binding SelectedA, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <Canvas Grid.Row="2" Grid.Column="1">
 
                                     <Canvas.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="{Binding ColorMaxSaturation,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="0" />
-                                            <GradientStop Color="{Binding ColorMediumSaturation,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="0.5" />
-                                            <GradientStop Color="{Binding ColorMinSaturation,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="1" />
+                                            <GradientStop Offset="0" Color="{Binding ColorMaxSaturation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <GradientStop Offset="0.5" Color="{Binding ColorMediumSaturation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <GradientStop Offset="1" Color="{Binding ColorMinSaturation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         </LinearGradientBrush>
                                     </Canvas.Background>
-                                    <Canvas.Children>
-                                    </Canvas.Children>
+                                    <Canvas.Children />
                                 </Canvas>
-                                <Slider Grid.Row="2" Grid.Column="1" 
-                                        Style="{StaticResource colorSelectorVdoubleSliderStyle}"
-                                        Foreground="#3D3D3D"
-                                        Value="{Binding SelectedSaturation, UpdateSourceTrigger=PropertyChanged}"
-                                        />
-                                <Canvas Grid.Row="2" Grid.Column="2" >
+                                <Slider
+                                    Grid.Row="2"
+                                    Grid.Column="1"
+                                    Foreground="#3D3D3D"
+                                    Style="{StaticResource colorSelectorVdoubleSliderStyle}"
+                                    Value="{Binding SelectedSaturation, UpdateSourceTrigger=PropertyChanged}" />
+                                <Canvas Grid.Row="2" Grid.Column="2">
 
                                     <Canvas.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="{Binding ColorMaxBrightness,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="0" />
-                                            <GradientStop Color="{Binding ColorMediumBrightness,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="0.5" />
-                                            <GradientStop Color="{Binding ColorMinBrightness,Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Offset="1" />
+                                            <GradientStop Offset="0" Color="{Binding ColorMaxBrightness, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <GradientStop Offset="0.5" Color="{Binding ColorMediumBrightness, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <GradientStop Offset="1" Color="{Binding ColorMinBrightness, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         </LinearGradientBrush>
                                     </Canvas.Background>
-                                    <Canvas.Children>
-                                    </Canvas.Children>
+                                    <Canvas.Children />
                                 </Canvas>
-                                <Slider Grid.Row="2" Grid.Column="2" 
-                                        Style="{StaticResource colorSelectorVdoubleSliderStyle}"
-                                        Foreground="#3D3D3D"
-                                        Value="{Binding SelectedLightness, UpdateSourceTrigger=PropertyChanged}"
-                                         />
+                                <Slider
+                                    Grid.Row="2"
+                                    Grid.Column="2"
+                                    Foreground="#3D3D3D"
+                                    Style="{StaticResource colorSelectorVdoubleSliderStyle}"
+                                    Value="{Binding SelectedLightness, UpdateSourceTrigger=PropertyChanged}" />
                             </Grid>
 
                         </Grid>

@@ -9,6 +9,9 @@
     <GenerateDocumentationFile >True</GenerateDocumentationFile>
     
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Version>0.0.9</Version>
+  </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="Messages\MessageBoxWindowArgs.cs" />
@@ -18,7 +21,7 @@
     <ProjectReference Include="..\FrostNova.Core\FrostNova.Core.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="FrostNova.Core" Version="0.0.8" />
+    <PackageReference Include="FrostNova.Core" Version="0.0.9" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

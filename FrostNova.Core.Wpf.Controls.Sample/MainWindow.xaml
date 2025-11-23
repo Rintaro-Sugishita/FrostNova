@@ -40,7 +40,7 @@
                     </StackPanel>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="DataGrid1">
+            <TabItem Header="DataGrid1" IsSelected="True">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
@@ -55,21 +55,42 @@
                         </i:Interaction.Behaviors>
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Column1" Binding="{Binding ColumnValue}" />
-                            <DataGridTextColumn Header="Column2" Binding="{Binding NumValue}" />
+                            <DataGridTextColumn Header="Column2" Binding="{Binding NumValue}" >
+                                <DataGridTextColumn.EditingElementStyle>
+                                    <Style TargetType="{x:Type TextBox}">
+                                        <Setter Property="Padding" Value="0" />
+                                    </Style>
+                                </DataGridTextColumn.EditingElementStyle>
+                            </DataGridTextColumn>
+                            <ctrls:FrostNovaDataGridTextBoxColumn Header="custom1"
+                                                                  IsMultiLine="True"
+                                                                  IsEditOnEnter="True"
+                                                                  />
                         </DataGrid.Columns>
                         
 
                     </DataGrid>
-                    <ListBox ItemsSource="{Binding SelectedIndices}" Grid.Column="1">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding }" />
-                                    <TextBlock Text="index row is selected." />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <ListBox ItemsSource="{Binding SelectedIndices}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding }" />
+                                        <TextBlock Text="index row is selected." />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <StackPanel Grid.Row="1">
+                            <CheckBox Content="CanLineBreak" x:Name="lineBreakCheckbox" />
+                            <CheckBox Content="AlwaysEdit" x:Name="alwaysEditCheckbox" />
+                        </StackPanel>
+
+                    </Grid>
                 </Grid>
             </TabItem>
             <TabItem Header="messagebox">

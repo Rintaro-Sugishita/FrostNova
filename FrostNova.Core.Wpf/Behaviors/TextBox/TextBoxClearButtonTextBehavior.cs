@@ -6,6 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows;
+using System.Windows.Data;
+using FrostNova.Core.Wpf.Common;
+using FrostNova.Core.Wpf.AttachedProperties;
 
 namespace FrostNova.Core.Wpf.Behaviors
 {
@@ -26,9 +29,43 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private void AssociatedObject_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            ClearTarget.Text = string.Empty;
-        }
+            if (ClearTarget == null) return;
 
+            var clearValue = TextBoxEx.GetClearValue(ClearTarget);
+
+
+            var textBinding = ClearTarget.GetBindingExpression(TextBox.TextProperty);
+            if (clearValue == null)
+            {
+                if (textBinding == null)
+                {
+                    ClearTarget.Text = string.Empty;
+                }
+                else
+                {
+                    //object value = textBinding.ParentBinding .sourc;
+                    var sourceType = BindingResolveHelper.GetBindingSourceType(textBinding);
+                    if (sourceType == null)
+                    {
+                        ClearTarget.Text = string.Empty;
+                        textBinding.UpdateSource();
+                    }
+                    else
+                    {
+                        var defaultValue = BindingResolveHelper.GetDefaultValueForType(sourceType);
+                        ClearTarget.Text = defaultValue?.ToString() ?? "";
+                        textBinding.UpdateSource();
+                    }
+                }
+            }
+            else
+            {
+
+                ClearTarget.Text = clearValue?.ToString() ?? "";
+                textBinding?.UpdateSource();
+            }
+
+        }
         /// <summary>
         /// string
         /// </summary>

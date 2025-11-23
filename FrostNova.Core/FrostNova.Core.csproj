@@ -8,6 +8,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' != 'Release'">
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Version>0.0.9</Version>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

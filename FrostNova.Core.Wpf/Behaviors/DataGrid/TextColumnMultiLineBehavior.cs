@@ -8,12 +8,12 @@ using System.Windows.Controls;
 
 namespace FrostNova.Core.Wpf.Behaviors
 {
+
     public class TextColumnMultiLineBehavior  : Behavior<DataGridTextColumn>
     {
         protected override void OnAttached()
         {
             base.OnAttached();
-            
         }
     }
 }

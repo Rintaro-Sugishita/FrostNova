@@ -12,7 +12,6 @@
     <DebugType>embedded</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <Version>0.0.8</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <DebugType>embedded</DebugType>
@@ -36,13 +35,13 @@
         <BuiltNupkgFiles Include="$(OutputPath)\$(PackageId).$(PackageVersion).nupkg" />
       </ItemGroup>
 
-      <MakeDir Directories="$(NupkgCopyDestination)" />
+      <!-- <MakeDir Directories="$(NupkgCopyDestination)" />
 
       <Copy
         SourceFiles="@(BuiltNupkgFiles)"
         DestinationFolder="$(NupkgCopyDestination)"
         SkipUnchangedFiles="true"
-        Condition="@(BuiltNupkgFiles) != ''" />
+        Condition="@(BuiltNupkgFiles) != ''" /> -->
   </Target>
   <ItemGroup>
     <PackageVersion Include="FrostNova.Core" Version="0.0.8" />
