@@ -322,12 +322,35 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty ScrollTopItemProperty = DependencyProperty.Register(nameof(ScrollTopItem), typeof(object), typeof(GridTimeRangeChart));
 
+        public object ScrollBottomItem
+        {
+            get { return (object)GetValue(ScrollBottomItemProperty); }
+            set { SetValue(ScrollBottomItemProperty, value); }
+        }
+        public static DependencyProperty ScrollBottomItemProperty = DependencyProperty.Register(nameof(ScrollBottomItem), typeof(object), typeof(GridTimeRangeChart));
+
         public object ScrollLeftDate
         {
             get { return (object)GetValue(ScrollLeftDateProperty); }
             set { SetValue(ScrollLeftDateProperty, value); }
         }
         public static DependencyProperty ScrollLeftDateProperty = DependencyProperty.Register(nameof(ScrollLeftDate), typeof(object), typeof(GridTimeRangeChart));
+
+
+        public object ScrollRightDate
+        {
+            get { return (object)GetValue(ScrollRightDateProperty); }
+            set { SetValue(ScrollRightDateProperty, value); }
+        }
+        public static DependencyProperty ScrollRightDateProperty = DependencyProperty.Register(nameof(ScrollRightDate), typeof(object), typeof(GridTimeRangeChart));
+
+
+        public object ScrollCenterDate
+        {
+            get { return (object)GetValue(ScrollCenterDateProperty); }
+            set { SetValue(ScrollCenterDateProperty, value); }
+        }
+        public static DependencyProperty ScrollCenterDateProperty = DependencyProperty.Register(nameof(ScrollCenterDate), typeof(object), typeof(GridTimeRangeChart));
 
 
 
