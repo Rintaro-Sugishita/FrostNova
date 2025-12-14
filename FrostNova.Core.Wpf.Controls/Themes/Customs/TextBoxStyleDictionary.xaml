@@ -38,13 +38,13 @@
                                         <Style.Triggers>
                                             <MultiDataTrigger>
                                                 <MultiDataTrigger.Conditions>
-                                                    <Condition Binding="{Binding ElementName=inputTextbox, Path=Text}" Value="" />
+                                                    <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type TextBox}}, Path=Text}" Value="" />
                                                 </MultiDataTrigger.Conditions>
                                                 <Setter Property="Visibility" Value="Visible" />
                                             </MultiDataTrigger>
                                             <MultiDataTrigger>
                                                 <MultiDataTrigger.Conditions>
-                                                    <Condition Binding="{Binding ElementName=inputTextbox, Path=Text}" Value="{x:Null}" />
+                                                    <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type TextBox}}, Path=Text}" Value="{x:Null}" />
                                                 </MultiDataTrigger.Conditions>
                                                 <Setter Property="Visibility" Value="Visible" />
                                             </MultiDataTrigger>

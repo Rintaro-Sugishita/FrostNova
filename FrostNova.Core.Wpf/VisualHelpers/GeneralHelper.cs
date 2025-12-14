@@ -5,12 +5,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace FrostNova.Core.Wpf.VisualHelpers
 {
     internal static class GeneralHelper
     {
+
+        #region find visual child
+
         internal static T FindVisualChild<T>(this DependencyObject parent) where T : DependencyObject
         {
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
@@ -39,6 +44,72 @@ namespace FrostNova.Core.Wpf.VisualHelpers
                     yield return grandChild;
             }
         }
+
+        #endregion
+
+        #region point
+
+        /// <summary>
+        /// Determines whether the mouse pointer is currently positioned within the bounds of the specified <see
+        /// cref="FrameworkElement"/>.
+        /// </summary>
+        /// <remarks>This method uses screen coordinates to determine the mouse position relative to the
+        /// specified element. If the element is not currently associated with a window, the method returns <see
+        /// langword="false"/>.</remarks>
+        /// <param name="element">The <see cref="FrameworkElement"/> to test for mouse pointer containment. Cannot be <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the mouse pointer is within the bounds of <paramref name="element"/>; otherwise,
+        /// <see langword="false"/>.</returns>
+        public static bool IsInMousePoint(FrameworkElement element)
+        {
+            var ownerWindow = Window.GetWindow(element);
+            if (ownerWindow == null) return false;
+            // スクリーン座標を取得（WPF方式）
+            Point screenPoint = GetMouseScreenPosition(ownerWindow);
+
+            // control内のローカル座標に変換
+            Point localPoint = element.PointFromScreen(screenPoint);
+
+            return IsPointInsideAssociatedObject(element, localPoint);
+
+        }
+
+        /// <summary>
+        /// Gets the current position of the mouse pointer in screen coordinates relative to the specified window.
+        /// </summary>
+        /// <param name="owner">The window relative to which the mouse position is calculated. If <see langword="null"/>, the application's
+        /// main window is used.</param>
+        /// <returns>A <see cref="Point"/> representing the mouse pointer's position in screen coordinates.</returns>
+        public static Point GetMouseScreenPosition(Window? owner)
+        {
+            var window = owner ?? Application.Current.MainWindow;
+
+            // Get mouse position relative to the entire screen (using WPF only)            
+            var position = Mouse.GetPosition(window);
+            return window.PointToScreen(position);
+        }
+
+        /// <summary>
+        /// Determines whether the specified point is within the bounds of the given <see cref="FrameworkElement"/>.
+        /// </summary>
+        /// <remarks>The containment check uses the current <see cref="FrameworkElement.ActualWidth"/> and
+        /// <see cref="FrameworkElement.ActualHeight"/> properties. The point is considered inside if its X and Y
+        /// coordinates are greater than or equal to zero and less than the element's actual width and height,
+        /// respectively.</remarks>
+        /// <param name="element">The <see cref="FrameworkElement"/> whose bounds are used for the containment check. Must not be <c>null</c>.</param>
+        /// <param name="point">The point, in the coordinate space of <paramref name="element"/>, to test for containment.</param>
+        /// <returns><see langword="true"/> if the point is within the bounds of <paramref name="element"/>; otherwise, <see
+        /// langword="false"/>.</returns>
+        public static bool IsPointInsideAssociatedObject(FrameworkElement element, Point point)
+        {
+            return point.X >= 0 && point.Y >= 0 &&
+                   point.X < element.ActualWidth &&
+                   point.Y < element.ActualHeight;
+        }
+
+        #endregion
+
+        #region behaviors
+
         public static void SetBehavior<T>(DependencyObject d, DependencyPropertyChangedEventArgs e) where T : Behavior, new()
         {
             var isEnable = e.NewValue as bool?;
@@ -70,6 +141,7 @@ namespace FrostNova.Core.Wpf.VisualHelpers
             }
         }
 
+        #endregion
 
     }
 }

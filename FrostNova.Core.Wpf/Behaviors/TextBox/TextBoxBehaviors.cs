@@ -11,22 +11,22 @@ namespace FrostNova.Core.Wpf.Behaviors
 {
     public class TextBoxBehaviors
     {
-        public static readonly DependencyProperty EnableTextBoxMultiLineProperty =
+        public static readonly DependencyProperty EnableLineBreakProperty =
             DependencyProperty.RegisterAttached(
-                "EnableTextBoxMultiLine",
+                "EnableLineBreak",
                 typeof(bool),
                 typeof(TextBoxBehaviors),
-                new PropertyMetadata(false, OnEnableTextBoxMultiLineChanged));
+                new PropertyMetadata(false, OnEnableEnableLineBreakChanged));
 
-        public static bool GetEnableTextBoxMultiLine(TextBox element) => (bool)element.GetValue(EnableTextBoxMultiLineProperty);
+        public static bool GetEnableLineBreak(TextBox element) => (bool)element.GetValue(EnableLineBreakProperty);
 
-        public static void SetEnableTextBoxMultiLine(TextBox element, bool value) => element.SetValue(EnableTextBoxMultiLineProperty, value);
+        public static void SetEnableLineBreak(TextBox element, bool value) => element.SetValue(EnableLineBreakProperty, value);
 
-        private static void OnEnableTextBoxMultiLineChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnEnableEnableLineBreakChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is TextBox ctrl)
             {
-                GeneralHelper.SetBehavior<TextBoxMultiLineBehavior>(ctrl, e);
+                GeneralHelper.SetBehavior<TextBoxLineBreakBehavior>(ctrl, e);
             }
         }
 

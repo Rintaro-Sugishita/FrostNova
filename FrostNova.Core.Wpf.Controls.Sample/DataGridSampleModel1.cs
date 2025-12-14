@@ -17,6 +17,8 @@ namespace FrostNova.Core.Wpf.Controls.Sample
         [ObservableProperty]
         private int _NumValue = 0;
 
+        [ObservableProperty]
+        private string _MultiLineText = "";
 
     }
 }

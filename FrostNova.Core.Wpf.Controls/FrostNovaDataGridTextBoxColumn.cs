@@ -11,21 +11,21 @@ using System.Windows.Data;
 
 namespace FrostNova.Core.Wpf.Controls
 {
-    public class FrostNovaDataGridTextBoxColumn : DataGridPasteTemplateColumn
+    public class FrostNovaDataGridTextBoxColumn : DataGridTextColumn
     {
 
         private static Style? _style;
 
         protected override FrameworkElement GenerateEditingElement(DataGridCell cell, object dataItem)
         {
-            var element = new TextBox();
+            var element = base.GenerateEditingElement(cell, dataItem);
 
             if (element is TextBox textBox)
             {
 
                 if (_style == null)
                 {
-                    _style = Application.Current.TryFindResource("datagridTextBoxStyle") as Style;
+                    _style = Application.Current.TryFindResource("dataGridTextBoxStyle") as Style;
                 }
 
 
@@ -34,11 +34,11 @@ namespace FrostNova.Core.Wpf.Controls
 
                 //textBox.Style.Setters.Add(new Setter() { Property = TextBox.PaddingProperty, Value = 0 });
 
-                var binding = new Binding(nameof(IsMultiLine));
+                var binding = new Binding(nameof(CanLineBreak));
                 //binding.Path = ;
                 binding.Source = this;
 
-                element.SetBinding(TextBoxBehaviors.EnableTextBoxMultiLineProperty, binding);
+                element.SetBinding(TextBoxBehaviors.EnableLineBreakProperty, binding);
 
             }
             return element;
@@ -57,13 +57,13 @@ namespace FrostNova.Core.Wpf.Controls
         /// <summary>
         /// string
         /// </summary>
-        public bool IsMultiLine
+        public bool CanLineBreak
         {
-            get { return (bool)GetValue(IsMultiLineProperty); }
-            set { SetValue(IsMultiLineProperty, value); }
+            get { return (bool)GetValue(CanLineBreakProperty); }
+            set { SetValue(CanLineBreakProperty, value); }
         }
-        public static DependencyProperty IsMultiLineProperty = DependencyProperty.Register(
-            nameof(IsMultiLine),
+        public static DependencyProperty CanLineBreakProperty = DependencyProperty.Register(
+            nameof(CanLineBreak),
             typeof(bool),
             typeof(FrostNovaDataGridTextBoxColumn),
             new PropertyMetadata(false)
@@ -82,12 +82,6 @@ namespace FrostNova.Core.Wpf.Controls
             new PropertyMetadata(false)
             );
 
-        public BindingBase Binding
-        {
-            get { return (BindingBase)GetValue(BindingProperty); }
-            set { SetValue(BindingProperty, value); }
-        }
-        public static DependencyProperty BindingProperty = DependencyProperty.Register(nameof(Binding), typeof(BindingBase), typeof(FrostNovaDataGridTextBoxColumn));
 
 
 

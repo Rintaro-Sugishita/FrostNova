@@ -44,7 +44,7 @@ namespace FrostNova.Core.Wpf.Controls.Sample
         {
             base.InitializeOnExecute();
             Samples.Clear();
-            Samples.Add(new DataGridSampleModel1() {ColumnValue = "aaaa", NumValue = 20 });
+            Samples.Add(new DataGridSampleModel1() {ColumnValue = "aaaa", NumValue = 20,MultiLineText="aaa\nbbbb" });
             Samples.Add(new DataGridSampleModel1() {ColumnValue = "bbbb", NumValue = 40 });
             Samples.Add(new DataGridSampleModel1() {ColumnValue = "cccc", NumValue = 60 });
             Samples.Add(new DataGridSampleModel1() {ColumnValue = "cccc", NumValue = 80 });

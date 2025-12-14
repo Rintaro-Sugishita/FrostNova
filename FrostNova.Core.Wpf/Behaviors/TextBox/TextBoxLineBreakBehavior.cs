@@ -9,7 +9,7 @@ using System.Windows.Input;
 
 namespace FrostNova.Core.Wpf.Behaviors
 {
-    public class TextBoxMultiLineBehavior : Behavior<TextBox>
+    public class TextBoxLineBreakBehavior : Behavior<TextBox>
     {
         protected override void OnAttached()
         {
@@ -28,11 +28,11 @@ namespace FrostNova.Core.Wpf.Behaviors
             TextBox textBox = (TextBox)sender;
             if (Keyboard.Modifiers == ModifierKeys.Alt && Keyboard.IsKeyDown(Key.Enter))
             {
+                var newLine = Environment.NewLine;
 
-                textBox.SelectedText = "\r\n";
-
-                //textBox.Text += "\r\n";
-                //textBox.SelectionStart = textBox.Text.Length;
+                textBox.SelectedText = newLine;
+                textBox.SelectionLength = 0;
+                textBox.SelectionStart += newLine.Length;
                 e.Handled = true;
 
             }
