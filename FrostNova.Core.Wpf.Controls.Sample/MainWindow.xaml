@@ -10,6 +10,7 @@
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:local="clr-namespace:FrostNova.Core.Wpf.Controls.Sample"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
     Title="MainWindow"
     Width="800"
     Height="450"
@@ -17,6 +18,11 @@
     <Window.DataContext>
         <local:MainWindowViewModel />
     </Window.DataContext>
+    <Window.Resources>
+        <sys:TimeSpan x:Key="timeOne">01:30:00</sys:TimeSpan>
+        <sys:TimeSpan x:Key="minValueSource">00:00:00</sys:TimeSpan>
+        <sys:TimeSpan x:Key="maxValueSource">24:00:00</sys:TimeSpan>
+    </Window.Resources>
     <Grid>
         <TabControl>
             <TabItem Header="Time">
@@ -31,6 +37,57 @@
                     <ctrls:FontComboBox />
                 </StackPanel>
             </TabItem>
+
+            <TabItem Header="TimePickerEditBox" IsSelected="True">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <ctrls:TimePickerEditBox MinHeight="20" Height="30"
+                                             HorizontalContentAlignment="Right"
+                                             TimeValue="{StaticResource timeOne}"
+                                             IsShowSecond="{Binding ElementName=secondCheckBox,Path=IsChecked}"
+                                             IsShowDay="{Binding ElementName=dayCheckBox,Path=IsChecked}"
+                                             TimePickerButtonVisibility="{Binding ElementName=pickerCheckBox,Path=IsChecked,Converter={StaticResource boolToVisibilityConverter}}"
+                                             UpDownButtonVisibility="{Binding ElementName=updownCheckBox,Path=IsChecked,Converter={StaticResource boolToVisibilityConverter}}"
+                                             MinuteSpan="{Binding ElementName=minuteSpanTextbox,Path=Text}"
+                                             VerticalContentAlignment="Center"
+                                             >
+                        <ctrls:TimePickerEditBox.Style>
+                            <Style TargetType="{x:Type ctrls:TimePickerEditBox}" BasedOn="{StaticResource {x:Type ctrls:TimePickerEditBox}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=minLimitCheckBox, Path=IsChecked}" Value="True">
+                                        <Setter Property="MinValue" Value="{StaticResource minValueSource}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ElementName=minLimitCheckBox, Path=IsChecked}" Value="Fals">
+                                        <Setter Property="MinValue" Value="{x:Null}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ElementName=maxLimitCheckBox, Path=IsChecked}" Value="True">
+                                        <Setter Property="MaxValue" Value="{StaticResource maxValueSource}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ElementName=maxLimitCheckBox, Path=IsChecked}" Value="Fals">
+                                        <Setter Property="MaxValue" Value="{x:Null}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ctrls:TimePickerEditBox.Style>
+                    </ctrls:TimePickerEditBox>
+                    <StackPanel Grid.Column="1">
+                        <CheckBox x:Name="secondCheckBox" Content="Show Second" />
+                        <CheckBox x:Name="dayCheckBox" Content="Show Day" />
+                        <CheckBox x:Name="pickerCheckBox" Content="Visible Picker" />
+                        <CheckBox x:Name="updownCheckBox" Content="Visible UpDown" IsChecked="True" />
+                        <CheckBox x:Name="minLimitCheckBox" Content="Limit min value to Zero" />
+                        <CheckBox x:Name="maxLimitCheckBox" Content="Limit max value to 23:59" />
+                        <TextBox x:Name="minuteSpanTextbox" Text="10" />
+                    </StackPanel>
+                </Grid>
+
+
+
+            </TabItem>
+            
             <TabItem Header="Color">
                 <StackPanel>
                     <ctrls:ColorSelector />
@@ -48,7 +105,7 @@
                     </StackPanel>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="DataGrid1" IsSelected="True">
+            <TabItem Header="DataGrid1">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />

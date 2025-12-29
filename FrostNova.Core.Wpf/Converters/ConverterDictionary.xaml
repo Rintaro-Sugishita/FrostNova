@@ -3,4 +3,7 @@
                     xmlns:conv="clr-namespace:FrostNova.Core.Wpf.Converters"
                     >
     <conv:ColorTextConverter x:Key="colorTextConverter" />
+    <conv:IsNullConverter x:Key="isNullConverter" />
+    <conv:TimeSpanToTextConverter x:Key="timeSpanToTextConverter" />
+    <conv:BoolToVisibilityConverter x:Key="boolToVisibilityConverter" />
 </ResourceDictionary>

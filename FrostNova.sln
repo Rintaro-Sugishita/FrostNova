@@ -39,6 +39,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		nuget.config = nuget.config
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{AC6C3C0B-53AC-44A9-81DA-5F1AC256ECD1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostNova.Core.WpfTest", "Tests\FrostNova.Core.WpfTest\FrostNova.Core.WpfTest.csproj", "{150FCDF4-2690-43FE-8A70-607BD233EAB7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -93,6 +97,10 @@ Global
 		{4148BC2A-2D82-4AEC-BC79-A77138D2BBF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4148BC2A-2D82-4AEC-BC79-A77138D2BBF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4148BC2A-2D82-4AEC-BC79-A77138D2BBF6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{150FCDF4-2690-43FE-8A70-607BD233EAB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{150FCDF4-2690-43FE-8A70-607BD233EAB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{150FCDF4-2690-43FE-8A70-607BD233EAB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{150FCDF4-2690-43FE-8A70-607BD233EAB7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -103,6 +111,7 @@ Global
 		{ABF0BA76-EA5C-4E27-93C3-10AB1256FC2E} = {DDB4EF12-CC4E-5E88-E6FC-71A802F4DE97}
 		{FB4730B0-84FF-4E52-877D-97A98519094F} = {DDB4EF12-CC4E-5E88-E6FC-71A802F4DE97}
 		{0405E101-0127-492E-81D2-639EB05738D1} = {E55582AE-EEC0-4C03-ACB6-8B79719637C6}
+		{150FCDF4-2690-43FE-8A70-607BD233EAB7} = {AC6C3C0B-53AC-44A9-81DA-5F1AC256ECD1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F47F0191-ABB7-49CB-97D2-E67B42F62BF3}

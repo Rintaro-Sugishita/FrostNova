@@ -26,7 +26,8 @@
                         <ContentPresenter
                             HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                             VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                            TextBlock.Foreground="{TemplateBinding Foreground}" />
+                            TextBlock.Foreground="{TemplateBinding Foreground}"
+                            />
                         <Border.Resources>
                             <Storyboard x:Key="RippleAnimation" Storyboard.TargetName="rippleEllipse">
                                 <DoubleAnimation
