@@ -4,7 +4,7 @@
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/Customs/ToggleButtonStyleDictionary.xaml" />
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/TimePickerStyle.xaml" />
-        <ResourceDictionary Source="/FrostNova.Core.Wpf;component/Converters/ConverterDictionary.xaml" />
+        <ResourceDictionary Source="/FrostNova.Core.Wpf;component/Resources/Converters.xaml" />
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/Customs/TextBoxStyleDictionary.xaml" />
     </ResourceDictionary.MergedDictionaries>
 

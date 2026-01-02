@@ -8,7 +8,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <!--<ResourceDictionary Source="ConverterDictionary.xaml" />-->
-                <ResourceDictionary Source="pack://application:,,,/FrostNova.Core.Wpf;component/Converters/ConverterDictionary.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/FrostNova.Core.Wpf;component/Resources/Converters.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/FrostNova.Core.Wpf.Controls;component/Themes/FrostNovaCustomDictionary.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

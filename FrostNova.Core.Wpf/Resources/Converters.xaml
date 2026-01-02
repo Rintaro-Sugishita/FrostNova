@@ -2,10 +2,30 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:conv="clr-namespace:FrostNova.Core.Wpf.Converters"
                     >
+    <conv:BoolToVisibilityConverter x:Key="boolToVisibilityConverter" />
     <conv:BorderThicknessConverter x:Key="borderThicknessConverter" />
-    <conv:BoolToVisibilityConverter x:Key="boolVisivilityConverter" />
+    <conv:CollapseVisibilityInvertConverter x:Key="collapseVisibilityInvertConverter" />
+    <conv:ColorTextConverter x:Key="colorTextConverter" />
     <conv:ColorToSolidColorBrushConverter x:Key="colorToSolidBrushConverter" />
-    <conv:ForegroundConverter x:Key="foregroundConverter" />
+    <conv:DataGridLengthConverter x:Key="datagridLengthConverter" />
+    <conv:DateTimeFormatConverter x:Key="datetimeFormatConverter" />
+    <conv:DateTimeToTextConverter x:Key="datetimeToTextConverter" />
+    <conv:DoubleAddConverter x:Key="doubleAddConverter" />
+    <conv:DoubleMultiplyConverter x:Key="doubleMultiplyConverter" />
+    <conv:DoubleRateTextConverter x:Key="doubleRateTextConverter" />
+    <conv:EnumBoolConverter x:Key="enumBoolConverter" />
+    <conv:EnumFlagsBoolConverter x:Key="enumFlagsBoolConverter" />
+    <conv:EnumVisibilityConverter x:Key="enumVisibilityConverter" />
     <conv:ForegroundBrushConverter x:Key="foregroundBrushConverter" />
+    <conv:ForegroundConverter x:Key="foregroundConverter" />
+    <conv:HiddenVisibilityConverter x:Key="hiddenVisibilityConverter" />
+    <conv:InverseBoolConverter x:Key="inverseBoolConverter" />
+    <conv:IsNullConverter x:Key="isNullConverter" />
+    <conv:IsTypeConverter x:Key="isTypeConverter" />
+    <conv:MultiValueToArrayConverter x:Key="multiValueToArrayConverter" />
+    <conv:PointCollectionConverter x:Key="pointCollectionConverter" />
+    <conv:SolidColorBrushConverter x:Key="solidColorBrushConverter" />
+    <conv:TimespanToDateTimeConverter x:Key="timespanToDateTimeConverter" />
+    <conv:TimeSpanToTextConverter x:Key="timeSpanToTextConverter" />
 
 </ResourceDictionary>
