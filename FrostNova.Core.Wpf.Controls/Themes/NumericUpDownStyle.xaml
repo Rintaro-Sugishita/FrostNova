@@ -1,0 +1,63 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:FrostNova.Core.Wpf.Controls"
+                    xmlns:att="clr-namespace:FrostNova.Core.Wpf.AttachedProperties;assembly=FrostNova.Core.Wpf"
+                    xmlns:behaviors="clr-namespace:FrostNova.Core.Wpf.Behaviors;assembly=FrostNova.Core.Wpf"
+                    >
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/Customs/TextBoxStyleDictionary.xaml" />
+        <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/Customs/ButtonStyleDictionary.xaml" />
+
+    </ResourceDictionary.MergedDictionaries>
+
+    <Style x:Key="defaultNumericUpdownStyle" TargetType="{x:Type local:NumericUpDown}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:NumericUpDown}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox x:Name="PART_numTextBox" 
+                                 Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:NumericUpDown}},Path=Value,Mode=TwoWay}"
+                                 att:TextBoxInput.IntegerDigits="{TemplateBinding IntDigits}"
+                                 att:TextBoxInput.DecimalDigits="{TemplateBinding DecDigits}"
+                                 att:TextBoxInput.UseSeparator="True"
+                        behaviors:TextBoxBehaviors.EnableTextInputLimit="True"
+                                 >
+                            <TextBox.Style>
+                                <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource FrostNovaTextBoxStyle}" >
+                                    <Setter Property="att:TextBoxInput.FormatType" Value="Decimal" />
+                                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                                    <Setter Property="TextAlignment" Value="Right" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:NumericUpDown}},Path=DecDigits}" Value="0">
+                                            <Setter Property="att:TextBoxInput.FormatType" Value="Integer" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                            
+                        </TextBox>
+
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+
+                            <Button x:Name="PART_upButton"   FontFamily="Segoe Fluent Icons" Padding="-5,-5,0,0" >&#xe971;</Button>
+                            <Button Name="PART_downButton" Grid.Row="1"   FontFamily="Segoe Fluent Icons">&#xe972;</Button>
+
+                        </Grid>
+                        
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+</ResourceDictionary>

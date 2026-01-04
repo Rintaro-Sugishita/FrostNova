@@ -10,6 +10,7 @@
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/ColorSelectorStyle.xaml" />
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/ColorPaletteStyle.xaml" />
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/ColorPickerStyle.xaml" />
+        <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/NumericUpDownStyle.xaml" />
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/TimePickerEditBoxStyle.xaml" />
     </ResourceDictionary.MergedDictionaries>
     
@@ -43,4 +44,9 @@
 
     <Style TargetType="{x:Type local:TimePickerEditBox}" BasedOn="{StaticResource defaultFrostNovaTimePickerEditBoxStyle}" />
 
+
+    <Style TargetType="{x:Type local:NumericUpDown}"
+           BasedOn="{StaticResource defaultNumericUpdownStyle}"
+           >
+    </Style>
 </ResourceDictionary>

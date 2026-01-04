@@ -50,6 +50,26 @@ namespace FrostNova.Core.Wpf.Behaviors
             }
         }
 
+        public static readonly DependencyProperty EnableTextInputLimitProperty =
+            DependencyProperty.RegisterAttached(
+                "EnableTextInputLimit",
+                typeof(bool),
+                typeof(TextBoxBehaviors),
+                new PropertyMetadata(false, OnEnableTextInputLimitChanged));
+
+        public static bool GetEnableTextInputLimit(TextBox element) => (bool)element.GetValue(EnableTextInputLimitProperty);
+
+        public static void SetEnableTextInputLimit(TextBox element, bool value) => element.SetValue(EnableTextInputLimitProperty, value);
+
+        private static void OnEnableTextInputLimitChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TextBox ctrl)
+            {
+                GeneralHelper.SetBehavior<TextBoxInputLimitBehavior>(ctrl, e);
+            }
+        }
+
+
 
 
 

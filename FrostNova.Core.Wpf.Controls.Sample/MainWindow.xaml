@@ -38,7 +38,7 @@
                 </StackPanel>
             </TabItem>
 
-            <TabItem Header="TimePickerEditBox" IsSelected="True">
+            <TabItem Header="TimePickerEditBox">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
@@ -86,6 +86,77 @@
 
 
 
+            </TabItem>
+
+            <TabItem Header="Limit TextBox"  IsSelected="True">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <TextBox 
+                        att:TextBoxInput.IntegerDigits="{Binding ElementName=intDigitText,Path=Text}"
+                        att:TextBoxInput.DecimalDigits="{Binding ElementName=decDigitText,Path=Text}"
+                        att:TextBoxInput.FormatType="{Binding ElementName=inputTypeCombo, Path=SelectedValue}"
+                        att:TextBoxInput.DateTimeFormat="{Binding ElementName=dateCombo, Path=SelectedValue}"
+                        att:TextBoxInput.AllowedCharTypes="{Binding TestCharType}"
+                        behaviors:TextBoxBehaviors.EnableTextInputLimit="True"
+                        >
+                        
+                    </TextBox>
+                    <StackPanel Grid.Column="1">
+                        <ComboBox x:Name="inputTypeCombo"
+                                  SelectedValuePath="Content"
+                                  SelectedIndex="0" 
+                                  
+                                  >
+                            <!--<ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DataContext}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>-->
+                            <ComboBox.Items>
+                                <ComboBoxItem Content="{x:Static att:InputFormatType.None}" />
+                                <ComboBoxItem Content="{x:Static att:InputFormatType.Integer}" />
+                                <ComboBoxItem Content="{x:Static att:InputFormatType.Decimal}" />
+                                <ComboBoxItem Content="{x:Static att:InputFormatType.DateTime}" />
+                            </ComboBox.Items>
+                        </ComboBox>
+                        <TextBox x:Name="intDigitText" >5</TextBox>
+                        <TextBox x:Name="decDigitText" >3</TextBox>
+                        <ComboBox x:Name="dateCombo"
+                                  SelectedValuePath="Content"
+                                  SelectedIndex="1"
+                                  >
+                            <ComboBoxItem Content="{x:Static att:DateTimeFormatType.None}" />
+                            <ComboBoxItem Content="{x:Static att:DateTimeFormatType.yyyyMMddHHmmss}" />
+                            <ComboBoxItem Content="{x:Static att:DateTimeFormatType.yyyyMMdd}" />
+                            <ComboBoxItem Content="{x:Static att:DateTimeFormatType.yyyyMM}" />
+                            <ComboBoxItem Content="{x:Static att:DateTimeFormatType.d}" />
+                            <ComboBoxItem Content="{x:Static att:DateTimeFormatType.HHmmss}" />
+                            <ComboBoxItem Content="{x:Static att:DateTimeFormatType.HHmm}" />
+                        </ComboBox>
+                        <CheckBox Content="{x:Static att:AllowedCharTypes.Digit}" IsChecked="{Binding Path=TestCharType, Converter={StaticResource enumFlagsBoolConverter},Mode=TwoWay,ConverterParameter={x:Static att:AllowedCharTypes.Digit}}" />
+                        <CheckBox Content="{x:Static att:AllowedCharTypes.LowerAlpha}" IsChecked="{Binding Path=TestCharType, Converter={StaticResource enumFlagsBoolConverter},Mode=TwoWay,ConverterParameter={x:Static att:AllowedCharTypes.LowerAlpha}}" />
+                        <CheckBox Content="{x:Static att:AllowedCharTypes.UpperAlpha}" IsChecked="{Binding Path=TestCharType, Converter={StaticResource enumFlagsBoolConverter},Mode=TwoWay,ConverterParameter={x:Static att:AllowedCharTypes.UpperAlpha}}" />
+                        <CheckBox Content="{x:Static att:AllowedCharTypes.HalfWidthSymbol}" IsChecked="{Binding Path=TestCharType, Converter={StaticResource enumFlagsBoolConverter},Mode=TwoWay,ConverterParameter={x:Static att:AllowedCharTypes.HalfWidthSymbol}}" />
+                        <CheckBox Content="{x:Static att:AllowedCharTypes.Hiragana}" IsChecked="{Binding Path=TestCharType, Converter={StaticResource enumFlagsBoolConverter},Mode=TwoWay,ConverterParameter={x:Static att:AllowedCharTypes.Hiragana}}" />
+                        <CheckBox Content="{x:Static att:AllowedCharTypes.Katakana}" IsChecked="{Binding Path=TestCharType, Converter={StaticResource enumFlagsBoolConverter},Mode=TwoWay,ConverterParameter={x:Static att:AllowedCharTypes.Katakana}}" />
+                        <CheckBox Content="{x:Static att:AllowedCharTypes.HalfKana}" IsChecked="{Binding Path=TestCharType, Converter={StaticResource enumFlagsBoolConverter},Mode=TwoWay,ConverterParameter={x:Static att:AllowedCharTypes.HalfKana}}" />
+                        <CheckBox Content="{x:Static att:AllowedCharTypes.FullWidth}" IsChecked="{Binding Path=TestCharType, Converter={StaticResource enumFlagsBoolConverter},Mode=TwoWay,ConverterParameter={x:Static att:AllowedCharTypes.FullWidth}}" />
+                    </StackPanel>
+                </Grid>
+                
+            </TabItem>
+
+            <TabItem Header="NumericUpdown" >
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <ctrls:NumericUpDown Height="30" />
+                </Grid>
             </TabItem>
             
             <TabItem Header="Color">

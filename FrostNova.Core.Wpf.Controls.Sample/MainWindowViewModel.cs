@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using FrostNova.Core.Common;
 using FrostNova.Core.Operators;
 using FrostNova.Core.Wpf;
+using FrostNova.Core.Wpf.AttachedProperties;
 using FrostNova.Core.Wpf.Controls.Dialogs;
 using FrostNova.Core.Wpf.Messages;
 
@@ -33,6 +34,9 @@ namespace FrostNova.Core.Wpf.Controls.Sample
 
         [ObservableProperty]
         private NotifyCollection<int> _selectedIndices = new NotifyCollection<int>();
+
+        [ObservableProperty]
+        private AllowedCharTypes _testCharType = AllowedCharTypes.All;
 
         [RelayCommand]
         private void ShowColorDialog()
