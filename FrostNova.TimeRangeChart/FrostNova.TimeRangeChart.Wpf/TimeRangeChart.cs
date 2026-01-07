@@ -315,7 +315,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             customControl.RefreshCall();
         }
 
-        private void DrawBorder()
+        private void DrawBorder(DrawingContext dc)
         {
             //if (TimeTicks == null) { TimeTicks = new ObservableCollection<IRuledLine>(); } //これをすると親のDependencyPropertyから外れる
             if (TimeTicks == null) return;
@@ -324,8 +324,8 @@ namespace FrostNova.TimeRangeChart.Wpf
             {
                 //自身で罫線を管理する場合は再計算する
                 //そうでない場合は親から指定された値を使用する
-                var newTicks = TimeUnit == TimeUnitType.Normal ? 
-                    TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement) : 
+                var newTicks = TimeUnit == TimeUnitType.Normal ?
+                    TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement) :
                     TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1);
 
                 TimeTicks.Clear();
@@ -353,11 +353,36 @@ namespace FrostNova.TimeRangeChart.Wpf
                 this.ClearValue(WidthProperty);
             }
 
+            //実際に描画する
 
+            //背景の描画
+            dc.DrawRectangle(Background, new Pen(BorderBrush, BorderThickness.Left), new Rect(0,0, ActualWidth, ActualHeight) );
 
-            //ScaleIncrement
+            //非稼働領域の描画
+            if (SortedNonWorkingTimes.Count > 0)
+            {
+                var brush = this.NonWorkingRangeBackground;
 
+                var pen = new Pen();
+                pen.Freeze();
+                foreach (var item in SortedNonWorkingTimes)
+                {
+                    dc.DrawRectangle(brush, pen, new Rect(new Point(TimeToPoint(item.StartTime), 0), new Point(TimeToPoint(item.EndTime), this.ActualHeight)));
+                }
+            }
 
+            //罫線の描画
+            if (TimeTicks.Count > 0)
+            {
+                var brush = ParentGridChart?.RuledLineFill ?? this?.RuledLineFill ?? new SolidColorBrush();
+                var thickness = ParentGridChart?.RuledLineThickness ?? this?.RuledLineThickness ?? 0.0;
+                Pen pen = new Pen(brush, thickness);
+                pen.Freeze();
+                foreach (var item in TimeTicks)
+                {
+                    dc.DrawLine(pen, new Point(item.LeftPoint, 0), new Point(item.LeftPoint, this.ActualHeight));
+                }
+            }
         }
 
 
@@ -454,7 +479,9 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         private void Refresh()
         {
-            DrawBorder();
+            //DrawBorder();
+            InvalidateVisual();
+
             //AddSeries();
             //AddPoints();
 
@@ -466,7 +493,13 @@ namespace FrostNova.TimeRangeChart.Wpf
             Refresh();
 
         }
-
+        protected override void OnRender(DrawingContext dc)
+        {
+            base.OnRender(dc);
+            dc.PushClip(new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight)));
+            DrawBorder(dc);
+            dc.Pop();
+        }
 
         private double TimeToPoint(DateTime time)
         {
