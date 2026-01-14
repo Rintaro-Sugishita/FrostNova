@@ -1,9 +1,16 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.Input;
+using FrostNova.Core.Common;
+using FrostNova.Core.Wpf.Behaviors;
+using FrostNova.TimeRangeChart.TimeRangeHelpers;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.DirectoryServices;
+using System.Globalization;
 using System.Linq;
+using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -16,10 +23,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using CommunityToolkit.Mvvm.Input;
-using FrostNova.Core.Common;
-using FrostNova.Core.Wpf.Behaviors;
-using FrostNova.TimeRangeChart.TimeRangeHelpers;
 
 namespace FrostNova.TimeRangeChart.Wpf
 {
@@ -34,12 +37,13 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             if (TimeTicks == null)
             {
-                TimeTicks = new ObservableCollection<IRuledLine>();
+                TimeTicks = new List<IRuledLine>();
+                SubTimeTicks = new List<IRuledLine>();
             }
-            if (TimeTicksForColumnHeader == null)
-            {
-                TimeTicksForColumnHeader = new NotifyCollection<IRuledLine>();
-            }
+            //if (TimeTicksForColumnHeader == null)
+            //{
+            //    TimeTicksForColumnHeader = new NotifyCollection<IRuledLine>();
+            //}
 
             if (SelectedRanges == null)
             {
@@ -57,6 +61,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         public Action<TimeRangeControl, DragDropRangeEventArgs> TaskDragStartAction { get; private set; }
         public Action<TimeRangeControl, DragDropRangeEventArgs> TaskDragEndAction { get; private set; }
 
+        private ColumnHeaderRenderLayer? columnHeaderLayer;
 
         [Bindable(true)]
         public DateTime StartTime
@@ -89,6 +94,14 @@ namespace FrostNova.TimeRangeChart.Wpf
             }
         }
         public static readonly DependencyProperty ScaleIncrementProperty = DependencyProperty.Register(nameof(ScaleIncrement), typeof(TimeSpan), typeof(GridTimeRangeChart), new PropertyMetadata(new TimeSpan(1, 0, 0), OnMyPropertyChanged));
+
+        public TimeSpan SubScaleIncrement
+        {
+            get { return (TimeSpan)GetValue(SubScaleIncrementProperty); }
+            set { SetValue(SubScaleIncrementProperty, value); }
+        }
+        public static DependencyProperty SubScaleIncrementProperty = DependencyProperty.Register(nameof(SubScaleIncrement), typeof(TimeSpan), typeof(GridTimeRangeChart), new PropertyMetadata(new TimeSpan(1, 0, 0), OnMyPropertyChanged));
+
 
         public TimeSpan MinSpan
         {
@@ -244,23 +257,50 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty HeaderFormatProperty = DependencyProperty.Register(nameof(HeaderFormat), typeof(string), typeof(GridTimeRangeChart));
 
-
-        public ObservableCollection<IRuledLine> TimeTicks
+        public string SubScaleFormat
         {
-            get { return (ObservableCollection<IRuledLine>)GetValue(TimeTicksProperty); }
+            get { return (string)GetValue(SubScaleFormatProperty); }
+            set { SetValue(SubScaleFormatProperty, value); }
+        }
+        public static DependencyProperty SubScaleFormatProperty = DependencyProperty.Register(nameof(SubScaleFormat), typeof(string), typeof(GridTimeRangeChart));
+
+
+        public List<IRuledLine> TimeTicks
+        {
+            get { return (List<IRuledLine>)GetValue(TimeTicksProperty); }
             internal set { SetValue(TimeTicksProperty, value); }
         }
-        public static DependencyProperty TimeTicksProperty = DependencyProperty.Register(nameof(TimeTicks), typeof(ObservableCollection<IRuledLine>), typeof(GridTimeRangeChart));
+        public static DependencyProperty TimeTicksProperty = DependencyProperty.Register(nameof(TimeTicks), typeof(List<IRuledLine>), typeof(GridTimeRangeChart));
+
+
+        public List<IRuledLine> SubTimeTicks
+        {
+            get { return (List<IRuledLine>)GetValue(SubTimeTicksProperty); }
+            set { SetValue(SubTimeTicksProperty, value); }
+        }
+        public static DependencyProperty SubTimeTicksProperty = DependencyProperty.Register(nameof(SubTimeTicks), typeof(List<IRuledLine>), typeof(GridTimeRangeChart));
+
 
         /// <summary>
         /// string
         /// </summary>
-        public NotifyCollection<IRuledLine> TimeTicksForColumnHeader
+        public double ChartWidth
         {
-            get { return (NotifyCollection<IRuledLine>)GetValue(TimeTicksForColumnHeaderProperty); }
-            set { SetValue(TimeTicksForColumnHeaderProperty, value); }
+            get { return (double)GetValue(ChartWidthProperty); }
+            set { SetValue(ChartWidthProperty, value); }
         }
-        public static DependencyProperty TimeTicksForColumnHeaderProperty = DependencyProperty.Register(nameof(TimeTicksForColumnHeader), typeof(NotifyCollection<IRuledLine>), typeof(GridTimeRangeChart));
+        public static DependencyProperty ChartWidthProperty = DependencyProperty.Register(nameof(ChartWidth), typeof(double), typeof(GridTimeRangeChart));
+
+
+        ///// <summary>
+        ///// string
+        ///// </summary>
+        //public NotifyCollection<IRuledLine> TimeTicksForColumnHeader
+        //{
+        //    get { return (NotifyCollection<IRuledLine>)GetValue(TimeTicksForColumnHeaderProperty); }
+        //    set { SetValue(TimeTicksForColumnHeaderProperty, value); }
+        //}
+        //public static DependencyProperty TimeTicksForColumnHeaderProperty = DependencyProperty.Register(nameof(TimeTicksForColumnHeader), typeof(NotifyCollection<IRuledLine>), typeof(GridTimeRangeChart));
 
 
 
@@ -284,6 +324,13 @@ namespace FrostNova.TimeRangeChart.Wpf
             set { SetValue(MonthSpanProperty, value); }
         }
         public static DependencyProperty MonthSpanProperty = DependencyProperty.Register(nameof(MonthSpan), typeof(int), typeof(GridTimeRangeChart), new PropertyMetadata(1, OnMyPropertyChanged));
+
+        public MonthSubTickType SubMonthUnit
+        {
+            get { return (MonthSubTickType)GetValue(SubMonthUnitProperty); }
+            set { SetValue(SubMonthUnitProperty, value); }
+        }
+        public static DependencyProperty SubMonthUnitProperty = DependencyProperty.Register(nameof(SubMonthUnit), typeof(MonthSubTickType), typeof(GridTimeRangeChart));
 
 
         public double MinRowWidth
@@ -352,14 +399,35 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty ScrollCenterDateProperty = DependencyProperty.Register(nameof(ScrollCenterDate), typeof(object), typeof(GridTimeRangeChart));
 
+        /// <summary>
+        /// string
+        /// </summary>
+        public Func<DateTime, Brush> HeaderBrushSelector
+        {
+            get { return (Func<DateTime, Brush>)GetValue(HeaderBrushSelectorProperty); }
+            set { SetValue(HeaderBrushSelectorProperty, value); }
+        }
+        public static DependencyProperty HeaderBrushSelectorProperty = DependencyProperty.Register(nameof(HeaderBrushSelector), typeof(Func<DateTime, Brush>), typeof(GridTimeRangeChart), new PropertyMetadata(new Func<DateTime, Brush>(d => DefaultHeaderSelector(d))));
 
 
+        private static Brush DefaultHeaderSelector(DateTime date)
+        {
+            var b = date.DayOfWeek switch
+            {
+                DayOfWeek.Saturday => Brushes.Blue,
+                DayOfWeek.Sunday => Brushes.Red,
+                _ => Brushes.Black
+            };
+            b.Freeze();
+            return b;
+        }
 
         private static void OnMyPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is GridTimeRangeChart gridChart)
             {
                 gridChart.DrawBorder();
+                gridChart.InvalidateVisual();
             }
         }
         //private static void OnNonWorkingTimesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -371,43 +439,68 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             //if (TimeTicks == null) { TimeTicks = new ObservableCollection<IRuledLine>(); }
             var ticks = TimeUnit == TimeUnitType.Normal ?
-                TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement) :
-                TimeHelper.GenerateTicksMonth(StartTime, EndTime, MonthSpan);
+                TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement, SubScaleIncrement) :
+                TimeHelper.GenerateTicksMonth(StartTime, EndTime, MonthSpan, SubMonthUnit);
 
             TimeTicks.Clear();
+            SubTimeTicks.Clear();
 
-            double newWidth = (ticks.Count - 1) * WidthPerRuledLine;
+            double newWidth = (ticks.mainTicks.Count - 1) * WidthPerRuledLine;
 
 
-            var localTimeTicks = new ObservableCollection<IRuledLine>();
-            var localTimeTickForColumn = new NotifyCollection<IRuledLine>();
+            var localTimeTicks = new List<RuledLineData>();
 
-            for (int i = 0; i < ticks.Count; i++)
+            //var localTimeTickForColumn = new NotifyCollection<IRuledLine>();
+
+            var tf = new Typeface(FontFamily, FontStyle, FontWeight, FontStretch);
+            for (int i = 0; i < ticks.mainTicks.Count; i++) //1こ多いので減らす
             {
-                var item = ticks[i];
+                var item = ticks.mainTicks[i];
+                string text = item.Date.ToString(HeaderFormat);
+                var brush = HeaderBrushSelector?.Invoke(item.Date) ?? Brushes.Black;
+                var ft = new FormattedText(
+                    text,
+                    CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    tf,
+                    FontSize,
+                    brush,
+                    VisualTreeHelper.GetDpi(this).PixelsPerDip);
                 var tickObject = new RuledLineData(this)
                 {
                     DateValue = item,
                     LeftPoint = TimeUnit == TimeUnitType.Normal ? TimeScreenHelper.TimeToPoint(item, StartTime, EndTime, newWidth) : i * WidthPerRuledLine
                         ,
+                    FormattedText = ft
+
                 };
+                tickObject.Rect = new Rect(tickObject.LeftPoint, 0, WidthPerRuledLine, FontSize);
                 localTimeTicks.Add(tickObject);
-                if (i != ticks.Count - 1)
-                {
-                    localTimeTickForColumn.Add(tickObject);
-                }
+                //    if (i != ticks.Count - 1)
+                //    {
+                //        localTimeTickForColumn.Add(tickObject);
+                //    }
             }
 
-            //foreach (var item in ticks)
-            //{
-            //    localTimeTicks.Add(new RuledLineData(this) { DateValue = item, LeftPoint = TimeScreenHelper.TimeToPoint(item, StartTime, EndTime, newWidth) });
+            TimeTicks.AddRange(localTimeTicks);
+            ChartWidth = localTimeTicks.Count * WidthPerRuledLine;
 
-            //}
+            var localSubTimeTicks = TimeRangeChart.GenerateSubScaleTicks(this, ticks.subTicks, this.SubScaleFormat, tf, newWidth);
+            SubTimeTicks.AddRange(localSubTimeTicks);
 
-            //border tickは最後を含める必要があるが、column headerは-1こ分しか要らない
-            TimeTicks = localTimeTicks;
-            TimeTicksForColumnHeader = localTimeTickForColumn;
+            //TimeTicksForColumnHeader = localTimeTickForColumn;
+
+            columnHeaderLayer?.InvalidateVisual();
+
         }
+
+        protected override void OnRender(DrawingContext drawingContext)
+        {
+            base.OnRender(drawingContext);
+            //DrawBorder(drawingContext);
+        }
+
+
 
 
         public override void OnApplyTemplate()
@@ -415,6 +508,15 @@ namespace FrostNova.TimeRangeChart.Wpf
             base.OnApplyTemplate();
 
             var scrollViewer = GetTemplateChild("chartScrollViewer") as ScrollViewer;
+            var columnGrid = GetTemplateChild("PART_ColumnGrid") as ColumnHeaderRenderLayer;
+            var columnHeaderScrollViewer = GetTemplateChild("columnScrollViewer") as ScrollViewer;
+
+            columnHeaderLayer = columnGrid;
+
+            if (columnHeaderLayer != null)
+            {
+                columnHeaderLayer.ParentChart = this;
+            }
 
             this.Loaded += (s, e) =>
             {
@@ -428,12 +530,18 @@ namespace FrostNova.TimeRangeChart.Wpf
                 scrollViewer.ScrollChanged += ScrollViewer_ScrollChanged;
             }
 
+            if (columnHeaderScrollViewer != null)
+            {
+                columnHeaderScrollViewer.ScrollChanged += ColumnHeaderScrollViewer_ScrollChanged;
+            }
+
             this.MouseLeftButtonDown += (s, e) =>
             {
                 ClearSelectRange();
             };
 
         }
+
 
         protected void OnPreviewTaskDrop(object? sender, DropOnRowEventArgs e)
         {
@@ -498,6 +606,21 @@ namespace FrostNova.TimeRangeChart.Wpf
 
 
         }
+
+        private void ColumnHeaderScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (sender is not ScrollViewer sc) return;
+
+
+            var LeftItem = TimeTicks.LastOrDefault(x => x.LeftPoint < e.HorizontalOffset);
+            var rightItem = TimeTicks.LastOrDefault(x => x.LeftPoint < e.HorizontalOffset + sc.ActualWidth);
+            var centerItem = TimeTicks.LastOrDefault(x => x.LeftPoint < e.HorizontalOffset + sc.ActualWidth / 2);
+
+            ScrollLeftDate = LeftItem;
+            ScrollRightDate = rightItem;
+            ScrollCenterDate = centerItem;
+        }
+
 
         #region events
 

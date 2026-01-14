@@ -1,8 +1,10 @@
-﻿using System;
+﻿using FrostNova.TimeRangeChart.TimeRangeHelpers;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,7 +17,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using FrostNova.TimeRangeChart.TimeRangeHelpers;
 
 namespace FrostNova.TimeRangeChart.Wpf
 {
@@ -126,6 +127,17 @@ namespace FrostNova.TimeRangeChart.Wpf
             }
         }
         public static readonly DependencyProperty ScaleIncrementProperty = DependencyProperty.Register(nameof(ScaleIncrement), typeof(TimeSpan), typeof(TimeRangeChart), new PropertyMetadata(new TimeSpan(1, 0, 0), OnMyPropertyChanged));
+
+        /// <summary>
+        /// string
+        /// </summary>
+        public TimeSpan SubScaleIncrement
+        {
+            get { return (TimeSpan)GetValue(SubScaleIncrementProperty); }
+            set { SetValue(SubScaleIncrementProperty, value); }
+        }
+        public static DependencyProperty SubScaleIncrementProperty = DependencyProperty.Register(nameof(SubScaleIncrement), typeof(TimeSpan), typeof(TimeRangeChart), new PropertyMetadata(new TimeSpan(1, 0, 0), OnMyPropertyChanged));
+
 
         /// <summary>
         /// min span of range
@@ -262,14 +274,27 @@ namespace FrostNova.TimeRangeChart.Wpf
             internal set { SetValue(IsTickControlProperty, value); }
         }
         public static DependencyProperty IsTickControlProperty = DependencyProperty.Register(nameof(IsControlTick), typeof(bool), typeof(TimeRangeChart), new PropertyMetadata(true));
-
-
-        public ObservableCollection<IRuledLine> TimeTicks
+        public string SubScaleFormat
         {
-            get { return (ObservableCollection<IRuledLine>)GetValue(TimeTicksProperty); }
-            set { SetValue(TimeTicksProperty, value); }
+            get { return (string)GetValue(SubScaleFormatProperty); }
+            set { SetValue(SubScaleFormatProperty, value); }
         }
-        public static DependencyProperty TimeTicksProperty = DependencyProperty.Register(nameof(TimeTicks), typeof(ObservableCollection<IRuledLine>), typeof(TimeRangeChart));
+        public static DependencyProperty SubScaleFormatProperty = DependencyProperty.Register(nameof(SubScaleFormat), typeof(string), typeof(TimeRangeChart));
+
+
+        public List<IRuledLine> TimeTicks
+        {
+            get { return (List<IRuledLine>)GetValue(TimeTicksProperty); }
+            internal set { SetValue(TimeTicksProperty, value); }
+        }
+        public static DependencyProperty TimeTicksProperty = DependencyProperty.Register(nameof(TimeTicks), typeof(List<IRuledLine>), typeof(TimeRangeChart));
+
+        public List<IRuledLine> SubTimeTicks
+        {
+            get { return (List<IRuledLine>)GetValue(SubTimeTicksProperty); }
+            set { SetValue(SubTimeTicksProperty, value); }
+        }
+        public static DependencyProperty SubTimeTicksProperty = DependencyProperty.Register(nameof(SubTimeTicks), typeof(List<IRuledLine>), typeof(TimeRangeChart));
 
 
 
@@ -315,48 +340,157 @@ namespace FrostNova.TimeRangeChart.Wpf
             customControl.RefreshCall();
         }
 
-        private void DrawBorder(DrawingContext dc)
+        private void CalculateBorder()
         {
-            //if (TimeTicks == null) { TimeTicks = new ObservableCollection<IRuledLine>(); } //これをすると親のDependencyPropertyから外れる
             if (TimeTicks == null) return;
             var ticks = TimeTicks.ToList();
+
             if (IsControlTick)
             {
                 //自身で罫線を管理する場合は再計算する
                 //そうでない場合は親から指定された値を使用する
                 var newTicks = TimeUnit == TimeUnitType.Normal ?
-                    TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement) :
-                    TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1);
+                    TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement, SubScaleIncrement) :
+                    TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1, MonthSubTickType.None);
+
+                var newWidth = CalculateNewWidth(newTicks.mainTicks.Count);
 
                 TimeTicks.Clear();
 
-
-                foreach (var item in newTicks)
+                foreach (var item in newTicks.mainTicks)
                 {
                     TimeTicks.Add(new RuledLineData(this) { DateValue = item, LeftPoint = TimeToPoint(item) });
                 }
-            }
 
 
-            if (!double.IsNaN(WidthPerRuledLine) && WidthPerRuledLine > 0)
-            {
-
-                var newWidth = (ticks.Count - 1) * WidthPerRuledLine;
-                if (newWidth > 0)
+                SubTimeTicks.Clear();
+                if (newTicks.subTicks.Count > 0)
                 {
-                    this.Width = newWidth;
+                    var tf = new Typeface(FontFamily, FontStyle, FontWeight, FontStretch);
+                    var subTicks = TimeRangeChart.GenerateSubScaleTicks(this, newTicks.subTicks, this.SubScaleFormat, tf, newWidth);
+                    SubTimeTicks.AddRange(subTicks);
+
                 }
+
             }
             else
             {
-                //this.Width = double.NaN;
-                this.ClearValue(WidthProperty);
+               var newWidth = CalculateNewWidth(TimeTicks.Count);
+                SetWidth(newWidth);
+
             }
 
+
+        }
+
+        private double CalculateNewWidth(int tickCount)
+        {
+            var newWidth = (tickCount - 1) * WidthPerRuledLine;
+            if (newWidth > 0)
+            {
+                return newWidth;
+            }
+            else
+            {
+                return double.NaN;
+            }
+
+        }
+        private void SetWidth(double newWidth)
+        {
+            if (newWidth == double.NaN || newWidth <=0)
+            {
+                this.ClearValue(WidthProperty);
+
+            }
+            else
+            {
+                this.Width = newWidth;
+            }
+        }
+
+        internal static List<IRuledLine> GenerateSubScaleTicks(Control dp, List<DateTime> ticks, string subScaleFormat, Typeface tf, double newWidth)
+        {
+            var localSubTimeTicks = new List<IRuledLine>();
+
+            DateTime startTime;
+            DateTime endTime;
+            GridTimeRangeChart? gridChart = null;
+           TimeRangeChart? timeChart=null;
+            if (dp is GridTimeRangeChart gridChart2)
+            {
+                gridChart = gridChart2;
+                startTime = gridChart.StartTime;
+                endTime = gridChart.EndTime;
+
+
+            }
+            else if (dp is TimeRangeChart chart)
+            {
+                timeChart = chart;
+                startTime = timeChart.StartTime;
+                endTime = timeChart.EndTime;
+            }
+            else return localSubTimeTicks;
+
+            for (int i = 0; i < ticks.Count; i++)
+            {
+                var item = ticks[i];
+                string text = item.Date.ToString(subScaleFormat);
+                var brush = Brushes.Black;
+                var ft = new FormattedText(
+                    text,
+                    CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    tf,
+                   dp.FontSize,
+                    brush,
+                    VisualTreeHelper.GetDpi(dp).PixelsPerDip);
+                var tickObject = gridChart != null ? new RuledLineData(gridChart) : new RuledLineData(timeChart);
+                tickObject.DateValue = item;
+
+                var x = 0.0;
+                if (timeChart != null)
+                {
+                    x = timeChart.TimeToPoint(item);
+                }
+                else
+                {
+                    var timeUnit = gridChart != null ? gridChart.TimeUnit : timeChart.TimeUnit;
+                   x = timeUnit == TimeUnitType.Normal ?
+                            TimeScreenHelper.TimeToPoint(item, startTime, endTime, newWidth) :
+                            TimeScreenHelper.TimeToPointMonth(item, gridChart.WidthPerRuledLine, gridChart.TimeTicks);                    
+                }
+                tickObject.LeftPoint = x;
+
+
+                tickObject.FormattedText = ft;
+
+                
+                localSubTimeTicks.Add(tickObject);
+
+            }
+
+            for (int i = 0; i < localSubTimeTicks.Count; i++)
+            {
+                var item = (RuledLineData)localSubTimeTicks[i];
+                var rectLeft = i > 0 ? localSubTimeTicks[i - 1].LeftPoint : 0;
+                var rectRight = i < localSubTimeTicks.Count-1 ? localSubTimeTicks[i + 1].LeftPoint : newWidth;
+
+                item.Rect = new(new Point(item.LeftPoint - (item.LeftPoint - rectLeft) / 2, 0), new Point(item.LeftPoint + (rectRight - item.LeftPoint) / 2, gridChart?.FontSize ?? timeChart!.FontSize));
+            }
+
+            return localSubTimeTicks;
+
+        }
+
+        private void DrawBorder(DrawingContext dc)
+        {
+            //if (TimeTicks == null) { TimeTicks = new ObservableCollection<IRuledLine>(); } //これをすると親のDependencyPropertyから外れる
             //実際に描画する
 
             //背景の描画
-            dc.DrawRectangle(Background, new Pen(BorderBrush, BorderThickness.Left), new Rect(0,0, ActualWidth, ActualHeight) );
+            dc.DrawRectangle(Background, new Pen(BorderBrush, BorderThickness.Left), new Rect(0, 0, ActualWidth, ActualHeight));
 
             //非稼働領域の描画
             if (SortedNonWorkingTimes.Count > 0)
@@ -382,11 +516,22 @@ namespace FrostNova.TimeRangeChart.Wpf
                 {
                     dc.DrawLine(pen, new Point(item.LeftPoint, 0), new Point(item.LeftPoint, this.ActualHeight));
                 }
+
+
+                if (SubTimeTicks.Count > 0)
+                {
+                    foreach (var item in SubTimeTicks)
+                    {
+                        dc.DrawLine(pen, new Point(item.LeftPoint, 0), new Point(item.LeftPoint, this.ActualHeight * 0.08));
+                        dc.DrawLine(pen, new Point(item.LeftPoint, this.ActualHeight * 0.92), new Point(item.LeftPoint, this.ActualHeight));
+                    }
+
+                }
+
             }
+
+
         }
-
-
-
 
 
         private DateTime GetEndTime(DateTime startTime, TimeSpan workingSpan)
@@ -479,6 +624,7 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         private void Refresh()
         {
+            CalculateBorder();
             //DrawBorder();
             InvalidateVisual();
 
@@ -536,9 +682,10 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             base.OnApplyTemplate();
 
-            if (TimeTicks == null)
+            if (TimeTicks == null && IsControlTick)
             {
-                TimeTicks = new ObservableCollection<IRuledLine>();
+                TimeTicks = new List<IRuledLine>();
+                SubTimeTicks = new List<IRuledLine>();
             }
 
             //Refresh();

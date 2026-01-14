@@ -200,24 +200,22 @@
                                     IsHorizontalSync="True"
                                     IsVerticalSync="False"
                                     ReflectViewer="{Binding ElementName=columnScrollViewer}" />
-                                <behaviors:ScrollViewerTopLeftItemBehavior
+                                <!--<behaviors:ScrollViewerTopLeftItemBehavior
                                     BottomVisibleItem="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:GridTimeRangeChart}}, Path=ScrollRightDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     CenterVisibleItem="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:GridTimeRangeChart}}, Path=ScrollCenterDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     TargetItemsControl="{Binding ElementName=columnHeaderControl}"
-                                    TopVisibleItem="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:GridTimeRangeChart}}, Path=ScrollLeftDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    TopVisibleItem="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:GridTimeRangeChart}}, Path=ScrollLeftDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />-->
                             </i:Interaction.Behaviors>
-                            <Grid Grid.Row="0" Grid.Column="2">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition />
-                                </Grid.RowDefinitions>
+                            <local:ColumnHeaderRenderLayer Grid.Row="0" Grid.Column="2"
+                                  x:Name="PART_ColumnGrid"
+                                  >
 
                                 <!--  グループの方  -->
-                                <ItemsControl Grid.Row="0" />
+                                
 
                                 <!--  細かい方  -->
 
-                                <ItemsControl
+                                <!--<ItemsControl
                                     x:Name="columnHeaderControl"
                                     Grid.Row="1"
                                     ItemTemplate="{TemplateBinding Property=ColumnHeaderTemplate}"
@@ -231,7 +229,8 @@
 
 
 
-                                </ItemsControl>
+                                </ItemsControl>-->
+                                
                                 <!--<ListBox  Grid.Row="1" ItemsSource="{TemplateBinding TimeTicks}"
                                      Style="{StaticResource virtualContainerListBoxStyle}"
                                      ItemTemplate="{TemplateBinding ColumnHeaderTemplate}"
@@ -264,7 +263,7 @@
                                         </ItemsPanelTemplate>
                                     </ListBox.ItemsPanel>
                                 </ListBox>-->
-                            </Grid>
+                            </local:ColumnHeaderRenderLayer>
                         </ScrollViewer>
 
 
@@ -325,8 +324,9 @@
                                 VirtualizingStackPanel.VirtualizationMode="Recycling">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
+                                        <!--Height="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=ActualHeight}"-->
+
                                         <local:TimeRangeChart
-                                            Height="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=ActualHeight}"
                                             AllowDrop="True"
                                             Background="{Binding Source={StaticResource gridChartProxy}, Path=Data.Background}"
                                             BorderBrush="Gray"
@@ -345,6 +345,7 @@
                                             Style="{Binding Source={StaticResource gridChartProxy}, Path=Data.ChartStyle}"
                                             TimeRangeStyle="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeRangeStyle, FallbackValue={StaticResource timeRangeControlStyle}}"
                                             TimeTicks="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeTicks}"
+                                            SubTimeTicks="{Binding Source={StaticResource gridChartProxy}, Path=Data.SubTimeTicks}"
                                             TimeUnit="{Binding Source={StaticResource gridChartProxy}, Path=Data.TimeUnit}"
                                             WidthPerRuledLine="{Binding Source={StaticResource gridChartProxy}, Path=Data.WidthPerRuledLine}">
                                             <!--<i:Interaction.Behaviors>
@@ -362,6 +363,7 @@
                                 <ListBox.ItemContainerStyle>
                                     <Style BasedOn="{StaticResource virtualListBoxItemStyle}" TargetType="{x:Type ListBoxItem}">
                                         <Setter Property="BorderThickness" Value="0,0,0,0.5" />
+                                        <Setter Property="Height" Value="{Binding Source={StaticResource gridChartProxy}, Path=Data.RowHeight}" />
                                     </Style>
                                 </ListBox.ItemContainerStyle>
                             </ListBox>
