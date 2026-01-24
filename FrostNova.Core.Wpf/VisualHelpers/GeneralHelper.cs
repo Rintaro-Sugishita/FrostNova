@@ -11,12 +11,12 @@ using System.Windows.Media;
 
 namespace FrostNova.Core.Wpf.VisualHelpers
 {
-    internal static class GeneralHelper
+    public static class GeneralHelper
     {
 
         #region find visual child
 
-        internal static T FindVisualChild<T>(this DependencyObject parent) where T : DependencyObject
+        public static T FindVisualChild<T>(this DependencyObject parent) where T : DependencyObject
         {
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
             {

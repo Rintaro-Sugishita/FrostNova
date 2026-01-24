@@ -33,7 +33,16 @@ namespace FrostNova.Core.Wpf.Behaviors
             bool isDesignMode = DesignerProperties.GetIsInDesignMode(new System.Windows.DependencyObject());
             if (isDesignMode == false)
             {
-                AssociatedObject.Loaded += OnLoaded;
+
+                if (AssociatedObject.IsLoaded)
+                {
+                    SetHook();
+                }
+                else
+                {
+                    AssociatedObject.Loaded += OnLoaded;
+
+                }
                 AssociatedObject.Unloaded += OnUnloaded;
             }
         }
@@ -67,10 +76,15 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
+            SetHook();
+        }
+
+
+        private void SetHook()
+        {
             hwndSource = (HwndSource)PresentationSource.FromVisual(Window.GetWindow(AssociatedObject));
             hwndSource?.AddHook(WndProc);
         }
-
 
 
 

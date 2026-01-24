@@ -17,6 +17,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace FrostNova.TimeRangeChart.Wpf
 {
@@ -83,6 +84,11 @@ namespace FrostNova.TimeRangeChart.Wpf
         public Action<TimeRangeControl, DragDropRangeEventArgs> TaskDragEndAction { get; private set; }
 
         public event EventHandler<EventArgs>? TimeRangeNeedRefresh;
+
+
+
+        private Pen _ruledLinePen;
+
 
         /// <summary>
         /// string
@@ -155,14 +161,14 @@ namespace FrostNova.TimeRangeChart.Wpf
             get { return (Brush)GetValue(RuledLineFillProperty); }
             set { SetValue(RuledLineFillProperty, value); RefreshCall(); }
         }
-        public static DependencyProperty RuledLineFillProperty = DependencyProperty.Register(nameof(RuledLineFill), typeof(Brush), typeof(TimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)), OnMyPropertyChanged));
+        public static DependencyProperty RuledLineFillProperty = DependencyProperty.Register(nameof(RuledLineFill), typeof(Brush), typeof(TimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)), OnRuledLinePropertyChanged));
 
         public double RuledLineThickness
         {
             get { return (double)GetValue(RuledLineThicknessProperty); }
             set { SetValue(RuledLineThicknessProperty, value); RefreshCall(); }
         }
-        public static DependencyProperty RuledLineThicknessProperty = DependencyProperty.Register(nameof(RuledLineThickness), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(1.0, OnMyPropertyChanged));
+        public static DependencyProperty RuledLineThicknessProperty = DependencyProperty.Register(nameof(RuledLineThickness), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(1.0, OnRuledLinePropertyChanged));
 
         /// <summary>
         /// background of non-working ranges
@@ -173,8 +179,23 @@ namespace FrostNova.TimeRangeChart.Wpf
             set { SetValue(NonWorkingRangeBackgroundProperty, value); }
         }
         public static DependencyProperty NonWorkingRangeBackgroundProperty = DependencyProperty.Register(nameof(NonWorkingRangeBackground), typeof(Brush), typeof(TimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromRgb(0xd8, 0xd8, 0xd8))));
+        
 
+        private static void OnRuledLinePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TimeRangeChart chart)
+            {
+                var brush = chart.RuledLineFill;
+                brush.Freeze();
+                var thickness = chart.RuledLineThickness;                
 
+                var pen = new Pen(brush, thickness);
+                pen.Freeze();               
+
+                chart._ruledLinePen = pen;
+                OnMyPropertyChanged(d, e);
+            }
+        }
 
 
         private Rectangle _borderRect = new Rectangle();
@@ -375,7 +396,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             }
             else
             {
-               var newWidth = CalculateNewWidth(TimeTicks.Count);
+                var newWidth = CalculateNewWidth(TimeTicks.Count);
                 SetWidth(newWidth);
 
             }
@@ -398,7 +419,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         private void SetWidth(double newWidth)
         {
-            if (newWidth == double.NaN || newWidth <=0)
+            if (newWidth == double.NaN || newWidth <= 0)
             {
                 this.ClearValue(WidthProperty);
 
@@ -416,7 +437,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             DateTime startTime;
             DateTime endTime;
             GridTimeRangeChart? gridChart = null;
-           TimeRangeChart? timeChart=null;
+            TimeRangeChart? timeChart = null;
             if (dp is GridTimeRangeChart gridChart2)
             {
                 gridChart = gridChart2;
@@ -443,7 +464,7 @@ namespace FrostNova.TimeRangeChart.Wpf
                     CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
                     tf,
-                   dp.FontSize,
+                    dp.FontSize,
                     brush,
                     VisualTreeHelper.GetDpi(dp).PixelsPerDip);
                 var tickObject = gridChart != null ? new RuledLineData(gridChart) : new RuledLineData(timeChart);
@@ -457,16 +478,16 @@ namespace FrostNova.TimeRangeChart.Wpf
                 else
                 {
                     var timeUnit = gridChart != null ? gridChart.TimeUnit : timeChart.TimeUnit;
-                   x = timeUnit == TimeUnitType.Normal ?
-                            TimeScreenHelper.TimeToPoint(item, startTime, endTime, newWidth) :
-                            TimeScreenHelper.TimeToPointMonth(item, gridChart.WidthPerRuledLine, gridChart.TimeTicks);                    
+                    x = timeUnit == TimeUnitType.Normal ?
+                             TimeScreenHelper.TimeToPoint(item, startTime, endTime, newWidth) :
+                             TimeScreenHelper.TimeToPointMonth(item, gridChart.WidthPerRuledLine, gridChart.TimeTicks);
                 }
                 tickObject.LeftPoint = x;
 
 
                 tickObject.FormattedText = ft;
 
-                
+
                 localSubTimeTicks.Add(tickObject);
 
             }
@@ -475,7 +496,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             {
                 var item = (RuledLineData)localSubTimeTicks[i];
                 var rectLeft = i > 0 ? localSubTimeTicks[i - 1].LeftPoint : 0;
-                var rectRight = i < localSubTimeTicks.Count-1 ? localSubTimeTicks[i + 1].LeftPoint : newWidth;
+                var rectRight = i < localSubTimeTicks.Count - 1 ? localSubTimeTicks[i + 1].LeftPoint : newWidth;
 
                 item.Rect = new(new Point(item.LeftPoint - (item.LeftPoint - rectLeft) / 2, 0), new Point(item.LeftPoint + (rectRight - item.LeftPoint) / 2, gridChart?.FontSize ?? timeChart!.FontSize));
             }
@@ -496,25 +517,23 @@ namespace FrostNova.TimeRangeChart.Wpf
             if (SortedNonWorkingTimes.Count > 0)
             {
                 var brush = this.NonWorkingRangeBackground;
-
-                var pen = new Pen();
-                pen.Freeze();
+                brush.Freeze();
+                //var pen = new Pen();
+                //pen.Freeze();
                 foreach (var item in SortedNonWorkingTimes)
                 {
-                    dc.DrawRectangle(brush, pen, new Rect(new Point(TimeToPoint(item.StartTime), 0), new Point(TimeToPoint(item.EndTime), this.ActualHeight)));
+                    dc.DrawRectangle(brush, null, new Rect(new Point(TimeToPoint(item.StartTime), 0), new Point(TimeToPoint(item.EndTime), this.ActualHeight)));
+                
+                                  
                 }
             }
 
             //罫線の描画
             if (TimeTicks.Count > 0)
             {
-                var brush = ParentGridChart?.RuledLineFill ?? this?.RuledLineFill ?? new SolidColorBrush();
-                var thickness = ParentGridChart?.RuledLineThickness ?? this?.RuledLineThickness ?? 0.0;
-                Pen pen = new Pen(brush, thickness);
-                pen.Freeze();
                 foreach (var item in TimeTicks)
                 {
-                    dc.DrawLine(pen, new Point(item.LeftPoint, 0), new Point(item.LeftPoint, this.ActualHeight));
+                    dc.DrawLine(_ruledLinePen, new Point(item.LeftPoint, 0), new Point(item.LeftPoint, this.ActualHeight));
                 }
 
 
@@ -522,8 +541,8 @@ namespace FrostNova.TimeRangeChart.Wpf
                 {
                     foreach (var item in SubTimeTicks)
                     {
-                        dc.DrawLine(pen, new Point(item.LeftPoint, 0), new Point(item.LeftPoint, this.ActualHeight * 0.08));
-                        dc.DrawLine(pen, new Point(item.LeftPoint, this.ActualHeight * 0.92), new Point(item.LeftPoint, this.ActualHeight));
+                        dc.DrawLine(_ruledLinePen, new Point(item.LeftPoint, 0), new Point(item.LeftPoint, this.ActualHeight * 0.08));
+                        dc.DrawLine(_ruledLinePen, new Point(item.LeftPoint, this.ActualHeight * 0.92), new Point(item.LeftPoint, this.ActualHeight));
                     }
 
                 }
@@ -636,7 +655,7 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         private void RefreshCall()
         {
-            Refresh();
+            Dispatcher.BeginInvoke(Refresh);
 
         }
         protected override void OnRender(DrawingContext dc)

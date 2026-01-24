@@ -48,7 +48,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
 
         public void SetData()
         {
-            SetData(1000, 70, 100);
+            SetData(300, 10, 10);
 
         }
 
