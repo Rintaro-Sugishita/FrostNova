@@ -41,12 +41,17 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
 
         [ObservableProperty]
         MonthGridViewModel _monthGridVm = new MonthGridViewModel();
+        [ObservableProperty]
+        OneDayGridViewModel _oneDayGridVm = new OneDayGridViewModel();
 
         [ObservableProperty]
         ChartViewModel _chartVm = new ChartViewModel();
 
         [ObservableProperty]
         HolidayViewModel _holidayVM = new HolidayViewModel();
+
+
+
         protected override void InitializeOnDesign()
         {
             base.InitializeOnDesign();
@@ -59,7 +64,8 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         [RelayCommand]
         private void SetData()
         {
-            GridVm.SetData();
+            OneDayGridVm.SetData();
+            //GridVm.SetData();
         }
 
 

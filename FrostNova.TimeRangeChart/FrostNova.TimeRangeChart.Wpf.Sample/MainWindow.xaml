@@ -103,7 +103,111 @@
             <Button Command="{Binding SetDataCommand}" Content="データセット" />
         </StackPanel>
         <TabControl Grid.Row="1">
-            <TabItem Header="grid">
+            <TabItem Header="oneday">
+                <TabItem.Resources>
+                    <sys:TimeSpan x:Key="subScale">00:05:00</sys:TimeSpan>
+                    <sys:TimeSpan x:Key="scale">01:00:00</sys:TimeSpan>
+                </TabItem.Resources>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="80" />
+                    </Grid.ColumnDefinitions>
+
+
+                    <chart:GridTimeRangeChart
+                        x:Name="oneDayChart"
+                        Background="#eeeeff"
+                        CanDragTasksBetweenRows="True"
+                        EndTime="{Binding OneDayGridVm.ChartEnd}"
+                        HeaderFormat="HH"
+                        ItemsSource="{Binding OneDayGridVm.ModelList}"
+                        MinRowWidth="200"
+                        MinSpan="{StaticResource minSpan}"
+                        NonWorkingRangeBackground="#eed0d0"
+                        RowHeight="150"
+                        RuledLineFill="Gray"
+                        RuledLineThickness="0.5"
+                        ScaleIncrement="{StaticResource scale}"
+                        SubScaleIncrement="{StaticResource subScale}"
+                        StartTime="{Binding OneDayGridVm.ChartStart}"
+                        WidthPerRuledLine="100">
+                        <chart:GridTimeRangeChart.CornerHeaderSource>
+                            <TextBlock Text="aaaa" />
+                        </chart:GridTimeRangeChart.CornerHeaderSource>
+                        <chart:GridTimeRangeChart.RowHeaderTemplate>
+                            <DataTemplate DataType="{x:Type local:GridSampleData}">
+                                <TextBlock Height="150" Text="{Binding Name}" />
+                            </DataTemplate>
+                        </chart:GridTimeRangeChart.RowHeaderTemplate>
+                        <chart:GridTimeRangeChart.ChartStyle>
+                            <Style TargetType="{x:Type chart:TimeRangeChart}">
+                                <Setter Property="ItemsSource" Value="{Binding Tasks}" />
+                                <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.GridVm.NonWorkingTimes}" />
+                                <Setter Property="BackgroundTimes" Value="{Binding BackgroundTimeRanges}" />
+                                <Setter Property="BackgroundRangeToolTipTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                            <Border BorderBrush="Gray" Background="White" BorderThickness="1" CornerRadius="4"
+                                                    Padding="6"
+HorizontalAlignment="Left"
+SnapsToDevicePixels="True"
+                                                    >
+                                                <StackPanel Orientation="Horizontal"  HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                    <TextBlock >(</TextBlock>
+                                                    <TextBlock Text="{Binding StartTime}" />
+                                                    <TextBlock >)-(</TextBlock>
+                                                    <TextBlock Text="{Binding EndTime}" />
+                                                    <TextBlock >)</TextBlock>
+                                                </StackPanel>
+
+                                            </Border>
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </chart:GridTimeRangeChart.ChartStyle>
+                        <chart:GridTimeRangeChart.TimeRangeStyle>
+                            <Style TargetType="{x:Type chart:TimeRangeControl}" BasedOn="{StaticResource {x:Type chart:TimeRangeControl}}">
+                                <Setter Property="Background" Value="Orange" />
+                            </Style>
+                        </chart:GridTimeRangeChart.TimeRangeStyle>
+
+                    </chart:GridTimeRangeChart>
+                    <GridSplitter
+                        Grid.Column="1"
+                        Width="4"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        ResizeDirection="Columns" />
+                    <StackPanel Grid.Column="2">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="scroll top: " />
+                            <TextBlock Text="{Binding ElementName=gridChart, Path=ScrollTopItem.Name}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="scroll left: " />
+                            <TextBlock Grid.Row="1" Text="{Binding ElementName=gridChart, Path=ScrollLeftDate.DateValue, StringFormat='yyyy-MM-dd'}" />
+
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="scroll center: " />
+                            <TextBlock Grid.Row="1" Text="{Binding ElementName=gridChart, Path=ScrollCenterDate.DateValue, StringFormat='yyyy-MM-dd'}" />
+
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="scroll bottom: " />
+                            <TextBlock Text="{Binding ElementName=gridChart, Path=ScrollBottomItem.Name}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="scroll right: " />
+                            <TextBlock Text="{Binding ElementName=gridChart, Path=ScrollRightDate.DateValue, StringFormat='yyyy-MM-dd'}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+            <TabItem Header="grid" Visibility="Collapsed">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />

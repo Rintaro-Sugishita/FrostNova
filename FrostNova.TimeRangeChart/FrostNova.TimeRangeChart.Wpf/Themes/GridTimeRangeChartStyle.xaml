@@ -279,6 +279,7 @@
                                 VirtualizingStackPanel.IsVirtualizing="True"
                                 VirtualizingStackPanel.VirtualizationMode="Recycling"
                                 ScrollViewer.HorizontalScrollBarVisibility="Visible"
+                                HorizontalAlignment="Left"
                                 ScrollViewer.PanningMode="Both"
                                 ScrollViewer.VerticalScrollBarVisibility="Visible"
                                 >
