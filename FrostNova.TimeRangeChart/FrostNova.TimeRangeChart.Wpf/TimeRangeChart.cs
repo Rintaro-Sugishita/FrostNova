@@ -529,7 +529,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             dc.DrawRectangle(Background, new Pen(BorderBrush, BorderThickness.Left), new Rect(0, 0, ActualWidth, ActualHeight));
 
             //非稼働領域の描画
-            if (SortedNonWorkingTimes.Count > 0)
+            if (SortedNonWorkingTimes?.Count > 0)
             {
                 var brush = this.NonWorkingRangeBackground;
                 brush.Freeze();
