@@ -9,7 +9,7 @@
   <PropertyGroup Condition="'$(Configuration)' != 'Release'">
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <Version>0.0.9</Version>
+    <Version>0.0.10</Version>
   </PropertyGroup>
 
   <ItemGroup>

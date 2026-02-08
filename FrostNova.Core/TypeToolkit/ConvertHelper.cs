@@ -19,67 +19,25 @@ namespace FrostNova.Core.TypeToolkit
              /// <param name="text"></param>
              /// <param name="def"></param>
              /// <returns></returns>
-        public static T StrToAny<T>(string? text, T def = default) where T : struct
+        public static T StrToAny<T>(string? text, T def = default) where T : struct, IParsable<T>
         {
             T? val = StrToAnyNull<T>(text, def);
             return val ?? def;
         }
 
-        /// <summary>
-        /// convert string type to nullable any one
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="text"></param>
-        /// <param name="def"></param>
-        /// <returns></returns>
-        public static T? StrToAnyNull<T>(string? text, T? def = null) where T : struct
+
+
+        public static T? StrToAnyNull<T>(string? text, T? def = null) where T : struct, IParsable<T>
         {
-            if (text == null) { return def; }
+            if (text == null) return def;
 
-            if (!parseCache.TryGetValue(typeof(T), out Delegate? d))
-            {
-                var mInfo = typeof(T).GetMember("TryParse", MemberTypes.Method, BindingFlags.Static | BindingFlags.Public);
-                if (mInfo.Length > 0)
-                {
-                    var s = Expression.Parameter(typeof(string));
-                    var r = Expression.Parameter(typeof(T).MakeByRefType());
-                    d = Expression.Lambda<TryParseDelegate<T>>(
-                        Expression.Call((MethodInfo)mInfo[0], s, r), s, r).Compile();
-                }
-                parseCache.Add(typeof(T), d);
-            }
-
-
-            TryParseDelegate<T>? tryParse = (TryParseDelegate<T>?)d;
-            if ((tryParse != null) && tryParse(text, out T result))
+            // リフレクションもExpressionも不要。静的に型が確定する。
+            if (T.TryParse(text, null, out T result))
             {
                 return result;
             }
-            else { return def; }
-
+            return def;
         }
-        private static readonly Dictionary<Type, Delegate?> parseCache = [];
-        delegate bool TryParseDelegate<T>(string valueStr, out T result);
-
-        //public static T? StrToAnyNull<T>(string? str, T? def = null) where T : struct
-        //{
-        //    if (str == null) { return def; }
-
-        //    //コンマを除く
-        //    string tmp = str.Replace(",", "");
-
-        //    dynamic tType = typeof(T);
-
-        //    if (tType.TryParse(tmp, out T ss))
-        //    {
-        //        return ss;
-        //    }
-        //    else
-        //    {
-        //        return def;
-        //    }
-
-        //}
 
         /// <summary>
         /// →decimal変換
