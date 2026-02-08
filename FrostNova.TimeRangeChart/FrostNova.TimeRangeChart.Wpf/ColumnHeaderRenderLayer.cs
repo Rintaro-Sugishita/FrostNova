@@ -68,16 +68,35 @@ namespace FrostNova.TimeRangeChart.Wpf
                 return base.MeasureOverride(availableSize);
             }
 
+            double width = ParentChart.ChartWidth;
+            if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0)
+            {
+                width = availableSize.Width;
+            }
+            if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0)
+            {
+                width = 0;
+            }
 
+            // 高さを取得（Parent の ActualHeight を優先、無効なら availableSize.Height、最終的に 0）
+            double height = 0;
             if (Parent is FrameworkElement fe)
             {
-                return new Size(ParentChart.ChartWidth, fe.ActualHeight);
+                height = fe.ActualHeight;
+                if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0)
+                    height = availableSize.Height;
             }
             else
             {
-                return new Size(ParentChart.ChartWidth, ParentChart.FontSize);
+                height = ParentChart.FontSize;
+                if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0)
+                    height = availableSize.Height;
             }
 
+            if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0)
+                height = 0;
+
+            return new Size(width, height);
         }
 
     }
