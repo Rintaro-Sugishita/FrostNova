@@ -459,7 +459,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             for (int i = 0; i < ticks.mainTicks.Count; i++) //1こ多いので減らす
             {
                 var item = ticks.mainTicks[i];
-                string text = item.Date.ToString(HeaderFormat);
+                string text = item.ToString(HeaderFormat);
                 var brush = HeaderBrushSelector?.Invoke(item.Date) ?? Brushes.Black;
                 var ft = new FormattedText(
                     text,
