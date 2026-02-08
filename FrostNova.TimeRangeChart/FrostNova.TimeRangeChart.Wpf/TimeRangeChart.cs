@@ -71,6 +71,8 @@ namespace FrostNova.TimeRangeChart.Wpf
             if (TimeTicks == null)
             {
                 //TimeTicks = new ObservableCollection<IRuledLine>();
+                SortedNonWorkingTimes = [];
+
             }
         }
 
