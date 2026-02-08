@@ -48,8 +48,15 @@ namespace FrostNova.TimeRangeChart.Wpf
                         {
                             SetLeft(range);
                             SetRight(range);
+                            SetTaskWidth(range);
                         }
                     };
+                    if (range.CanCalculate)
+                    {
+                        SetLeft(range);
+                        SetRight(range);
+                        SetTaskWidth(range);
+                    }
                 }
             }
         }
@@ -313,7 +320,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         ///// VerticalAlignment
         ///// </summary>
         //public new VerticalAlignment VerticalAlignment
-        //{
+        //{ 
         //    get { return (VerticalAlignment)GetValue(VerticalAlignmentProperty); }
         //    set { SetValue(VerticalAlignmentProperty, value); }
         //}
@@ -645,6 +652,9 @@ namespace FrostNova.TimeRangeChart.Wpf
 
             if (ParentChart?.CanDragTasksBetweenRows != true) { return; }
 
+            //ParentChart .ParentGridChart.MouseMove+=
+
+
 
             if (e.LeftButton == MouseButtonState.Pressed && _dragAdorner == null)
             {
@@ -675,6 +685,9 @@ namespace FrostNova.TimeRangeChart.Wpf
                     }
                 }
             }
+
+
+
 
             // Adornerの位置を更新
             if (_dragAdorner != null)
@@ -708,7 +721,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             if (minSpan != null && (ActualSpan < minSpan.Value || (IgnoreNonWorkingTimes ==false && WorkingSpan != null && WorkingSpan.Value < minSpan.Value))) e2.Cancel = true;
 
             OnDragEnd?.Invoke(this, e2);
-            ParentChart?.TaskDragStartAction.Invoke(this, e2);
+            ParentChart?.TaskDragEndAction.Invoke(this, e2);
 
             if (e2.Cancel)
             {

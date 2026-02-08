@@ -25,9 +25,9 @@ namespace FrostNova.TimeRangeChart.Wpf
 
             if (ParentChart.TimeTicks.Count > 0)
             {
-                foreach (var tick in ParentChart.TimeTicks)
+                for (int i = 0; i < ParentChart.TimeTicks.Count-1; i++)
                 {
-                    var t = tick as RuledLineData;
+                    var t = ParentChart.TimeTicks[i] as RuledLineData;
                     if (t != null)
                     {
                         DrawHeaderText(drawingContext, t.FormattedText, t.LeftPoint, t.Rect, borderPen);

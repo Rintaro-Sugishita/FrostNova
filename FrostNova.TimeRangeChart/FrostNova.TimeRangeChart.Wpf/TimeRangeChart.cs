@@ -1,4 +1,5 @@
 ﻿using FrostNova.TimeRangeChart.TimeRangeHelpers;
+using FrostNova.TimeRangeChart.Wpf.TimeRangeHelpers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -179,7 +181,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             set { SetValue(NonWorkingRangeBackgroundProperty, value); }
         }
         public static DependencyProperty NonWorkingRangeBackgroundProperty = DependencyProperty.Register(nameof(NonWorkingRangeBackground), typeof(Brush), typeof(TimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromRgb(0xd8, 0xd8, 0xd8))));
-        
+
 
         private static void OnRuledLinePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -187,10 +189,10 @@ namespace FrostNova.TimeRangeChart.Wpf
             {
                 var brush = chart.RuledLineFill;
                 brush.Freeze();
-                var thickness = chart.RuledLineThickness;                
+                var thickness = chart.RuledLineThickness;
 
                 var pen = new Pen(brush, thickness);
-                pen.Freeze();               
+                pen.Freeze();
 
                 chart._ruledLinePen = pen;
                 OnMyPropertyChanged(d, e);
@@ -244,9 +246,20 @@ namespace FrostNova.TimeRangeChart.Wpf
         public IList<ITimeRange> SortedNonWorkingTimes
         {
             get { return (IList<ITimeRange>)GetValue(SortedNonWorkingTimesProperty); }
-            set { SetValue(SortedNonWorkingTimesProperty, value); }
+            internal set { SetValue(SortedNonWorkingTimesProperty, value); }
         }
         public static DependencyProperty SortedNonWorkingTimesProperty = DependencyProperty.Register(nameof(SortedNonWorkingTimes), typeof(IList<ITimeRange>), typeof(TimeRangeChart));
+
+
+        /// <summary>
+        /// string
+        /// </summary>
+        public IList<IBackgroundTimeRange> BackgroundTimes
+        {
+            get { return (IList<IBackgroundTimeRange>)GetValue(BackgroundTimesProperty); }
+            set { SetValue(BackgroundTimesProperty, value); }
+        }
+        public static DependencyProperty BackgroundTimesProperty = DependencyProperty.Register(nameof(BackgroundTimes), typeof(IList<IBackgroundTimeRange>), typeof(TimeRangeChart));
 
 
         /// <summary>
@@ -523,10 +536,18 @@ namespace FrostNova.TimeRangeChart.Wpf
                 foreach (var item in SortedNonWorkingTimes)
                 {
                     dc.DrawRectangle(brush, null, new Rect(new Point(TimeToPoint(item.StartTime), 0), new Point(TimeToPoint(item.EndTime), this.ActualHeight)));
-                
-                                  
                 }
             }
+
+            //背景領域の描画
+            if (BackgroundTimes?.Count > 0)
+            {
+                foreach (var item in BackgroundTimes)
+                {
+                    dc.DrawRectangle(item.Background, null, new Rect(new Point(TimeToPoint(item.StartTime), 0), new Point(TimeToPoint(item.EndTime), this.ActualHeight)));
+                }
+            }
+
 
             //罫線の描画
             if (TimeTicks.Count > 0)
@@ -714,6 +735,13 @@ namespace FrostNova.TimeRangeChart.Wpf
                 Refresh();
             };
 
+            this.Loaded += (s, e) =>
+            {
+                if (_popup.Parent == null)
+                {
+                    AddLogicalChild(_popup);
+                }
+            };
 
             this.MouseLeftButtonDown += (s, e) =>
             {
@@ -721,6 +749,134 @@ namespace FrostNova.TimeRangeChart.Wpf
             };
         }
 
+        #region Popup
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+
+            if (BackgroundTimes?.Count > 0)
+            {
+                var p = e.GetPosition(this);
+                var dropPoint = this?.PointToTimeFunc(e.GetPosition(this).X, null);
+
+                var hit = BackgroundTimes.FirstOrDefault(x => x.StartTime <= dropPoint && dropPoint <= x.EndTime);
+                if (!ReferenceEquals(hit, _currentHover))
+                {
+                    _currentHover = hit;
+
+                    if (hit != null)
+                        ShowPopup(hit, p);
+                    else
+                        HidePopup();
+                }
+                else if (hit != null)
+                {
+                    MovePopup(p);
+                }
+            }
+        }
+        protected override void OnMouseLeave(MouseEventArgs e)
+        {
+            base.OnMouseLeave(e);
+            HidePopup();
+        }
+
+        private readonly Popup _popup = new()
+        {
+            Placement = PlacementMode.Relative,
+            StaysOpen = true,
+            AllowsTransparency = true,
+            IsHitTestVisible = false
+        };
+
+        private IBackgroundTimeRange? _currentHover;
+
+        public DataTemplate BackgroundRangeToolTipTemplate
+        {
+            get { return (DataTemplate)GetValue(BackgroundRangeToolTipTemplateProperty); }
+            set { SetValue(BackgroundRangeToolTipTemplateProperty, value); }
+        }
+        public static DependencyProperty BackgroundRangeToolTipTemplateProperty = DependencyProperty.Register(nameof(BackgroundRangeToolTipTemplate), typeof(DataTemplate), typeof(TimeRangeChart));
+
+
+        UIElement? CreateToolTipContent(IBackgroundTimeRange r)
+        {
+            var template = BackgroundRangeToolTipTemplate;
+            if (template == null)
+                return null;
+
+            var content = template.LoadContent();
+
+            if (content is FrameworkElement fe)
+            {
+                fe.DataContext = r;
+                return fe;
+            }
+
+            // 想定外だが UI を壊さない
+            return null;
+        }
+
+        void ShowPopup(IBackgroundTimeRange range, Point p)
+        {
+            _popup.PlacementTarget = this;
+            var content = CreateToolTipContent(range);
+            if (content == null)
+                return;
+
+            if (content is FrameworkElement fe)
+            {
+                fe.Loaded += (s, e) =>
+                {
+                    content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    content.Arrange(new Rect(0, 0,
+                        content.DesiredSize.Width,
+                        content.DesiredSize.Height));
+                };
+            }
+
+
+            content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            content.Arrange(new Rect(0, 0, content.DesiredSize.Width, content.DesiredSize.Height));
+
+            _popup.Child = content;
+            _popup.Placement = PlacementMode.Relative;
+
+            _popup.PlacementRectangle =
+                new Rect(0, 0, content.DesiredSize.Width, content.DesiredSize.Height);
+
+            MovePopup(p);
+
+            _popup.IsOpen = true;
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.Loaded,
+                new Action(() =>
+                {
+                    if (content is FrameworkElement fe)
+                    {
+                        fe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                        fe.Arrange(new Rect(0, 0, fe.DesiredSize.Width, fe.DesiredSize.Height));
+                    }
+                }));
+
+        }
+
+        void MovePopup(Point p)
+        {
+
+            _popup.HorizontalOffset = p.X + 14;
+            _popup.VerticalOffset = p.Y + 14;
+
+        }
+        void HidePopup()
+        {
+            _popup.IsOpen = false;
+            _popup.Child = null;
+            _currentHover = null;
+        }
+
+        #endregion
 
         public bool CanDragTasksBetweenRows
         {

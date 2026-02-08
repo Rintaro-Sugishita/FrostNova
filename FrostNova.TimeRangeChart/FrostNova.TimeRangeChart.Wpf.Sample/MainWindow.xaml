@@ -114,14 +114,14 @@
 
                     <chart:GridTimeRangeChart
                         x:Name="gridChart"
-                        Background="#ddddff"
+                        Background="#eeeeff"
                         CanDragTasksBetweenRows="True"
                         EndTime="{Binding GridVm.ChartEnd}"
                         HeaderFormat="yyyy/MM/dd"
                         ItemsSource="{Binding GridVm.ModelList}"
                         MinRowWidth="200"
                         MinSpan="{StaticResource minSpan}"
-                        NonWorkingRangeBackground="#eecccc"
+                        NonWorkingRangeBackground="#eed0d0"
                         RowHeight="150"
                         RuledLineFill="Gray"
                         RuledLineThickness="0.5"
@@ -141,6 +141,27 @@
                             <Style TargetType="{x:Type chart:TimeRangeChart}">
                                 <Setter Property="ItemsSource" Value="{Binding Tasks}" />
                                 <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.GridVm.NonWorkingTimes}" />
+                                <Setter Property="BackgroundTimes" Value="{Binding BackgroundTimeRanges}" />
+                                <Setter Property="BackgroundRangeToolTipTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                            <Border BorderBrush="Gray" Background="White" BorderThickness="1" CornerRadius="4"
+                                                    Padding="6"
+HorizontalAlignment="Left"
+SnapsToDevicePixels="True"
+                                                    >
+                                                <StackPanel Orientation="Horizontal"  HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                        <TextBlock >(</TextBlock>
+                                                        <TextBlock Text="{Binding StartTime}" />
+                                                        <TextBlock >)-(</TextBlock>
+                                                        <TextBlock Text="{Binding EndTime}" />
+                                                        <TextBlock >)</TextBlock>
+                                                    </StackPanel>
+
+                                            </Border>
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
                             </Style>
                         </chart:GridTimeRangeChart.ChartStyle>
 

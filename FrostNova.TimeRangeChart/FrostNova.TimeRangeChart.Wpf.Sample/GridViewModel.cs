@@ -1,4 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using FrostNova.TimeRangeChart.TimeRangeHelpers;
+using Microsoft.Xaml.Behaviors.Core;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -6,9 +8,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
-using FrostNova.TimeRangeChart.TimeRangeHelpers;
-using Microsoft.Xaml.Behaviors.Core;
 using static FrostNova.TimeRangeChart.Wpf.Sample.MainWindowViewModel;
 
 namespace FrostNova.TimeRangeChart.Wpf.Sample
@@ -91,6 +92,32 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
                     a.Tasks.Add(d);
 
                 }
+                for (int j = 0; j < c; j++)
+                {
+                    var d1 = DateTimeRandomGenerator.GetRandomDateTime(ChartStart, ChartEnd);
+                    var span = new TimeSpan(random.Next(4) + 1, 0, 0, 0);
+
+                    var d = new BackgroundTimeRange();
+                    d.StartTime = d1;
+                    d.EndTime = d1 + span;
+                    d.WorkingSpan = span;
+                    var color = new SolidColorBrush(Color.FromArgb(255, (byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255)));
+                    color.Freeze();
+                    d.Background = color;
+                    d.WorkingSpan = span;
+
+                    a.BackgroundTimeRanges.Add(d);
+                }
+                //var d3 = new BackgroundTimeRange();
+                //d3.StartTime = ChartStart;
+                //d3.EndTime = ChartEnd;
+                //d3.WorkingSpan = ChartEnd - ChartStart;
+                //var color = new SolidColorBrush(Color.FromArgb(255, (byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255)));
+                //color.Freeze();
+                //d3.Background = color;
+
+                //a.BackgroundTimeRanges.Add(d3);
+
 
                 ModelList.Add(a);
 
