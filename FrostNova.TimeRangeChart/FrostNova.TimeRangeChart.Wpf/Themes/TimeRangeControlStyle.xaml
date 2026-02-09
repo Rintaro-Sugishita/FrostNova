@@ -109,7 +109,7 @@
             </DataTrigger>
         </Style.Triggers>
 
-        
+
     </Style>
 
     <DataTemplate x:Key="diamondMilestoneTemplate">
@@ -151,11 +151,12 @@
                 <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
                     <Canvas Width="{TemplateBinding TaskWidth}">
                         <Border Style="{StaticResource rangeBorder}"
+                                Canvas.Top="{Binding Top, RelativeSource={RelativeSource TemplatedParent}}"
                                 >
                             <Grid>
                                 <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
                                                    Content="{Binding}" 
-                                                   Focusable="True"
+                                                   Focusable="True"                
                                                   >
                                     <ContentPresenter.Margin>
                                         <MultiBinding  Converter="{StaticResource borderThicknessConverter}">
@@ -190,11 +191,13 @@
                         <Thumb Name="PART_LeftThumb" Height="{TemplateBinding Height}"  Canvas.Left="0"  Grid.Column="0"
                                Background="{TemplateBinding Background}"
                                Style="{StaticResource expandThumbStyle}"
+                               Canvas.Top="{Binding Top, RelativeSource={RelativeSource TemplatedParent}}"
                                >
                         </Thumb>
                         <Thumb Name="PART_RightThumb" Height="{TemplateBinding Height}" Canvas.Right="0" Grid.Column="2"
                                Background="{TemplateBinding Background}"
                                Style="{StaticResource expandThumbStyle}"
+                               Canvas.Top="{Binding Top, RelativeSource={RelativeSource TemplatedParent}}"
                                >
                         </Thumb>
 
@@ -218,6 +221,7 @@
                                 >-->
 
                             <Grid  Width="{TemplateBinding Width}" ClipToBounds="False"
+                                Canvas.Top="{Binding Top, RelativeSource={RelativeSource TemplatedParent}}"
 
                                       >
                                 <Grid.RenderTransform>
@@ -302,10 +306,14 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
                             <Canvas Width="{TemplateBinding TaskWidth}">
-                                <Border Style="{StaticResource rangeBorder}">
+                                <Border Style="{StaticResource rangeBorder}"
+                                        Canvas.Top="{Binding Top, RelativeSource={RelativeSource TemplatedParent}}"
+
+                                        >
                                     <Grid>
                                         <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
-                                                   Content="{Binding}" >
+                                                   Content="{Binding}" 
+                                                          >
                                         </ContentPresenter>
                                     </Grid>
                                 </Border>
@@ -326,10 +334,13 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
                             <Canvas Width="{TemplateBinding TaskWidth}">
-                                <Border Style="{StaticResource rangeBorder}">
+                                <Border Style="{StaticResource rangeBorder}"
+                                        Canvas.Top="{Binding Top, RelativeSource={RelativeSource TemplatedParent}}"
+                                        >
                                     <Grid>
                                         <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
-                                                   Content="{Binding}" >
+                                                   Content="{Binding}" 
+                                                          >
                                         </ContentPresenter>
                                         <Thumb Name="PART_MoveThumb"   Grid.Column="1"
                                                Background="Transparent"
@@ -358,10 +369,13 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type local:TimeRangeControl}">
                             <Canvas Width="{TemplateBinding TaskWidth}">
-                                <Border Style="{StaticResource rangeBorder}">
+                                <Border Style="{StaticResource rangeBorder}"
+                                        Canvas.Top="{Binding Top, RelativeSource={RelativeSource TemplatedParent}}"                                
+                                        >
                                     <Grid>
                                         <ContentPresenter ContentTemplate="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=ContentTemplate}"
-                                                   Content="{Binding}" >
+                                                   Content="{Binding}" 
+                                                          >
                                             <ContentPresenter.Margin>
                                                 <MultiBinding  Converter="{StaticResource borderThicknessConverter}">
                                                     <Binding Source="{StaticResource expandWidth}"  />
@@ -385,11 +399,13 @@
                                 <Thumb Name="PART_LeftThumb" Height="{TemplateBinding Height}"  Canvas.Left="0"  Grid.Column="0"
                                Background="{TemplateBinding Background}"
                                Style="{StaticResource expandThumbStyle}"
+                                Canvas.Top="{Binding Top, RelativeSource={RelativeSource TemplatedParent}}"
                                >
                                 </Thumb>
                                 <Thumb Name="PART_RightThumb" Height="{TemplateBinding Height}" Canvas.Right="0" Grid.Column="2"
                                Background="{TemplateBinding Background}"
                                Style="{StaticResource expandThumbStyle}"
+                                Canvas.Top="{Binding Top, RelativeSource={RelativeSource TemplatedParent}}"
                                >
                                 </Thumb>
 

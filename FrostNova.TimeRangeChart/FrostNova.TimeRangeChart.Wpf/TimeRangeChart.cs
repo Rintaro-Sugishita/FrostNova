@@ -1,4 +1,5 @@
-﻿using FrostNova.TimeRangeChart.TimeRangeHelpers;
+﻿using FrostNova.Core.Wpf.VisualHelpers;
+using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using FrostNova.TimeRangeChart.Wpf.TimeRangeHelpers;
 using System;
 using System.Collections;
@@ -126,6 +127,17 @@ namespace FrostNova.TimeRangeChart.Wpf
             set { SetValue(ItemsSourceProperty, value); }
         }
         public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register(nameof(ItemsSource), typeof(IList), typeof(TimeRangeChart));
+
+        /// <summary>
+        /// Height
+        /// </summary>
+        public double ChartHeight
+        {
+            get { return (double)GetValue(ChartHeightProperty); }
+            set { SetValue(ChartHeightProperty, value); }
+        }
+        public static DependencyProperty ChartHeightProperty = DependencyProperty.Register(nameof(ChartHeight), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(double.NaN));
+
 
         public TimeSpan ScaleIncrement
         {
@@ -331,6 +343,16 @@ namespace FrostNova.TimeRangeChart.Wpf
             set { SetValue(SubTimeTicksProperty, value); }
         }
         public static DependencyProperty SubTimeTicksProperty = DependencyProperty.Register(nameof(SubTimeTicks), typeof(List<IRuledLine>), typeof(TimeRangeChart));
+
+        /// <summary>
+        /// Gets or sets a value indicating whether range bars can be stacked in the chart.
+        /// </summary>
+        public bool CanStackRange
+        {
+            get { return (bool)GetValue(CanStackRangeProperty); }
+            set { SetValue(CanStackRangeProperty, value); }
+        }
+        public static DependencyProperty CanStackRangeProperty = DependencyProperty.Register(nameof(CanStackRange), typeof(bool), typeof(TimeRangeChart), new PropertyMetadata(false));
 
 
 
@@ -604,6 +626,151 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty SelectedValuesProperty = DependencyProperty.Register(nameof(SelectedValues), typeof(IList), typeof(TimeRangeChart));
 
+        #region Stack Control
+
+        private const double _defaultStackVerticalMargin = 2.0;
+        private const double _heightEpsilon = 0.5; // 小さな差は無視する
+
+        private bool _isApplyingHeight = false;
+        private void ApplyStackingIfNeeded()
+        {
+            if (!CanStackRange) return;
+
+            // ビジュアルツリーから TimeRangeControl を収集
+            var controls = GeneralHelper.FindVisualChildren<TimeRangeControl>(this).Where(x=> x.CanStack).ToList();
+            if (controls.Count == 0) return;
+
+            // itemHeight: 各コントロールの Height を優先して使用（未設定時は ActualHeight、さらに未設定なら ParentGridChart.RowHeight）
+            double itemHeight = 0;
+            foreach (var c in controls)
+            {
+                double h = c.Height;
+                if (double.IsNaN(h) || h <= 0) h = c.ActualHeight;
+                if (double.IsNaN(h) || h <= 0) h = ParentGridChart?.RowHeight ?? 30.0;
+                itemHeight = Math.Max(itemHeight, h);
+            }
+            if (itemHeight <= 0) itemHeight = ParentGridChart?.RowHeight ?? 30.0;
+
+            double baseTop = 0;
+            RecalculateStackLevels(controls, itemHeight, _defaultStackVerticalMargin, baseTop);
+
+            // 必要高さを確保（見切れ防止）
+            //int maxLevel = controls.Select(c => c.StackLevel).DefaultIfEmpty(0).Max();
+            //double requiredHeight = baseTop + (maxLevel + 1) * (itemHeight + _defaultStackVerticalMargin);
+
+            //if (double.IsNaN(this.Height) && requiredHeight > this.ActualHeight)
+            //{
+            //    this.Height = requiredHeight;
+            //}
+            //else 
+            //{
+            //    this.Height = double.NaN;
+            //}
+            int maxLevel = controls.Select(c => c.StackLevel).DefaultIfEmpty(0).Max();
+            double requiredHeight = baseTop + (maxLevel + 1) * (itemHeight + _defaultStackVerticalMargin);
+
+            // ループ抑止用: 自分で Height を設定中は反応しない
+            if (_isApplyingHeight) return;
+
+            // コンテナ（ListBoxItem 等）の実高さを取得して比較する
+            double containerAvailable = double.PositiveInfinity;
+            var listBoxItem =　GeneralHelper.FindAncestor<ListBoxItem>(this);
+            if (listBoxItem != null)
+            {
+                containerAvailable = listBoxItem.ActualHeight;
+            }
+            else if (Parent is FrameworkElement pe)
+            {
+                // 親の高さを代替に使う（ListBoxItem が見つからない場合）
+                if (!double.IsNaN(pe.ActualHeight) && pe.ActualHeight > 0)
+                    containerAvailable = pe.ActualHeight;
+            }
+            // requiredHeight がコンテナより大きい場合のみ明示的に Height を設定（拡張）
+            if (requiredHeight > containerAvailable + _heightEpsilon)
+            {
+                // 既にほぼ同じ高さなら何もしない
+                if (double.IsNaN(this.Height) || Math.Abs(this.Height - requiredHeight) > _heightEpsilon)
+                {
+                    _isApplyingHeight = true;
+                    this.Height = requiredHeight;
+
+                    // 設定後、短時間だけフラグを保持してループを防ぐ
+                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+                    {
+                        _isApplyingHeight = false;
+                    }));
+                }
+            }
+            else
+            {
+                // コンテナが十分広い場合は Height の制約を解除して「元の広さ」に戻す
+                // ただし安易に ClearValue を呼ぶと HeightSyncBehavior と往復するため、
+                // 現在設定されている Height がコンテナよりも大きい場合にのみ解除する
+                if (!double.IsNaN(this.Height) && this.Height > containerAvailable + _heightEpsilon)
+                {
+                    _isApplyingHeight = true;
+                    this.ClearValue(HeightProperty);
+                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+                    {
+                        _isApplyingHeight = false;
+                    }));
+                }
+            }
+        }
+
+        //private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
+        //{
+        //    if (depObj == null) yield break;
+        //    for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
+        //    {
+        //        var child = VisualTreeHelper.GetChild(depObj, i);
+        //        if (child is T t) yield return t;
+        //        foreach (var childOfChild in FindVisualChildren<T>(child))
+        //            yield return childOfChild;
+        //    }
+        //}
+        public static void RecalculateStackLevels(IEnumerable<TimeRangeControl> ranges, double itemHeight, double verticalMargin, double baseTop = 0)
+        {
+            // 開始時刻でソート（StartTime を使用）
+            var list = ranges
+                .Where(r => r != null)
+                .OrderBy(r => r.StartTime)
+                .ToList();
+
+            // 各レベルにおける直近終了時刻を保持
+            var levelEnds = new List<DateTime>();
+
+            foreach (var ctrl in list)
+            {
+                // find lowest level whose end <= ctrl.StartTime
+                int assignedLevel = -1;
+                for (int i = 0; i < levelEnds.Count; i++)
+                {
+                    if (ctrl.StartTime >= levelEnds[i])
+                    {
+                        assignedLevel = i;
+                        levelEnds[i] = ctrl.EndTime; // 更新
+                        break;
+                    }
+                }
+                if (assignedLevel == -1)
+                {
+                    assignedLevel = levelEnds.Count;
+                    levelEnds.Add(ctrl.EndTime);
+                }
+
+                // 割り当て
+                ctrl.StackLevel = assignedLevel;
+
+                // Canvas 上の Top を設定（行基準の baseTop を足す）
+                var extraOffset = ctrl.StackLevel == 0 ? ctrl.StackBaseTop : 0.0;
+                var newTop = baseTop + assignedLevel * (itemHeight + verticalMargin) + extraOffset;
+                ctrl.Top = newTop; // TimeRangeControl.Top に反映
+            }
+        }
+
+
+        #endregion
 
         internal static void OnTaskClicked(TimeRangeChart chart, TimeRangeControl ctrl)
         {
@@ -669,6 +836,9 @@ namespace FrostNova.TimeRangeChart.Wpf
             CalculateBorder();
             //DrawBorder();
             InvalidateVisual();
+
+            // スタック再計算（表示用 Top / Chart 高さの調整）
+            ApplyStackingIfNeeded();
 
             //AddSeries();
             //AddPoints();
@@ -926,6 +1096,8 @@ namespace FrostNova.TimeRangeChart.Wpf
 
                     var args2 = new DropOnRowEventArgs(TaskDropEvent, dropPoint.Value, data2.TimeRange);
                     RaiseEvent(args2);
+
+                   if (CanStackRange) RefreshCall();
                 }
             }
         }
@@ -968,6 +1140,9 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             OnDragEnd?.Invoke(ctrl, e);
             ParentGridChart?.OnTaskDragEnd(ctrl, e);
+
+            if (CanStackRange) RefreshCall();
+
         }
 
         #endregion

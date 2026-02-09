@@ -65,7 +65,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         private void SetData()
         {
             OneDayGridVm.SetData();
-            //GridVm.SetData();
+            GridVm.SetData();
         }
 
 

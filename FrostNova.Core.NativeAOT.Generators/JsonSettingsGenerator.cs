@@ -34,6 +34,10 @@ namespace FrostNova.Core.NativeAOT
         /// <param name="context"></param>
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
+            System.Diagnostics.Debugger.Launch();
+
+            System.Diagnostics.Trace.WriteLine("JsonSettingsGenerator is Initialize");
+
             // [GenerateJsonSettings] が付与されたクラスを抽出
             var classDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
@@ -54,8 +58,11 @@ namespace FrostNova.Core.NativeAOT
                 var attr = symbol.GetAttributes().FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == ATTRIBUTE_NAME);
                 if (attr != null && attr.ConstructorArguments.Length > 0)
                 {
+
+
                     // 属性の第1引数 typeof(T) から型名を取得
                     var contextTypeSymbol = attr.ConstructorArguments[0].Value as INamedTypeSymbol;
+                    System.Diagnostics.Trace.WriteLine($"JsonSettingsGenerator found target {symbol.ToDisplayString()}");
                     return (symbol, contextTypeSymbol?.ToDisplayString());
                 }
             }
@@ -98,6 +105,7 @@ namespace FrostNova.Core.NativeAOT
             sb.AppendLine();
             sb.AppendLine($"namespace {namespaceName}");
             sb.AppendLine("{");
+            sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCodeAttribute(\"FrostNova.Core.NativeAOT.JsonSettingsGenerator\", \"1.0.5.0\")]");
             sb.AppendLine($"    partial class {className}");
             sb.AppendLine("    {");
 

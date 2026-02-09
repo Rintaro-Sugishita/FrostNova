@@ -61,7 +61,11 @@
                                         <TextBlock Text=")" />
                                         <TextBlock Text="{Binding WorkingSpan.Days}" />
                                     </StackPanel>
-                                    <TextBlock Text="{Binding MinSpan}" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding MinSpan}" />
+                                        <TextBlock Margin="5,0,0,0" Text="{Binding Top, RelativeSource={RelativeSource AncestorType={x:Type chart:TimeRangeControl}}}" />
+                                    </StackPanel>
+                                    
                                 </StackPanel>
                             </DataTemplate>
                         </Setter.Value>
@@ -103,7 +107,7 @@
             <Button Command="{Binding SetDataCommand}" Content="データセット" />
         </StackPanel>
         <TabControl Grid.Row="1">
-            <TabItem Header="oneday">
+            <TabItem Header="oneday" >
                 <TabItem.Resources>
                     <sys:TimeSpan x:Key="subScale">00:05:00</sys:TimeSpan>
                     <sys:TimeSpan x:Key="scale">01:00:00</sys:TimeSpan>
@@ -207,7 +211,7 @@ SnapsToDevicePixels="True"
                     </StackPanel>
                 </Grid>
             </TabItem>
-            <TabItem Header="grid" Visibility="Collapsed">
+            <TabItem Header="grid" >
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
@@ -246,13 +250,14 @@ SnapsToDevicePixels="True"
                                 <Setter Property="ItemsSource" Value="{Binding Tasks}" />
                                 <Setter Property="NonWorkingTimes" Value="{Binding ElementName=mainWindow, Path=DataContext.GridVm.NonWorkingTimes}" />
                                 <Setter Property="BackgroundTimes" Value="{Binding BackgroundTimeRanges}" />
+                                <Setter Property="CanStackRange" Value="True" />
                                 <Setter Property="BackgroundRangeToolTipTemplate">
                                     <Setter.Value>
                                         <DataTemplate>
                                             <Border BorderBrush="Gray" Background="White" BorderThickness="1" CornerRadius="4"
                                                     Padding="6"
-HorizontalAlignment="Left"
-SnapsToDevicePixels="True"
+                                                    HorizontalAlignment="Left"
+                                                    SnapsToDevicePixels="True"
                                                     >
                                                 <StackPanel Orientation="Horizontal"  HorizontalAlignment="Left" VerticalAlignment="Center">
                                                         <TextBlock >(</TextBlock>

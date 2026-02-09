@@ -183,6 +183,38 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty TaskWidthProperty = DependencyProperty.Register(nameof(TaskWidth), typeof(double), typeof(TimeRangeControl));
 
+        /// <summary>
+        /// Gets or sets a value indicating whether items can be stacked together.
+        /// </summary>
+        public bool CanStack
+        {
+            get { return (bool)GetValue(CanStackProperty); }
+            set { SetValue(CanStackProperty, value); }
+        }
+        public static DependencyProperty CanStackProperty = DependencyProperty.Register(nameof(CanStack), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(true));
+
+        /// <summary>
+        /// Gets or sets the Y-coordinate of the top edge of the stack base, in device-independent units (DIU).
+        /// </summary>
+        public double StackBaseTop
+        {
+            get { return (double)GetValue(StackBaseTopProperty); }
+            set { SetValue(StackBaseTopProperty, value); }
+        }
+        public static readonly DependencyProperty StackBaseTopProperty =
+            DependencyProperty.Register(nameof(StackBaseTop), typeof(double), typeof(TimeRangeControl), new PropertyMetadata(0.0));
+
+        /// <summary>
+        /// Gets or sets the current stack level.
+        /// </summary>
+        public int StackLevel
+        {
+            get { return (int)GetValue(StackLevelProperty); }
+            internal set { SetValue(StackLevelProperty, value); }
+        }
+        public static DependencyProperty StackLevelProperty = DependencyProperty.Register(nameof(StackLevel), typeof(int), typeof(TimeRangeControl), new PropertyMetadata(0));
+
+
         private static void SetLeft(TimeRangeControl range)
         {
             if (range.CanCalculate)

@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 
 namespace FrostNova.Core.Wpf.VisualHelpers
 {
@@ -16,7 +17,7 @@ namespace FrostNova.Core.Wpf.VisualHelpers
 
         #region find visual child
 
-        public static T FindVisualChild<T>(this DependencyObject parent) where T : DependencyObject
+        public static T? FindVisualChild<T>(this DependencyObject parent) where T : DependencyObject
         {
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
             {
@@ -42,6 +43,42 @@ namespace FrostNova.Core.Wpf.VisualHelpers
 
                 foreach (var grandChild in FindVisualChildren<T>(child))
                     yield return grandChild;
+            }
+        }
+
+        public static T? FindAncestor<T>(this DependencyObject child) where T : DependencyObject
+        {
+            if (child == null) return null;
+
+            DependencyObject current = child;
+
+            while (true)
+            {
+                DependencyObject? parent = null;
+
+                // まず Visual/Visual3D ツリーを優先して探す
+                if (current is Visual || current is Visual3D)
+                {
+                    parent = VisualTreeHelper.GetParent(current);
+                }
+                else
+                {
+                    // Visual で取れない（ContentElement 等）の場合は Logical ツリーを試す
+                    parent = LogicalTreeHelper.GetParent(current);
+                }
+
+                if (parent == null)
+                {
+                    // どちらでも取れなかったら終了
+                    return null;
+                }
+
+                if (parent is T tParent)
+                {
+                    return tParent;
+                }
+
+                current = parent;
             }
         }
 
