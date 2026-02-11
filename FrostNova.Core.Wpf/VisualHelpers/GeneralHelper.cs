@@ -22,8 +22,9 @@ namespace FrostNova.Core.Wpf.VisualHelpers
         /// <typeparam name="T"></typeparam>
         /// <param name="parent"></param>
         /// <returns></returns>
-        public static T? FindVisualChild<T>(this DependencyObject parent) where T : DependencyObject
+        public static T? FindVisualChild<T>(this DependencyObject? parent) where T : DependencyObject
         {
+            if (parent == null) return null;
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
             {
                 var child = VisualTreeHelper.GetChild(parent, i);
@@ -36,7 +37,7 @@ namespace FrostNova.Core.Wpf.VisualHelpers
             }
             return null;
         }
-        public static IEnumerable<T> FindVisualChildren<T>(this DependencyObject parent) where T : DependencyObject
+        public static IEnumerable<T> FindVisualChildren<T>(this DependencyObject? parent) where T : DependencyObject
         {
             if (parent == null) yield break;
 
@@ -51,7 +52,7 @@ namespace FrostNova.Core.Wpf.VisualHelpers
             }
         }
 
-        public static T? FindAncestor<T>(this DependencyObject child) where T : DependencyObject
+        public static T? FindAncestor<T>(this DependencyObject? child) where T : DependencyObject
         {
             if (child == null) return null;
 

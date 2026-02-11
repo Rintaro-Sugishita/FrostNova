@@ -379,25 +379,25 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty ScrollBottomItemProperty = DependencyProperty.Register(nameof(ScrollBottomItem), typeof(object), typeof(GridTimeRangeChart));
 
-        public object ScrollLeftDate
+        public object? ScrollLeftDate
         {
-            get { return (object)GetValue(ScrollLeftDateProperty); }
+            get { return (object?)GetValue(ScrollLeftDateProperty); }
             set { SetValue(ScrollLeftDateProperty, value); }
         }
         public static DependencyProperty ScrollLeftDateProperty = DependencyProperty.Register(nameof(ScrollLeftDate), typeof(object), typeof(GridTimeRangeChart));
 
 
-        public object ScrollRightDate
+        public object? ScrollRightDate
         {
-            get { return (object)GetValue(ScrollRightDateProperty); }
+            get { return (object?)GetValue(ScrollRightDateProperty); }
             set { SetValue(ScrollRightDateProperty, value); }
         }
         public static DependencyProperty ScrollRightDateProperty = DependencyProperty.Register(nameof(ScrollRightDate), typeof(object), typeof(GridTimeRangeChart));
 
 
-        public object ScrollCenterDate
+        public object? ScrollCenterDate
         {
-            get { return (object)GetValue(ScrollCenterDateProperty); }
+            get { return (object?)GetValue(ScrollCenterDateProperty); }
             set { SetValue(ScrollCenterDateProperty, value); }
         }
         public static DependencyProperty ScrollCenterDateProperty = DependencyProperty.Register(nameof(ScrollCenterDate), typeof(object), typeof(GridTimeRangeChart));
@@ -405,16 +405,18 @@ namespace FrostNova.TimeRangeChart.Wpf
         /// <summary>
         /// string
         /// </summary>
-        public Func<DateTime, Brush> HeaderBrushSelector
+        public Func<GridTimeRangeChart, DateTime, Brush> HeaderBrushSelector
         {
-            get { return (Func<DateTime, Brush>)GetValue(HeaderBrushSelectorProperty); }
+            get { return (Func<GridTimeRangeChart, DateTime, Brush>)GetValue(HeaderBrushSelectorProperty); }
             set { SetValue(HeaderBrushSelectorProperty, value); }
         }
-        public static DependencyProperty HeaderBrushSelectorProperty = DependencyProperty.Register(nameof(HeaderBrushSelector), typeof(Func<DateTime, Brush>), typeof(GridTimeRangeChart), new PropertyMetadata(new Func<DateTime, Brush>(d => DefaultHeaderSelector(d))));
+        public static DependencyProperty HeaderBrushSelectorProperty = DependencyProperty.Register(nameof(HeaderBrushSelector), typeof(Func<GridTimeRangeChart, DateTime, Brush>), typeof(GridTimeRangeChart), new PropertyMetadata(new Func<GridTimeRangeChart,DateTime, Brush>((gridChart,d) => DefaultHeaderSelector(gridChart,d))));
 
 
-        private static Brush DefaultHeaderSelector(DateTime date)
+        private static Brush DefaultHeaderSelector(GridTimeRangeChart gridChart, DateTime date)
         {
+            if (gridChart.TimeUnit == TimeUnitType.Month) return Brushes.Black;
+
             var b = date.DayOfWeek switch
             {
                 DayOfWeek.Saturday => Brushes.Blue,
@@ -460,7 +462,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             {
                 var item = ticks.mainTicks[i];
                 string text = item.ToString(HeaderFormat);
-                var brush = HeaderBrushSelector?.Invoke(item.Date) ?? Brushes.Black;
+                var brush = HeaderBrushSelector?.Invoke(this,item.Date) ?? Brushes.Black;
                 var ft = new FormattedText(
                     text,
                     CultureInfo.CurrentCulture,
@@ -530,8 +532,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             this.Loaded += (s, e) =>
             {
                 var rowSv = GeneralHelper.FindVisualChild<ScrollViewer>(rowList);
-                var chartSv = GeneralHelper.FindVisualChild<ScrollViewer>(chartList);
-
+                if (rowSv == null || rowList == null) return;
                 var tlBehavior = new ScrollViewerTopLeftItemBehavior();
                 BindingOperations.SetBinding(tlBehavior, ScrollViewerTopLeftItemBehavior.TopVisibleItemProperty,
                     new Binding(nameof(ScrollTopItem)) { Source = this, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
@@ -570,6 +571,10 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             var newArgs = new DropOnRowEventArgs(PreviewTaskDropEvent, e.DropPoint, e.TaskObject!);
             RaiseEvent(newArgs);
+            if (newArgs.Cancel)
+            {
+                e.Cancel = true;
+            }
         }
 
         protected void OnTaskDrop(object? sender, DropOnRowEventArgs e)
@@ -640,7 +645,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             var centerItem = TimeTicks.LastOrDefault(x => x.LeftPoint < e.HorizontalOffset + sc.ActualWidth / 2);
 
             ScrollLeftDate = LeftItem;
-            ScrollRightDate = rightItem;
+            ScrollRightDate = rightItem ;
             ScrollCenterDate = centerItem;
         }
 

@@ -37,8 +37,8 @@
     <Now>$([System.DateTime]::Now.ToString("yyyyMMddHHmm"))</Now>
     <VersionPrefix>$(Version)-dev</VersionPrefix>
     <VersionSuffix>$(Now)</VersionSuffix>
-
   </PropertyGroup>
+    
   <Target Name="CopyNupkgAfterEachPack"
             AfterTargets="Pack"
             DependsOnTargets="Pack"

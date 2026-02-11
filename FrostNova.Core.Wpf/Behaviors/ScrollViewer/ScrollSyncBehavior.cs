@@ -73,7 +73,7 @@ public class ScrollSyncBehavior : Behavior<FrameworkElement>
         {
             if (e.OldValue is FrameworkElement oldSv)
             {
-               b. DetachFromResolvedTarget();
+                b.DetachFromResolvedTarget();
             }
             if (e.NewValue is FrameworkElement newSv)
             {
@@ -171,21 +171,23 @@ public class ScrollSyncBehavior : Behavior<FrameworkElement>
         try
         {
             // 垂直同期
-            if (IsVerticalSync && (e == null ||e.VerticalChange != 0))
+            if (IsVerticalSync && (e == null || e.VerticalChange != 0))
             {
-                if (Math.Abs(target.VerticalOffset - source.VerticalOffset) > EPSILON)
-                {
-                    target.ScrollToVerticalOffset(source.VerticalOffset);
-                }
+                if (source.ExtentHeight != 0 && target.ExtentHeight != 0)
+                    if (Math.Abs(target.VerticalOffset - source.VerticalOffset) > EPSILON)
+                    {
+                        target.ScrollToVerticalOffset(source.VerticalOffset);
+                    }
             }
 
             // 水平同期
             if (IsHorizontalSync && (e == null || e.HorizontalChange != 0))
             {
-                if (Math.Abs(target.HorizontalOffset - source.HorizontalOffset) > EPSILON)
-                {
-                    target.ScrollToHorizontalOffset(source.HorizontalOffset);
-                }
+                if (source.ExtentWidth != 0 && target.ExtentWidth != 0)
+                    if (Math.Abs(target.HorizontalOffset - source.HorizontalOffset) > EPSILON)
+                    {
+                        target.ScrollToHorizontalOffset(source.HorizontalOffset);
+                    }
             }
         }
         finally
