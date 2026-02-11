@@ -29,12 +29,15 @@ namespace FrostNova.Core.NativeAOT
         private const string ATTRIBUTE_NAME = "FrostNova.Core.NativeAOT.GenerateJsonSettingsAttribute";
         private const string PATH_ATTRIBUTE_NAME = "FrostNova.Core.NativeAOT.JsonSettingPathAttribute";
 
+        private const string DEFAULT_NOTINDENTED_OPTION_NAME = "FrostNova.Core.NativeAOT.DefaultOptions.NotIndentedDefault";
+        private const string DEFAULT_INDENTED_OPTION_NAME = "FrostNova.Core.NativeAOT.DefaultOptions.IndentedDefault";
+
         #region Diagnostic Rules
 
         private static readonly DiagnosticDescriptor StaticMethodRule = new DiagnosticDescriptor(
             id: "FNJS001",
             title: "GetSavePath method must be static",
-            messageFormat: "The method '{0}' marked with [GetSavePath] must be static",
+            messageFormat: "The method '{0}' marked with [JsonSettingPath] must be static",
             category: "Usage",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
@@ -42,7 +45,7 @@ namespace FrostNova.Core.NativeAOT
         private static readonly DiagnosticDescriptor NoParametersRule = new DiagnosticDescriptor(
             id: "FNJS002",
             title: "GetSavePath method must have no parameters",
-            messageFormat: "The method '{0}' marked with [GetSavePath] must not have any parameters",
+            messageFormat: "The method '{0}' marked with [JsonSettingPath] must not have any parameters",
             category: "Usage",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
@@ -50,32 +53,21 @@ namespace FrostNova.Core.NativeAOT
         private static readonly DiagnosticDescriptor ReturnTypeRule = new DiagnosticDescriptor(
             id: "FNJS003",
             title: "GetSavePath method must return string",
-            messageFormat: "The method '{0}' marked with [GetSavePath] must return 'string'",
+            messageFormat: "The method '{0}' marked with [JsonSettingPath] must return 'string'",
             category: "Usage",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
         #endregion
 
-        /// <summary>
-        /// Initialize
-        /// </summary>
-        /// <param name="context"></param>
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            //System.Diagnostics.Debugger.Launch();
-
-            System.Diagnostics.Trace.WriteLine("JsonSettingsGenerator is called");
-
             var version = context.AnalyzerConfigOptionsProvider.Select((options, _) =>
             {
                 var assembly = typeof(JsonSettingsGenerator).Assembly;
-                string v = assembly.GetName().Version?.ToString() ?? "1.0.0";
-                return v ?? "1.0.0"; // フォールバック
+                return assembly.GetName().Version?.ToString() ?? "1.0.0";
             });
 
-
-            // [GenerateJsonSettings] が付与されたクラスを抽出
             var classDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: (s, _) => s is ClassDeclarationSyntax { AttributeLists.Count: > 0 },
@@ -87,7 +79,7 @@ namespace FrostNova.Core.NativeAOT
             context.RegisterSourceOutput(combined, (spc, source) => Execute(spc, source.Left, source.Right));
         }
 
-        private static (INamedTypeSymbol? Symbol, bool isNullable, string? ContextTypeName, string[] customConverters) GetSemanticTarget(GeneratorSyntaxContext context)
+        private static (INamedTypeSymbol? Symbol, bool isNullable, INamedTypeSymbol? ContextType, string[] customConverters) GetSemanticTarget(GeneratorSyntaxContext context)
         {
             var classDeclaration = (ClassDeclarationSyntax)context.Node;
             var symbol = context.SemanticModel.GetDeclaredSymbol(classDeclaration) as INamedTypeSymbol;
@@ -97,11 +89,9 @@ namespace FrostNova.Core.NativeAOT
                 var attr = symbol.GetAttributes().FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == ATTRIBUTE_NAME);
                 if (attr != null)
                 {
-                    // 引数がある場合のみ取得、なければ null
                     var contextTypeSymbol = attr.ConstructorArguments.Length > 0
                         ? attr.ConstructorArguments[0].Value as INamedTypeSymbol
                         : null;
-
 
                     var converters = new List<string>();
                     if (attr.ConstructorArguments.Length > 1)
@@ -111,66 +101,62 @@ namespace FrostNova.Core.NativeAOT
                         {
                             if (constant.Value is INamedTypeSymbol converterSymbol)
                             {
-                                // 完全修飾名（global::つき）で取得
                                 converters.Add(converterSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
                             }
                         }
                     }
+
                     var compilation = context.SemanticModel.Compilation;
-
-                    // まずプロジェクト設定を取得
                     var projectNullable = compilation.Options.NullableContextOptions;
-
-                    // クラスが定義されている「その場所」のコンテキストを取得
-                    // これにより、ファイル先頭の #nullable enable 等が全て反映された結果が取れます
                     var nullableContextAtLocation = context.SemanticModel.GetNullableContext(classDeclaration.GetLocation().SourceSpan.Start);
 
-                    // 最終判定：アノテーション（'?'）が有効な状態か
                     bool useNullable = nullableContextAtLocation.HasFlag(NullableContext.AnnotationsEnabled) ||
                                        projectNullable.HasFlag(NullableContextOptions.Annotations);
-                    return (symbol, useNullable, contextTypeSymbol?.ToDisplayString(), converters.ToArray());
+
+                    return (symbol, useNullable, contextTypeSymbol, converters.ToArray());
                 }
             }
             return (null, false, null, []);
         }
-        private static void Execute(SourceProductionContext context, (INamedTypeSymbol? Symbol, bool isNullable, string? ContextTypeName, string[] customConverters) target, string version)
+
+        private static void Execute(SourceProductionContext context, (INamedTypeSymbol? Symbol, bool isNullable, INamedTypeSymbol? ContextType, string[] customConverters) target, string version)
         {
-            //if (targets.IsDefaultOrEmpty) return;
-
-            //foreach (var target in targets.Where(t => t.Symbol is not null))
-            //{
             var classSymbol = target.Symbol!;
-            var contextTypeName = target.ContextTypeName;
-            // [GetSavePath] が付与されたメソッドを探す
-            //var getPathMethod = classSymbol.GetMembers()
-            //    .OfType<IMethodSymbol>()
-            //    .FirstOrDefault(m => m.IsStatic && m.GetAttributes().Any(ad => ad.AttributeClass?.ToDisplayString() == PATH_ATTRIBUTE_NAME));
-
+            var contextTypeName = target.ContextType?.ToDisplayString();
+            var serializableTypes = new List<ITypeSymbol>();
+            if (target.ContextType != null)
+            {
+                foreach (var attr in target.ContextType.GetAttributes())
+                {
+                    if (attr.AttributeClass?.Name == "JsonSerializableAttribute")
+                    {
+                        var typeSymbol = attr.ConstructorArguments.FirstOrDefault().Value as ITypeSymbol;
+                        if (typeSymbol != null)
+                        {
+                            serializableTypes.Add(typeSymbol);
+                        }
+                    }
+                }
+            }
             var allPathMethods = classSymbol.GetMembers()
-        .OfType<IMethodSymbol>()
-        .Where(m => m.GetAttributes().Any(ad => ad.AttributeClass?.ToDisplayString() == PATH_ATTRIBUTE_NAME))
-        .ToList();
+                .OfType<IMethodSymbol>()
+                .Where(m => m.GetAttributes().Any(ad => ad.AttributeClass?.ToDisplayString() == PATH_ATTRIBUTE_NAME))
+                .ToList();
 
             IMethodSymbol? validMethod = null;
             foreach (var method in allPathMethods)
             {
                 bool hasError = false;
-
-                // 1. static チェック
                 if (!method.IsStatic)
                 {
                     context.ReportDiagnostic(Diagnostic.Create(StaticMethodRule, method.Locations[0], method.Name));
                     hasError = true;
                 }
-
-                // 2. 引数なしチェック
                 if (method.Parameters.Length > 0)
                 {
                     context.ReportDiagnostic(Diagnostic.Create(NoParametersRule, method.Locations[0], method.Name));
                     hasError = true;
                 }
-
-                // 3. 戻り値 string チェック
                 if (method.ReturnType.SpecialType != SpecialType.System_String)
                 {
                     context.ReportDiagnostic(Diagnostic.Create(ReturnTypeRule, method.Locations[0], method.Name));
@@ -179,300 +165,273 @@ namespace FrostNova.Core.NativeAOT
                 if (!hasError)
                 {
                     validMethod = method;
-                    break; // 最初の有効なメソッドを採用
+                    break;
                 }
             }
 
-            var source = ProcessClass(classSymbol, target.isNullable, contextTypeName, validMethod?.Name, target.customConverters, version);
+            var source = ProcessClass(classSymbol, target.isNullable, target.ContextType, serializableTypes, validMethod?.Name, target.customConverters, version);
             var hintName = classSymbol.ToDisplayString().Replace(".", "_") + ".JsonSettings.g.cs";
             context.AddSource(hintName, source);
-            System.Diagnostics.Trace.WriteLine($"{hintName} source is output by JsonSettingsGenerator");
-
-
-            //}
         }
 
-        private static string ProcessClass(INamedTypeSymbol classSymbol, bool isNullable, string? contextTypeName, string? getPathMethodName, string[] customConverters, string version)
+        private static string ProcessClass(INamedTypeSymbol classSymbol, bool isNullable, INamedTypeSymbol? contextType, List<ITypeSymbol> contextTargetTypes, string? getPathMethodName, string[] customConverters, string version)
         {
             var namespaceName = classSymbol.ContainingNamespace.ToDisplayString();
             var className = classSymbol.Name;
-            var contextName = $"{className}JsonContext";
+            var contextTypeName = contextType?.ToDisplayString();
+            var q = isNullable ? "?" : string.Empty;
+            var genAttr = $"[global::System.CodeDom.Compiler.GeneratedCodeAttribute(\"FrostNova.Core.NativeAOT.JsonSettingsGenerator\", \"{version}\")]";
 
-            var nullableAnnotation = isNullable ? "?" : string.Empty;
-
-            var generateAttText = $"[global::System.CodeDom.Compiler.GeneratedCodeAttribute(\"FrostNova.Core.NativeAOT.JsonSettingsGenerator\", \"{version}\")]";
-
-            var accessibility = GetAccessibilityString(classSymbol.DeclaredAccessibility);
             var sb = new StringBuilder();
             sb.AppendLine("// <auto-generated/>");
+            if (isNullable) sb.AppendLine("#nullable enable");
             sb.AppendLine("using System;");
             sb.AppendLine("using System.IO;");
             sb.AppendLine("using System.Text.Json;");
             sb.AppendLine("using System.Text.Json.Serialization;");
             sb.AppendLine("using System.Threading.Tasks;");
             sb.AppendLine("using System.Diagnostics;");
-            sb.AppendLine();
-            if (isNullable) sb.AppendLine("#nullable enable");
+            sb.AppendLine("using System.Collections.Generic;");
             sb.AppendLine();
             sb.AppendLine($"namespace {namespaceName}");
             sb.AppendLine("{");
             sb.AppendLine($"    partial class {className}");
             sb.AppendLine("    {");
 
-
             string converterInstances = string.Join(", ", customConverters.Select(c => $"new {c}()"));
-            if (!string.IsNullOrEmpty(converterInstances))
-            {
-                converterInstances = ", " + converterInstances; // カンマで繋ぐ
-            }
+            if (!string.IsNullOrEmpty(converterInstances)) converterInstances = ", " + converterInstances;
 
-            if (contextTypeName != null)
+            // --- Fields (Internal for Extensions) ---
+            if (contextType != null)
             {
-
-                // --- JSON Options & Contexts ---
-                // ユーザー指定のコンテキスト型を使用してインスタンスを作成
-                sb.AppendLine($"         {generateAttText}");
-                sb.AppendLine($@"        private static readonly JsonSerializerOptions _indentOptions = new JsonSerializerOptions 
-        {{ 
+                sb.AppendLine($@"        {genAttr}
+        internal static readonly JsonSerializerOptions _indentOptions = new JsonSerializerOptions {{ 
             WriteIndented = true,
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             Converters = {{ new JsonStringEnumConverter(){converterInstances} }}
         }};
-        {generateAttText}
-        private static readonly {contextTypeName} _indentedContext = new {contextTypeName}(_indentOptions);
-        {generateAttText}
-        private static readonly {contextTypeName} _defaultContext = {contextTypeName}.Default;");
-
+        {genAttr}
+        internal static readonly {contextTypeName} _indentedContext = new {contextTypeName}(_indentOptions);
+        {genAttr}
+        internal static readonly {contextTypeName} _defaultContext = {contextTypeName}.Default;");
             }
             else
             {
-                // リフレクション用: インデント用と1行に出す版を用意する
-                sb.AppendLine($@"
-        {generateAttText}
-        private static readonly JsonSerializerOptions _indentedOptions =
-            new JsonSerializerOptions {{ WriteIndented = true,
-                                         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                                         Converters = {{ new JsonStringEnumConverter(){converterInstances} }}
-                }};
-        {generateAttText}
-        private static readonly JsonSerializerOptions _defaultOptions =
-            new JsonSerializerOptions {{ WriteIndented = false,
-                                         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                                         Converters = {{ new JsonStringEnumConverter(){converterInstances} }}
-                }};");
+
+                if (customConverters.Length > 0)
+                {
+                    sb.AppendLine($"{genAttr}");
+                    sb.AppendLine("internal static readonly JsonSerializerOptions _specificIndentedOptions = new JsonSerializerOptions");
+                    sb.AppendLine("{");
+                    sb.AppendLine("    WriteIndented = true,");
+                    sb.AppendLine("    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,");
+                    sb.AppendLine($"    Converters = {{ new global::System.Text.Json.Serialization.JsonStringEnumConverter(){converterInstances} }} // 必要に応じて動的に追加");
+                    sb.AppendLine("};");
+                    sb.AppendLine("");
+
+                    sb.AppendLine($"{genAttr}");
+                    sb.AppendLine("internal static readonly JsonSerializerOptions _specificOptions = new JsonSerializerOptions");
+                    sb.AppendLine("{");
+                    sb.AppendLine("    WriteIndented = false,");
+                    sb.AppendLine("    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,");
+                    sb.AppendLine($"    Converters = {{ new global::System.Text.Json.Serialization.JsonStringEnumConverter(){converterInstances} }} // 必要に応じて動的に追加");
+                    sb.AppendLine("};");
+
+                }
+
+
+
             }
 
-
-            // --- String IO ---
+            // --- Serialization Methods ---
             if (contextTypeName != null)
             {
-                // NativeAOT
                 sb.AppendLine($@"
-        /// <summary>JSON文字列からインスタンスを生成します。失敗した場合はnullを返します。</summary>
-        {generateAttText}
-        public static {className}{nullableAnnotation} FromJson(string json) 
+        {genAttr}
+        public static {className}{q} FromJson(string json) 
         {{
             if (string.IsNullOrWhiteSpace(json)) return null;
-            try 
-            {{
-                return JsonSerializer.Deserialize(json, _indentedContext.{className});
-            }}
-            catch 
-            {{
-                return null;
-            }}
+            try {{ return JsonSerializer.Deserialize(json, _indentedContext.{className}); }}
+            catch {{ return null; }}
         }}
-
-        /// <summary>現在のインスタンスをJSON文字列に変換します（日本語非エスケープ・インデント・Enum文字列化）。</summary>
-        {generateAttText}
-        public string ToJson(bool isIndented = true) => JsonSerializer.Serialize<{className}>(this, isIndented ?  _indentedContext.{className} :  _defaultContext.{className} );
-        ");
+        {genAttr}
+        public string ToJson(bool isIndented = true) => JsonSerializer.Serialize(this, isIndented ? _indentedContext.{className} : _defaultContext.{className});");
             }
             else
             {
-                // Reflection
+
+                var option = customConverters.Any() ? "isIndented ? " + className + "._specificIndentedOptions : " + className + "._specificOptions" :
+                  "isIndented ? " + DEFAULT_INDENTED_OPTION_NAME + " : " + DEFAULT_NOTINDENTED_OPTION_NAME
+                  ;
+                var option2 = customConverters.Any() ? className + "._specificIndentedOptions" :
+                    DEFAULT_INDENTED_OPTION_NAME
+                    ;
+
                 sb.AppendLine($@"
-        /// <summary>JSON文字列からインスタンスを生成します。失敗した場合はnullを返します。</summary>
-        {generateAttText}
-        public static {className}{nullableAnnotation} FromJson(string json) 
+        {genAttr}
+        public static {className}{q} FromJson(string json) 
         {{
             if (string.IsNullOrWhiteSpace(json)) return null;
-            try 
-            {{
-                return JsonSerializer.Deserialize<{className}>(json, _defaultOptions);
-            }}
-            catch 
-            {{
-                return null;
-            }}
+            try {{ return JsonSerializer.Deserialize<{className}>(json, {option2}); }}
+            catch {{ return null; }}
         }}
-
-
-        {generateAttText}
-        public string ToJson(bool isIndented = true) => JsonSerializer.Serialize(this, isIndented ?  _indentedOptions : _defaultOptions);");
+        {genAttr}
+        public string ToJson(bool isIndented = true) => JsonSerializer.Serialize(this, {option});");
             }
 
-            // --- File IO ---
-            GenerateFileIOMethods(sb, nullableAnnotation, className, contextTypeName, generateAttText);
-
-            // --- Settings Methods ---
-            if (getPathMethodName != null)
-            {
-                GenerateSettingsMethods(sb, className, getPathMethodName, generateAttText);
-            }
+            GenerateFileIOMethods(sb, q, className, contextTypeName, genAttr);
+            if (getPathMethodName != null) GenerateSettingsMethods(sb, className, getPathMethodName, genAttr);
 
             sb.AppendLine("    }");
-            sb.AppendLine("}");
 
+            // --- Collection Extensions ---
+            GenerateCollectionExtensions(sb, className, contextTypeName,contextTargetTypes, customConverters, genAttr, q);
+
+            sb.AppendLine("}");
             return sb.ToString();
         }
 
-        private static void GenerateFileIOMethods(StringBuilder sb, string nullableAnnotation, string className, string? contextTypeName, string generateAttText)
+        private static void GenerateFileIOMethods(StringBuilder sb, string q, string className, string? contextTypeName, string genAttr)
         {
-            // Sync Load
-
             sb.AppendLine($@"
-
-        /// <summary>
-        /// ファイルから設定を読み込みます。 / Loads settings from a file.
-        /// </summary>
-        {generateAttText}
-        public static {className}{nullableAnnotation} LoadFromFile(string path)
+        {genAttr}
+        public static {className}{q} LoadFromFile(string path)
         {{
             if (!File.Exists(path)) return new {className}();
-            try {{
-                string json = File.ReadAllText(path);
-                return FromJson(json);
-            }} catch (Exception ex) {{
-                Debug.WriteLine(ex.ToString());
-                return null;
-            }}
-        }}");
-
-            // Sync Save
-            sb.AppendLine($@"        /// <summary>
-        /// 設定をファイルに保存します。 / Saves settings to a file.
-        /// </summary>
-        {generateAttText}
+            try {{ return FromJson(File.ReadAllText(path)); }}
+            catch (Exception ex) {{ Debug.WriteLine(ex.ToString()); return null; }}
+        }}
+        {genAttr}
         public void SaveToFile(string path)
         {{
             try {{
                 var dir = Path.GetDirectoryName(path);
                 if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
-                string json = ToJson();
-                File.WriteAllText(path, json);
-            }} catch (Exception ex) {{
-                Debug.WriteLine(ex.ToString());
-            }}
+                File.WriteAllText(path, ToJson());
+            }} catch (Exception ex) {{ Debug.WriteLine(ex.ToString()); }}
         }}");
 
-            string? loadAsyncText;
-            if (contextTypeName != null)
-            {
-                loadAsyncText = $@"
-                return await JsonSerializer.DeserializeAsync(stream, _indentedContext.{className});";
-            }
-            else
-            {
-                loadAsyncText = $@"
-                return await JsonSerializer.DeserializeAsync<{className}>(stream, _indentedOptions);";
-            }
+            string loadAsync = contextTypeName != null
+                ? $"await JsonSerializer.DeserializeAsync(stream, _indentedContext.{className})"
+                : $"await JsonSerializer.DeserializeAsync<{className}>(stream, _indentedOptions)";
 
-            // Async Load
-            sb.AppendLine($@"        /// <summary>
-        /// ファイルから設定を非同期で読み込みます。 / Loads settings from a file asynchronously.
-        /// </summary>
-        {generateAttText}
-        public static async Task<{className}{nullableAnnotation}> LoadFromFileAsync(string path)
+            string saveAsync = contextTypeName != null
+                ? $"await JsonSerializer.SerializeAsync(stream, this, _indentedContext.{className})"
+                : $"await JsonSerializer.SerializeAsync(stream, this, _indentedOptions)";
+
+            sb.AppendLine($@"
+        {genAttr}
+        public static async Task<{className}{q}> LoadFromFileAsync(string path)
         {{
             if (!File.Exists(path)) return new {className}();
             try {{
                 using var stream = File.OpenRead(path);
-                {loadAsyncText}
-            }} catch (Exception ex) {{
-                Debug.WriteLine(ex.ToString());
-                return null;
-            }}
-        }}");
-
-
-            string? saveAsyncText;
-            if (contextTypeName != null)
-            {
-                saveAsyncText = $@"
-                await JsonSerializer.SerializeAsync(stream, this, _indentedContext.{className});";
-            }
-            else
-            {
-                saveAsyncText = $@"
-                await JsonSerializer.SerializeAsync(stream, this, _indentedOptions);";
-            }
-            // Async Save
-            sb.AppendLine($@"        /// <summary>
-        /// 設定をファイルに非同期で保存します。 / Saves settings to a file asynchronously.
-        /// </summary>
-        {generateAttText}
+                return {loadAsync};
+            }} catch (Exception ex) {{ Debug.WriteLine(ex.ToString()); return null; }}
+        }}
+        {genAttr}
         public async Task SaveToFileAsync(string path)
         {{
             try {{
                 var dir = Path.GetDirectoryName(path);
                 if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
                 using var stream = File.Create(path);
-                {saveAsyncText}
-            }} catch (Exception ex) {{
-                Debug.WriteLine(ex.ToString());
-            }}
+                {saveAsync};
+            }} catch (Exception ex) {{ Debug.WriteLine(ex.ToString()); }}
         }}");
-
-
-
-
-
         }
 
-
-        private static void GenerateSettingsMethods(StringBuilder sb, string className, string methodName, string generateAttText)
+        private static void GenerateSettingsMethods(StringBuilder sb, string className, string methodName, string genAttr)
         {
             sb.AppendLine($@"
-        /// <summary>
-        /// 規定のパスから設定を読み込みます。 / Loads settings from the default path.
-        /// </summary>
-        {generateAttText}
-        public static {className} LoadSettings() => {className}.LoadFromFile({methodName}()) ?? new {className}();
-
-        /// <summary>
-        /// 規定のパスに設定を保存します。 / Saves settings to the default path.
-        /// </summary>
-        {generateAttText}
+        {genAttr}
+        public static {className} LoadSettings() => LoadFromFile({methodName}()) ?? new {className}();
+        {genAttr}
         public void SaveSettings() => SaveToFile({methodName}());
-
-        /// <summary>
-        /// 規定のパスから設定を非同期で読み込みます。 / Loads settings from the default path asynchronously.
-        /// </summary>
-        {generateAttText}
-        public static async Task<{className}> LoadSettingsAsync()
-        {{
-             return await {className}.LoadFromFileAsync({methodName}()) ?? new {className}();
-        }}
-        /// <summary>
-        /// 規定のパスに設定を非同期で保存します。 / Saves settings to the default path asynchronously.
-        /// </summary>
-        {generateAttText}
+        {genAttr}
+        public static async Task<{className}> LoadSettingsAsync() => await LoadFromFileAsync({methodName}()) ?? new {className}();
+        {genAttr}
         public Task SaveSettingsAsync() => SaveToFileAsync({methodName}());");
         }
 
-        private static string GetAccessibilityString(Accessibility accessibility)
+        private static void GenerateCollectionExtensions(StringBuilder sb, string className, string? contextTypeName, List<ITypeSymbol> contextTargetTypes, string[] customConverters, string genAttr, string q)
         {
-            return accessibility switch
+            sb.AppendLine();
+            sb.AppendLine($"    {genAttr}");
+            sb.AppendLine($"    public static class {className}CollectionExtensions");
+            sb.AppendLine("    {");
+
+
+            if (contextTypeName != null)
             {
-                Accessibility.Public => "public",
-                Accessibility.Internal => "internal",
-                Accessibility.Protected => "protected",
-                Accessibility.Private => "private",
-                Accessibility.ProtectedAndInternal => "private protected",
-                Accessibility.ProtectedOrInternal => "protected internal",
-                _ => "internal" // フォールバック
-            };
+                // NativeAOT Overloads for specific types
+                //        sb.AppendLine($@"        public static string ToJson(this List<{className}> list) => JsonSerializer.Serialize(list, {className}._indentedContext.List{className});
+                //public static string ToJson(this {className}[] array) => JsonSerializer.Serialize(array, {className}._indentedContext.{className}Array);
+                //public static string ToJson(this IEnumerable<{className}> items) => JsonSerializer.Serialize(items, {className}._indentedContext.IEnumerable{className});
+
+                //public static List<{className}>{q} To{className}List(this string json) => string.IsNullOrWhiteSpace(json) ? new List<{className}>() : JsonSerializer.Deserialize(json, {className}._indentedContext.List{className});
+                //public static {className}[]{q} To{className}Array(this string json) => string.IsNullOrWhiteSpace(json) ? Array.Empty<{className}>() : JsonSerializer.Deserialize(json, {className}._indentedContext.{className}Array);");
+
+                foreach (var type in contextTargetTypes)
+                {
+                    // Property名を推測 (System.Text.Jsonの命名規則に基づく)
+                    // 実際にはContext内のIPropertySymbolを走査してJsonTypeInfo<T>を探すのがより確実
+                    var typeFull = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    var propertyName = typeFull.Split('.').Last().Replace("[]", "Array");
+
+                    sb.AppendLine($"public static string ToJson(this {typeFull} value, {contextTypeName} context)");
+                    sb.AppendLine("{");
+                    sb.AppendLine($"    return JsonSerializer.Serialize(value, context.{propertyName});");
+                    sb.AppendLine("}");
+
+                    sb.AppendLine($"public static {typeFull}{q} To{type.Name.Replace("[]", "Array")}(this string json, {contextTypeName} context)");
+                    sb.AppendLine("{");
+                    sb.AppendLine($"    return JsonSerializer.Serialize(value, context.{propertyName});");
+                    sb.AppendLine("}");
+                }
+
+            }
+            else
+            {
+                string converterInstances = string.Join(", ", customConverters.Select(c => $"new {c}()"));
+                if (!string.IsNullOrEmpty(converterInstances)) converterInstances = ", " + converterInstances;
+
+
+       
+                // Reflection - Single IEnumerable is enough for ToJson
+
+        //        sb.AppendLine($@"        public static string ToJson(this IEnumerable<{className}> items, bool isIndented = true) => JsonSerializer.Serialize(items, {className}._indentedOptions);
+        //public static List<{className}>{q} To{className}List(this string json) => string.IsNullOrWhiteSpace(json) ? new List<{className}>() : JsonSerializer.Deserialize<List<{className}>(json, {className}._defaultOptions);
+        //public static {className}[]{q} To{className}Array(this string json) => string.IsNullOrWhiteSpace(json) ? Array.Empty<{className}>() : JsonSerializer.Deserialize<{className}[]>(json, {className}._defaultOptions);");
+
+
+
+
+                //defaultを使うかclassのoptionsを使うか
+                var option = customConverters.Any() ? "isIndented ? " + className + "._specificIndentedOptions : " + className + "._specificOptions" :
+                    "isIndented ? " + DEFAULT_INDENTED_OPTION_NAME + " : "+ DEFAULT_NOTINDENTED_OPTION_NAME 
+                    ;
+                var option2 = customConverters.Any() ?  className + "._specificIndentedOptions" :
+                    DEFAULT_INDENTED_OPTION_NAME 
+                    ;
+
+                sb.AppendLine($@"        public static string ToJson(this IEnumerable<{className}> items, bool isIndented = true)");
+                sb.AppendLine("         {");
+                sb.AppendLine($"            return JsonSerializer.Serialize(items, {option});");
+                sb.AppendLine("         }");
+
+                sb.AppendLine($@"        public static List<{className}>{q} To{className}List(this string json)");
+                sb.AppendLine("         {");
+                sb.AppendLine($"            return string.IsNullOrWhiteSpace(json) ? new List<{className}>() : JsonSerializer.Deserialize<List<{className}>(json, {option2})");
+                sb.AppendLine("         }");
+                sb.AppendLine($@"        public static {className}[]{q} To{className}Array(this string json)");
+                sb.AppendLine("         {");
+                sb.AppendLine($"            return string.IsNullOrWhiteSpace(json) ? Array.Empty<{className}>() : JsonSerializer.Deserialize<{className}[]>(json, {option2})");
+                sb.AppendLine("         }");
+
+            }
+
+            sb.AppendLine("    }");
         }
     }
 }
