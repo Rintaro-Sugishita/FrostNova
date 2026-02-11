@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using FrostNova.Core.Common;
 using FrostNova.Core.Wpf.Behaviors;
 using FrostNova.Core.Wpf.VisualHelpers;
@@ -532,54 +532,14 @@ namespace FrostNova.TimeRangeChart.Wpf
                 var rowSv = GeneralHelper.FindVisualChild<ScrollViewer>(rowList);
                 var chartSv = GeneralHelper.FindVisualChild<ScrollViewer>(chartList);
 
-                bool isSyncing = false;
-                if (rowSv != null && chartSv != null)
-                {
-                    rowSv.ScrollChanged += (s, e) =>
-                    {
-                        if (isSyncing) return;
-                        try { isSyncing = true; chartSv.ScrollToVerticalOffset(e.VerticalOffset); }
-                        finally { isSyncing = false; }
-                    };
-                    chartSv.ScrollChanged += (s, e) =>
-                    {
-                        if (isSyncing) return;
-                        try { isSyncing = true; rowSv.ScrollToVerticalOffset(e.VerticalOffset); }
-                        finally { isSyncing = false; }
-                    };
-                }
-
-                // もしカラムヘッダと横スクロール同期が必要なら同様に chartSv と columnScroll を接続
-                if (chartSv != null && columnHeaderScrollViewer != null)
-                {
-                    chartSv.ScrollChanged += (s, e) =>
-                    {
-                        if (e.HorizontalChange != 0) columnHeaderScrollViewer.ScrollToHorizontalOffset(e.HorizontalOffset);
-
-                        //日付位置を取得
-
-                    };
-                    columnHeaderScrollViewer.ScrollChanged += (s, e) =>
-                    {
-                        if (e.HorizontalChange != 0) chartSv.ScrollToHorizontalOffset(e.HorizontalOffset);
-                    };
-                }
-
-
-                //
-                GeneralHelper.SetBehavior<ScrollGestureBehavior>(chartSv, true);
-                //GeneralHelper.SetBehavior<ScrollViewerTopLeftItemBehavior>(chartSv, true);
-
-                var behaviors = Microsoft.Xaml.Behaviors.Interaction.GetBehaviors(rowSv);
                 var tlBehavior = new ScrollViewerTopLeftItemBehavior();
                 BindingOperations.SetBinding(tlBehavior, ScrollViewerTopLeftItemBehavior.TopVisibleItemProperty,
-                    new Binding(nameof(ScrollTopItem)) { Source = this, Mode= BindingMode.TwoWay, UpdateSourceTrigger= UpdateSourceTrigger.PropertyChanged });
+                    new Binding(nameof(ScrollTopItem)) { Source = this, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
                 BindingOperations.SetBinding(tlBehavior, ScrollViewerTopLeftItemBehavior.BottomVisibleItemProperty,
                     new Binding(nameof(ScrollBottomItem)) { Source = this, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
                 tlBehavior.TargetItemsControl = rowList;
-                behaviors.Add(tlBehavior);
 
-                
+                GeneralHelper.SetBehavior(rowSv, tlBehavior);
 
 
 

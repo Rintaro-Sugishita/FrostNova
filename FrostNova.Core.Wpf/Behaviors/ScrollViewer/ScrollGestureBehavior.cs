@@ -1,4 +1,4 @@
-﻿using FrostNova.Core.Wpf.VisualHelpers;
+using FrostNova.Core.Wpf.VisualHelpers;
 using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections.Generic;
@@ -22,29 +22,26 @@ namespace FrostNova.Core.Wpf.Behaviors
     /// horizontal mouse wheel gestures, including support for horizontal scrolling via Shift+Mouse Wheel or dedicated
     /// horizontal wheel devices. This behavior is intended for use in WPF applications and should not be used in design
     /// mode.</remarks>
-    public class ScrollGestureBehavior : Behavior<ScrollViewer>
+    public class ScrollGestureBehavior : Behavior<FrameworkElement>
     {
+
+        ScrollViewer? _attachTarget = null!;
+
         /// <summary>
         /// 
         /// </summary>
         protected override void OnAttached()
         {
             base.OnAttached();
-            bool isDesignMode = DesignerProperties.GetIsInDesignMode(new System.Windows.DependencyObject());
-            if (isDesignMode == false)
-            {
 
-                if (AssociatedObject.IsLoaded)
+            GeneralHelper.ResolveChildWhenLoaded<ScrollViewer>(AssociatedObject, scrollViewer =>
+            {
+                if (scrollViewer != null)
                 {
+                    _attachTarget = scrollViewer;
                     SetHook();
                 }
-                else
-                {
-                    AssociatedObject.Loaded += OnLoaded;
-
-                }
-                AssociatedObject.Unloaded += OnUnloaded;
-            }
+            });
         }
 
         /// <summary>
@@ -54,8 +51,8 @@ namespace FrostNova.Core.Wpf.Behaviors
         {
             base.OnDetaching();
 
-            AssociatedObject.Loaded -= OnLoaded;
-            AssociatedObject.Unloaded -= OnUnloaded;
+            //AssociatedObject.Loaded -= OnLoaded;
+            //AssociatedObject.Unloaded -= OnUnloaded;
             if (hwndSource != null)
             {
                 hwndSource.RemoveHook(WndProc);
@@ -65,24 +62,24 @@ namespace FrostNova.Core.Wpf.Behaviors
 
 
 
-        private void OnUnloaded(object sender, RoutedEventArgs e)
-        {
-            if (hwndSource != null)
-            {
-                hwndSource.RemoveHook(WndProc);
-                hwndSource = null;
-            }
-        }
+        //private void OnUnloaded(object sender, RoutedEventArgs e)
+        //{
+        //    if (hwndSource != null)
+        //    {
+        //        hwndSource.RemoveHook(WndProc);
+        //        hwndSource = null;
+        //    }
+        //}
 
-        private void OnLoaded(object sender, RoutedEventArgs e)
-        {
-            SetHook();
-        }
+        //private void OnLoaded(object sender, RoutedEventArgs e)
+        //{
+        //    SetHook();
+        //}
 
 
         private void SetHook()
         {
-            hwndSource = (HwndSource)PresentationSource.FromVisual(Window.GetWindow(AssociatedObject));
+            hwndSource = (HwndSource)PresentationSource.FromVisual(Window.GetWindow(_attachTarget));
             hwndSource?.AddHook(WndProc);
         }
 
@@ -94,14 +91,16 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
+            if (_attachTarget == null) return IntPtr.Zero;
+
+            int delta = (short)((((long)wParam) >> 16) & 0xFFFF);
             if (msg == WM_MOUSEHWHEEL)
             {
                 try
                 {
-                    if (GeneralHelper.IsInMousePoint(AssociatedObject) == false) return IntPtr.Zero;
+                    if (GeneralHelper.IsInMousePoint(_attachTarget) == false) return IntPtr.Zero;
 
-                    int delta = (short)((((long)wParam) >> 16) & 0xFFFF);
-                    AssociatedObject.ScrollToHorizontalOffset(AssociatedObject.HorizontalOffset + delta);
+                    _attachTarget.ScrollToHorizontalOffset(_attachTarget.HorizontalOffset + delta);
                     handled = true;
                 }
                 catch { return IntPtr.Zero; }
@@ -112,20 +111,27 @@ namespace FrostNova.Core.Wpf.Behaviors
                 try
                 {
 
-                    if (GeneralHelper.IsInMousePoint(AssociatedObject) == false) return IntPtr.Zero;
+                    if (GeneralHelper.IsInMousePoint(_attachTarget) == false) return IntPtr.Zero;
 
-                    int delta = (short)((((long)wParam) >> 16) & 0xFFFF);
 
                     if (Keyboard.Modifiers == ModifierKeys.Shift || delta == 0)
                     {
                         // 横スクロール扱い
-                        AssociatedObject.ScrollToHorizontalOffset(AssociatedObject.HorizontalOffset - delta);
+                        _attachTarget.ScrollToHorizontalOffset(_attachTarget.HorizontalOffset - delta);
                     }
                     else
                     {
-                        // 任意の係数をかけてスクロール速度を調整
-                        double adjusted = delta * 0.3;
-                        AssociatedObject.ScrollToVerticalOffset(AssociatedObject.VerticalOffset - adjusted);
+                        // 任意の係数をかけてスクロール速度を調整(かけないと早すぎる)
+                        if (_attachTarget.CanContentScroll)
+                        {
+                            if (delta > 0) _attachTarget.LineUp();
+                            else _attachTarget.LineDown();
+                        }
+                        else
+                        {
+                            double adjusted = delta * 0.3;
+                            _attachTarget.ScrollToVerticalOffset(_attachTarget.VerticalOffset - adjusted);
+                        }
 
                     }
                     handled = true;

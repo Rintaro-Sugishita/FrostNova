@@ -1,4 +1,4 @@
-﻿using Microsoft.Xaml.Behaviors;
+using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +16,12 @@ namespace FrostNova.Core.Wpf.VisualHelpers
     {
 
         #region find visual child
-
+        /// <summary>
+        /// ビジュアルツリーを再帰的に探索して最初の子要素を返します。
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="parent"></param>
+        /// <returns></returns>
         public static T? FindVisualChild<T>(this DependencyObject parent) where T : DependencyObject
         {
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
@@ -80,6 +85,45 @@ namespace FrostNova.Core.Wpf.VisualHelpers
 
                 current = parent;
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="parent"></param>
+        /// <param name="callback"></param>
+        public static void ResolveChildWhenLoaded<T>(this FrameworkElement? parent, Action<T> callback) where T : FrameworkElement
+        {
+            if (parent == null) return;
+
+
+            if (parent is T)
+            {
+                callback((T)parent);
+                return;
+            }
+
+            // 1. すでにビジュアルツリーにあるか試行
+            var found = FindVisualChild<T>(parent);
+            if (found != null)
+            {
+                callback(found);
+                return;
+            }
+
+            // 2. なければ Loaded を待機（一度だけ実行）
+            RoutedEventHandler? handler = null;
+            handler = (s, e) =>
+            {
+                parent.Loaded -= handler;
+                var reFound = FindVisualChild<T>(parent);
+                if (reFound != null)
+                {
+                    callback(reFound);
+                }
+            };
+            parent.Loaded += handler;
         }
 
         #endregion
@@ -158,23 +202,32 @@ namespace FrostNova.Core.Wpf.VisualHelpers
 
         public static void SetBehavior<T>(DependencyObject d, bool isEnable) where T : Behavior, new()
         {
+            var behavior = new T();
+            SetBehavior(d, behavior);
+        }
+
+        public static void SetBehavior(DependencyObject d, Behavior behavior)
+        {
+            SetBehaviors(d, [behavior]);
+        }
+
+        public static void SetBehaviors(DependencyObject d, IEnumerable<Behavior> behaviors)
+        {
             if (d is UIElement element)
             {
-                var behaviors = Microsoft.Xaml.Behaviors.Interaction.GetBehaviors(element);
+                var attachingBehaviors = Microsoft.Xaml.Behaviors.Interaction.GetBehaviors(element);
 
-                // 既にアタッチ済みか確認
-                var existing = behaviors.OfType<T>().FirstOrDefault();
-
-                if (isEnable)
-                {
-                    if (existing == null)
-                        behaviors.Add(new T()); // 任意の Behavior
-                }
-                else
-                {
-                    if (existing != null)
-                        behaviors.Remove(existing);
-                }
+                behaviors.ToList().ForEach(behavior =>
+                    {
+                        // 既にアタッチ済みか確認
+                        var existing = attachingBehaviors.OfType<Behavior>().FirstOrDefault(b => b.GetType() == behavior.GetType());
+                        if (existing != null)
+                        {
+                            //存在してたら削除
+                            attachingBehaviors.Remove(existing);
+                        }
+                        attachingBehaviors.Add(behavior); // 任意の Behavior
+                    });
             }
         }
 

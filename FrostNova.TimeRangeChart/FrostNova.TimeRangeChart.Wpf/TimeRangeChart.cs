@@ -1,4 +1,4 @@
-﻿using FrostNova.Core.Wpf.VisualHelpers;
+using FrostNova.Core.Wpf.VisualHelpers;
 using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using FrostNova.TimeRangeChart.Wpf.TimeRangeHelpers;
 using System;
@@ -672,48 +672,26 @@ namespace FrostNova.TimeRangeChart.Wpf
             // ループ抑止用: 自分で Height を設定中は反応しない
             if (_isApplyingHeight) return;
 
-            // コンテナ（ListBoxItem 等）の実高さを取得して比較する
-            double containerAvailable = double.PositiveInfinity;
-            var listBoxItem =　GeneralHelper.FindAncestor<ListBoxItem>(this);
-            if (listBoxItem != null)
+            double baseHeight = ChartHeight > 0 ? ChartHeight : (ParentGridChart?.RowHeight ?? 30.0);
+
+            // 判定基準を「コンテナのActualHeight」から「本来のベース高さ」に変える
+            if (requiredHeight > baseHeight + _heightEpsilon)
             {
-                containerAvailable = listBoxItem.ActualHeight;
-            }
-            else if (Parent is FrameworkElement pe)
-            {
-                // 親の高さを代替に使う（ListBoxItem が見つからない場合）
-                if (!double.IsNaN(pe.ActualHeight) && pe.ActualHeight > 0)
-                    containerAvailable = pe.ActualHeight;
-            }
-            // requiredHeight がコンテナより大きい場合のみ明示的に Height を設定（拡張）
-            if (requiredHeight > containerAvailable + _heightEpsilon)
-            {
-                // 既にほぼ同じ高さなら何もしない
                 if (double.IsNaN(this.Height) || Math.Abs(this.Height - requiredHeight) > _heightEpsilon)
                 {
                     _isApplyingHeight = true;
-                    this.Height = requiredHeight;
-
-                    // 設定後、短時間だけフラグを保持してループを防ぐ
-                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
-                    {
-                        _isApplyingHeight = false;
-                    }));
+                    this.Height = requiredHeight; // 拡張が必要
+                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => _isApplyingHeight = false));
                 }
             }
             else
             {
-                // コンテナが十分広い場合は Height の制約を解除して「元の広さ」に戻す
-                // ただし安易に ClearValue を呼ぶと HeightSyncBehavior と往復するため、
-                // 現在設定されている Height がコンテナよりも大きい場合にのみ解除する
-                if (!double.IsNaN(this.Height) && this.Height > containerAvailable + _heightEpsilon)
+                // 算出した必要高がベース以下なら、Height指定を解除してベース（＝初期値）に戻れるようにする
+                if (!double.IsNaN(this.Height))
                 {
                     _isApplyingHeight = true;
-                    this.ClearValue(HeightProperty);
-                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
-                    {
-                        _isApplyingHeight = false;
-                    }));
+                    this.ClearValue(HeightProperty); // 解除
+                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => _isApplyingHeight = false));
                 }
             }
         }
