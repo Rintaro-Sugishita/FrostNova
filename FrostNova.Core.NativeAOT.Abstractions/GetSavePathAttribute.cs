@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -13,6 +13,7 @@ namespace FrostNova.Core.NativeAOT
     /// <para xml:lang="en">This attribute should be applied to a static method that returns a string and takes no arguments. It is required to generate LoadSettings/SaveSettings methods.</para>
     /// </remarks>
     [AttributeUsage(AttributeTargets.Method)]
+    [Obsolete("GetSavePathAttribute is deprecated. Please use [JsonSettingPath] instead.")]
     public class GetSavePathAttribute  : Attribute
     {
     }
