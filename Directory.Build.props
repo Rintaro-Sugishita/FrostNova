@@ -7,8 +7,12 @@
 
     <Authors>R.Sugishita</Authors>
     <RepositoryUrl>https://github.com/Rintaro-Sugishita/FrostNova</RepositoryUrl>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <!--<ArtifactsPath>$(SolutionDir)\.artifacts</ArtifactsPath> -->
+    <ArtifactsPath>$(MSBuildThisFileDirectory).artifacts</ArtifactsPath>
 
-   <EmitEmbeddedSources>true</EmitEmbeddedSources>
+    <ArtifactsPivots>$(MSBuildProjectName)\$(TargetFramework)\$(Configuration.ToLower())</ArtifactsPivots>
+    <EmitEmbeddedSources>true</EmitEmbeddedSources>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -20,10 +24,18 @@
     <NupkgCopyDestination>$(SolutionDir)\.LocalNuget</NupkgCopyDestination>
   </PropertyGroup>
 
+  <!-- Visual Studioバージョンを固定する -->
+  <Target Name="EnforceVisualStudioVersion" BeforeTargets="Build">
+    <PropertyGroup>
+      <MinimumMSBuildVersion>18.0</MinimumMSBuildVersion>
+    </PropertyGroup>    
+    <Error Condition="'$(MSBuildVersion)' &lt; '$(MinimumMSBuildVersion)'" 
+           Text="This project requires Visual Studio 2026 or a newer version (MSBuild $(MinimumMSBuildVersion) or higher). Current MSBuild version is $(MSBuildVersion). Please update your IDE or build tools." />
+  </Target>
 
-  <PropertyGroup Condition="'$(Configuration)' != 'Release'">
+  <PropertyGroup Condition="'$(Configuration)' != 'Release' AND '$(Version)' != ''">
     <Now>$([System.DateTime]::Now.ToString("yyyyMMddHHmm"))</Now>
-    <VersionPrefix>0.0.6-dev</VersionPrefix>
+    <VersionPrefix>$(Version)-dev</VersionPrefix>
     <VersionSuffix>$(Now)</VersionSuffix>
 
   </PropertyGroup>

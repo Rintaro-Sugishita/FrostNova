@@ -1,0 +1,31 @@
+<Solution>
+  <Folder Name="/SolutionItems/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="global.json" />
+    <File Path="nuget.config" />
+  </Folder>
+  <Folder Name="/Sample/">
+    <Project Path="Sample/FrostNova.Core.ExcelWork.Sample/FrostNova.Core.ExcelWork.Sample.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/FrostNova.Core.WpfTest/FrostNova.Core.WpfTest.csproj" />
+    <Project Path="Tests/FrostNova.CoreTest/FrostNova.CoreTest.csproj" />
+  </Folder>
+  <Folder Name="/FrostNova.TimeRangeChart/">
+    <Project Path="FrostNova.TimeRangeChart/FrostNova.TimeRangeChart/FrostNova.TimeRangeChart.csproj" />
+    <Project Path="FrostNova.TimeRangeChart/FrostNova.TimeRangeChart.Wpf/FrostNova.TimeRangeChart.Wpf.csproj" />
+    <Project Path="FrostNova.TimeRangeChart/FrostNova.TimeRangeChartTest/FrostNova.TimeRangeChartTest.csproj" />
+    <Project Path="FrostNova.TimeRangeChart/FrostNova.TimeRangeChart.Wpf.Sample/FrostNova.TimeRangeChart.Wpf.Sample.csproj" />
+  </Folder>
+  <Project Path="FrostNova.Core/FrostNova.Core.csproj" />
+  <Project Path="FrostNova.Core.Wpf/FrostNova.Core.Wpf.csproj" />
+  <Project Path="FrostNova.Core.Registry/FrostNova.Core.Registry.csproj" />
+  <Project Path="FrostNova.Core.Wpf.Controls/FrostNova.Core.Wpf.Controls.csproj" />
+  <Project Path="FrostNova.Core.Wpf.Controls.Sample/FrostNova.Core.Wpf.Controls.Sample.csproj" />
+  <Project Path="FrostNova.Core.ExcelWork/FrostNova.Core.ExcelWork.csproj" />
+  <Project Path="FrostNova.Core.TableWork/FrostNova.Core.TableWork.csproj" />
+  <Project Path="FrostNova.WindowEventPickers/FrostNova.WindowEventPickers.csproj" />
+  <Project Path="FrostNova.Core.NativeAOT.Generators/FrostNova.Core.NativeAOT.Generators.csproj" />
+  <Project Path="FrostNova.Core.NativeAOT.Abstractions/FrostNova.Core.NativeAOT.Abstractions.csproj" />
+</Solution>

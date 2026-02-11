@@ -1,0 +1,102 @@
+# 最上位の設定であることを示す
+root = true
+
+# 全ファイル共通
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.{cs,vb}]
+# .NET SDK 10.0 以上を要求する設定（IDEがこれを読み取って判断します）
+dotnet_analyzer_diagnostic.category-RoslynDiagnostics.severity = warning
+
+[*.cs]
+# 波括弧常に新しい行に配置する
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+# usingの整理（アルファベット順に並び替え）
+dotnet_separate_import_directive_groups = false
+dotnet_sort_system_directives_first = true
+
+# --- var 推奨設定 ---
+# 組み込み型（int, stringなど）でも var を使う
+dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
+
+# 右辺から型が明らかな場合に var を使う (例: var x = new MyClass();)
+csharp_style_var_when_type_is_apparent = true:suggestion
+
+# それ以外の場合でも基本的に var を使う
+csharp_style_var_elsewhere = true:suggestion
+
+# --- メソッド名の命名規則 ---
+
+# 1. 「メソッド」という対象を定義
+dotnet_naming_symbols.methods_symbol.applicable_kinds = method
+
+# 2. 「PascalCase」というスタイルを定義
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+# 3. 「メソッド」には「PascalCase」を適用し、守らない場合は「警告」を出す
+dotnet_naming_rule.methods_must_be_pascal_case.symbols = methods_symbol
+dotnet_naming_rule.methods_must_be_pascal_case.style = pascal_case_style
+dotnet_naming_rule.methods_must_be_pascal_case.severity = warning
+
+# --- プライベートフィールドは _camelCase ---
+
+# 1. 「プライベートなフィールド」を定義
+dotnet_naming_symbols.private_fields_symbol.applicable_kinds = field
+dotnet_naming_symbols.private_fields_symbol.applicable_accessibilities = private
+
+# 2. 「アンダースコア＋キャメルケース」というスタイルを定義
+dotnet_naming_style.prefix_underscore_style.capitalization = camel_case
+dotnet_naming_style.prefix_underscore_style.required_prefix = _
+
+# 3. 適用！
+dotnet_naming_rule.private_fields_must_have_underscore.symbols = private_fields_symbol
+dotnet_naming_rule.private_fields_must_have_underscore.style = prefix_underscore_style
+dotnet_naming_rule.private_fields_must_have_underscore.severity = suggestion
+
+# switch文よりもswitch式（expression）を優先して使う
+csharp_style_prefer_switch_expression = true:warning
+
+# --- 定数 (const) および static readonly の命名規則 ---
+
+# 1. 「定数」または「static かつ readonly なフィールド」を定義
+dotnet_naming_symbols.constants_and_readonly_symbol.applicable_kinds = field
+# const または (static かつ readonly) のいずれかに合致する場合
+dotnet_naming_symbols.constants_and_readonly_symbol.applicable_accessibilities = *
+dotnet_naming_symbols.constants_and_readonly_symbol.required_modifiers = const, static, readonly
+
+# 2. 「大文字スネークケース」というスタイルを定義（定義済みなら使い回しでOK）
+dotnet_naming_style.screaming_snake_case_style.capitalization = all_upper
+dotnet_naming_style.screaming_snake_case_style.word_separator = _
+
+# 3. 適用！
+dotnet_naming_rule.constants_must_be_screaming_snake_case.symbols = constants_and_readonly_symbol
+dotnet_naming_rule.constants_must_be_screaming_snake_case.style = screaming_snake_case_style
+dotnet_naming_rule.constants_must_be_screaming_snake_case.severity = warning
+
+# ファイル範囲の名前空間 (namespace Name;) を優先する
+csharp_style_namespace_declarations = file_scoped:suggestion
+
+# ドットの前で改行する（LINQチェーンなどで有効）
+csharp_style_allow_blank_lines_between_consecutive_braces = false
+# ドットの位置を揃えたり、インデントを維持する設定
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+
+# 式の途中で改行したときのインデント設定（Visual Studioの整形に影響）
+# 「ドット」を基準に揃える挙動を促します
+csharp_preserve_static_using_directives = true
+
+# 変更されないフィールドには自動で readonly を付けるよう提案する
+dotnet_style_readonly_field = true:suggestion
+
+# XML未記載を警告→提案に変更（CS1591は「公開メンバーにXMLドキュメントが必要」という警告）
+dotnet_diagnostic.CS1591.severity = suggestion
