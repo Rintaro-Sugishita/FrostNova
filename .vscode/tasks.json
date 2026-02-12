@@ -1,0 +1,37 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build WPF Release",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "FrostNova.slnx",
+                "--configuration",
+                "Release"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Build Deubg",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "FrostNova.slnx",
+                "--configuration",
+                "Debug"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"
+        }
+    ]
+}

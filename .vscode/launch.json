@@ -1,0 +1,19 @@
+{
+    // IntelliSense を使用して利用可能な属性を学べます。
+    // 既存の属性の説明をホバーして表示します。
+    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    {
+        "name": "C#: TimeRangehart Debug",
+        "type": "dotnet",
+        "request": "launch",
+        "projectPath": "${workspaceFolder}/FrostNova.TimeRangeChart/FrostNova.TimeRangeChart.Wpf.Sample/FrostNova.TimeRangeChart.Wpf.Sample.csproj"
+    },
+    {
+        "name": "C#: Control Debug",
+        "type": "dotnet",
+        "request": "launch",
+        "projectPath": "${workspaceFolder}/FrostNova.Core.Wpf.Controls.Sample/FrostNova.Core.Wpf.Controls.Sample.csproj"
+    }    ]
+}
