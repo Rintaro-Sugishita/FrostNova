@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -62,6 +63,8 @@ namespace FrostNova.Core.NativeAOT
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
+            //Debugger.Launch();
+
             var version = context.AnalyzerConfigOptionsProvider.Select((options, _) =>
             {
                 var assembly = typeof(JsonSettingsGenerator).Assembly;
@@ -122,8 +125,14 @@ namespace FrostNova.Core.NativeAOT
         private static void Execute(SourceProductionContext context, (INamedTypeSymbol? Symbol, bool isNullable, INamedTypeSymbol? ContextType, string[] customConverters) target, string version)
         {
             var classSymbol = target.Symbol!;
+
+
+            //JsonSerializerContextの型名
             var contextTypeName = target.ContextType?.ToDisplayString();
             var serializableTypes = new List<ITypeSymbol>();
+
+            //JsonSerializableAttributeで指定された型を収集
+            //ここでSymbolと同じ型をGeneric引数に持つJsonSerializerContextと、Symbolの配列を対象にする
             if (target.ContextType != null)
             {
                 foreach (var attr in target.ContextType.GetAttributes())
@@ -131,10 +140,22 @@ namespace FrostNova.Core.NativeAOT
                     if (attr.AttributeClass?.Name == "JsonSerializableAttribute")
                     {
                         var typeSymbol = attr.ConstructorArguments.FirstOrDefault().Value as ITypeSymbol;
-                        if (typeSymbol != null)
-                        {
+                        if (typeSymbol == null) continue;
+
+
+                        // 配列かつ要素型が一致するか (Class1[])
+                        bool isArrayOfTarget = typeSymbol is IArrayTypeSymbol arrayType &&
+                                               SymbolEqualityComparer.Default.Equals(arrayType.ElementType, classSymbol);
+
+                        // ジェネリックなコレクションかつ、第1引数が一致するか (List<Class1>, IEnumerable<Class1> 等)
+                        bool isGenericCollectionOfTarget = typeSymbol is INamedTypeSymbol namedType &&
+                                                           namedType.IsGenericType &&
+                                                           namedType.TypeArguments.Length == 1 &&
+                                                           namedType.TypeArguments.Any(t => SymbolEqualityComparer.Default.Equals(t, classSymbol));
+
+                        if (isArrayOfTarget || isGenericCollectionOfTarget)
                             serializableTypes.Add(typeSymbol);
-                        }
+
                     }
                 }
             }
@@ -177,6 +198,7 @@ namespace FrostNova.Core.NativeAOT
         private static string ProcessClass(INamedTypeSymbol classSymbol, bool isNullable, INamedTypeSymbol? contextType, List<ITypeSymbol> contextTargetTypes, string? getPathMethodName, string[] customConverters, string version)
         {
             var namespaceName = classSymbol.ContainingNamespace.ToDisplayString();
+            var accessibility = GetAccessibilityText(classSymbol.DeclaredAccessibility);
             var className = classSymbol.Name;
             var contextTypeName = contextType?.ToDisplayString();
             var q = isNullable ? "?" : string.Empty;
@@ -220,22 +242,22 @@ namespace FrostNova.Core.NativeAOT
 
                 if (customConverters.Length > 0)
                 {
-                    sb.AppendLine($"{genAttr}");
-                    sb.AppendLine("internal static readonly JsonSerializerOptions _specificIndentedOptions = new JsonSerializerOptions");
-                    sb.AppendLine("{");
-                    sb.AppendLine("    WriteIndented = true,");
-                    sb.AppendLine("    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,");
-                    sb.AppendLine($"    Converters = {{ new global::System.Text.Json.Serialization.JsonStringEnumConverter(){converterInstances} }} // 必要に応じて動的に追加");
-                    sb.AppendLine("};");
+                    sb.AppendLine($"        {genAttr}");
+                    sb.AppendLine("        internal static readonly JsonSerializerOptions _specificIndentedOptions = new JsonSerializerOptions");
+                    sb.AppendLine("        {");
+                    sb.AppendLine("            WriteIndented = true,");
+                    sb.AppendLine("            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,");
+                    sb.AppendLine($"            Converters = {{ new global::System.Text.Json.Serialization.JsonStringEnumConverter(){converterInstances} }} // 必要に応じて動的に追加");
+                    sb.AppendLine("        };");
                     sb.AppendLine("");
 
-                    sb.AppendLine($"{genAttr}");
-                    sb.AppendLine("internal static readonly JsonSerializerOptions _specificOptions = new JsonSerializerOptions");
-                    sb.AppendLine("{");
-                    sb.AppendLine("    WriteIndented = false,");
-                    sb.AppendLine("    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,");
-                    sb.AppendLine($"    Converters = {{ new global::System.Text.Json.Serialization.JsonStringEnumConverter(){converterInstances} }} // 必要に応じて動的に追加");
-                    sb.AppendLine("};");
+                    sb.AppendLine($"        {genAttr}");
+                    sb.AppendLine("        internal static readonly JsonSerializerOptions _specificOptions = new JsonSerializerOptions");
+                    sb.AppendLine("        {");
+                    sb.AppendLine("            WriteIndented = false,");
+                    sb.AppendLine("            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,");
+                    sb.AppendLine($"            Converters = {{ new global::System.Text.Json.Serialization.JsonStringEnumConverter(){converterInstances} }} // 必要に応じて動的に追加");
+                    sb.AppendLine("        };");
 
                 }
 
@@ -279,19 +301,19 @@ namespace FrostNova.Core.NativeAOT
         public string ToJson(bool isIndented = true) => JsonSerializer.Serialize(this, {option});");
             }
 
-            GenerateFileIOMethods(sb, q, className, contextTypeName, genAttr);
+            GenerateFileIOMethods(sb, q, className, contextTypeName, customConverters, genAttr);
             if (getPathMethodName != null) GenerateSettingsMethods(sb, className, getPathMethodName, genAttr);
 
             sb.AppendLine("    }");
 
             // --- Collection Extensions ---
-            GenerateCollectionExtensions(sb, className, contextTypeName,contextTargetTypes, customConverters, genAttr, q);
+            GenerateCollectionExtensions(sb, className, accessibility, contextTypeName, contextTargetTypes, customConverters, genAttr, q);
 
             sb.AppendLine("}");
             return sb.ToString();
         }
 
-        private static void GenerateFileIOMethods(StringBuilder sb, string q, string className, string? contextTypeName, string genAttr)
+        private static void GenerateFileIOMethods(StringBuilder sb, string q, string className, string? contextTypeName, string[] customConverters, string genAttr)
         {
             sb.AppendLine($@"
         {genAttr}
@@ -311,13 +333,20 @@ namespace FrostNova.Core.NativeAOT
             }} catch (Exception ex) {{ Debug.WriteLine(ex.ToString()); }}
         }}");
 
+
+
+
+            var option2 = customConverters.Any() ? className + "._specificIndentedOptions" :
+                DEFAULT_INDENTED_OPTION_NAME;
+
+
             string loadAsync = contextTypeName != null
                 ? $"await JsonSerializer.DeserializeAsync(stream, _indentedContext.{className})"
-                : $"await JsonSerializer.DeserializeAsync<{className}>(stream, _indentedOptions)";
+                : $"await JsonSerializer.DeserializeAsync<{className}>(stream, {option2})";
 
             string saveAsync = contextTypeName != null
                 ? $"await JsonSerializer.SerializeAsync(stream, this, _indentedContext.{className})"
-                : $"await JsonSerializer.SerializeAsync(stream, this, _indentedOptions)";
+                : $"await JsonSerializer.SerializeAsync(stream, this, {option2})";
 
             sb.AppendLine($@"
         {genAttr}
@@ -354,14 +383,16 @@ namespace FrostNova.Core.NativeAOT
         public Task SaveSettingsAsync() => SaveToFileAsync({methodName}());");
         }
 
-        private static void GenerateCollectionExtensions(StringBuilder sb, string className, string? contextTypeName, List<ITypeSymbol> contextTargetTypes, string[] customConverters, string genAttr, string q)
+        private static void GenerateCollectionExtensions(StringBuilder sb, string className, string accessibility, string? contextTypeName, List<ITypeSymbol> contextTargetTypes, string[] customConverters, string genAttr, string q)
         {
             sb.AppendLine();
+            sb.AppendLine();
+            sb.AppendLine($"    ///<summary>{className} collection extension</summary>");
             sb.AppendLine($"    {genAttr}");
-            sb.AppendLine($"    public static class {className}CollectionExtensions");
+            sb.AppendLine($"    {accessibility} static class {className}CollectionJsonExtensions");
             sb.AppendLine("    {");
 
-
+            
             if (contextTypeName != null)
             {
                 // NativeAOT Overloads for specific types
@@ -379,15 +410,24 @@ namespace FrostNova.Core.NativeAOT
                     var typeFull = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                     var propertyName = typeFull.Split('.').Last().Replace("[]", "Array");
 
-                    sb.AppendLine($"public static string ToJson(this {typeFull} value, {contextTypeName} context)");
-                    sb.AppendLine("{");
-                    sb.AppendLine($"    return JsonSerializer.Serialize(value, context.{propertyName});");
-                    sb.AppendLine("}");
+                    var propertyName2 = type.Name.Replace("[]", "Array");
 
-                    sb.AppendLine($"public static {typeFull}{q} To{type.Name.Replace("[]", "Array")}(this string json, {contextTypeName} context)");
-                    sb.AppendLine("{");
-                    sb.AppendLine($"    return JsonSerializer.Serialize(value, context.{propertyName});");
-                    sb.AppendLine("}");
+
+                    var name1 = (propertyName2 == "" ? propertyName : propertyName2+className);
+                    sb.AppendLine();
+                    sb.AppendLine();
+                    sb.AppendLine($"        public static {typeFull}{q} To{name1}(this string json, {contextTypeName} context)");
+                    sb.AppendLine("        {");
+                    sb.AppendLine($"            return JsonSerializer.Deserialize(json, {className}._indentedContext.{name1});");
+                    sb.AppendLine("        }");
+
+                    var a = "isIndented ? " + className + "._indentedContext." + name1 + " : " + className + "._defaultContext." + name1;
+
+                    sb.AppendLine();
+                    sb.AppendLine($"        public static string ToJson(this {typeFull} value, bool isIndented = true)");
+                    sb.AppendLine("        {");
+                    sb.AppendLine($"            return JsonSerializer.Serialize(value,{a});");
+                    sb.AppendLine("        }");
                 }
 
             }
@@ -397,22 +437,22 @@ namespace FrostNova.Core.NativeAOT
                 if (!string.IsNullOrEmpty(converterInstances)) converterInstances = ", " + converterInstances;
 
 
-       
+
                 // Reflection - Single IEnumerable is enough for ToJson
 
-        //        sb.AppendLine($@"        public static string ToJson(this IEnumerable<{className}> items, bool isIndented = true) => JsonSerializer.Serialize(items, {className}._indentedOptions);
-        //public static List<{className}>{q} To{className}List(this string json) => string.IsNullOrWhiteSpace(json) ? new List<{className}>() : JsonSerializer.Deserialize<List<{className}>(json, {className}._defaultOptions);
-        //public static {className}[]{q} To{className}Array(this string json) => string.IsNullOrWhiteSpace(json) ? Array.Empty<{className}>() : JsonSerializer.Deserialize<{className}[]>(json, {className}._defaultOptions);");
+                //        sb.AppendLine($@"        public static string ToJson(this IEnumerable<{className}> items, bool isIndented = true) => JsonSerializer.Serialize(items, {className}._indentedOptions);
+                //public static List<{className}>{q} To{className}List(this string json) => string.IsNullOrWhiteSpace(json) ? new List<{className}>() : JsonSerializer.Deserialize<List<{className}>(json, {className}._defaultOptions);
+                //public static {className}[]{q} To{className}Array(this string json) => string.IsNullOrWhiteSpace(json) ? Array.Empty<{className}>() : JsonSerializer.Deserialize<{className}[]>(json, {className}._defaultOptions);");
 
 
 
 
                 //defaultを使うかclassのoptionsを使うか
                 var option = customConverters.Any() ? "isIndented ? " + className + "._specificIndentedOptions : " + className + "._specificOptions" :
-                    "isIndented ? " + DEFAULT_INDENTED_OPTION_NAME + " : "+ DEFAULT_NOTINDENTED_OPTION_NAME 
+                    "isIndented ? " + DEFAULT_INDENTED_OPTION_NAME + " : " + DEFAULT_NOTINDENTED_OPTION_NAME
                     ;
-                var option2 = customConverters.Any() ?  className + "._specificIndentedOptions" :
-                    DEFAULT_INDENTED_OPTION_NAME 
+                var option2 = customConverters.Any() ? className + "._specificIndentedOptions" :
+                    DEFAULT_INDENTED_OPTION_NAME
                     ;
 
                 sb.AppendLine($@"        public static string ToJson(this IEnumerable<{className}> items, bool isIndented = true)");
@@ -422,16 +462,33 @@ namespace FrostNova.Core.NativeAOT
 
                 sb.AppendLine($@"        public static List<{className}>{q} To{className}List(this string json)");
                 sb.AppendLine("         {");
-                sb.AppendLine($"            return string.IsNullOrWhiteSpace(json) ? new List<{className}>() : JsonSerializer.Deserialize<List<{className}>(json, {option2})");
+                sb.AppendLine($"            return string.IsNullOrWhiteSpace(json) ? new List<{className}>() : JsonSerializer.Deserialize<List<{className}>>(json, {option2});");
                 sb.AppendLine("         }");
                 sb.AppendLine($@"        public static {className}[]{q} To{className}Array(this string json)");
                 sb.AppendLine("         {");
-                sb.AppendLine($"            return string.IsNullOrWhiteSpace(json) ? Array.Empty<{className}>() : JsonSerializer.Deserialize<{className}[]>(json, {option2})");
+                sb.AppendLine($"            return string.IsNullOrWhiteSpace(json) ? Array.Empty<{className}>() : JsonSerializer.Deserialize<{className}[]>(json, {option2});");
                 sb.AppendLine("         }");
 
             }
 
             sb.AppendLine("    }");
         }
+
+       static string GetAccessibilityText(Accessibility accessibility)
+        {
+
+            return accessibility switch
+            {
+                Accessibility.Public => "public",
+                Accessibility.Internal => "internal",
+                Accessibility.Protected => "protected",
+                Accessibility.Private => "private",
+                Accessibility.ProtectedAndInternal => "protected internal",
+                Accessibility.ProtectedOrInternal => "private protected",
+                _ => "private",
+            };
+        }
+
+
     }
 }
