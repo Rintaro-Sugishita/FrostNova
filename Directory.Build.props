@@ -11,7 +11,6 @@
     <!--<ArtifactsPath>$(SolutionDir)\.artifacts</ArtifactsPath> -->
     <ArtifactsPath>$(MSBuildThisFileDirectory).artifacts</ArtifactsPath>
 
-    <ArtifactsPivots>$(MSBuildProjectName)\$(TargetFramework)\$(Configuration.ToLower())</ArtifactsPivots>
     <EmitEmbeddedSources>true</EmitEmbeddedSources>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
