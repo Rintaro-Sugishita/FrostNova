@@ -12,11 +12,27 @@
         <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
         <!--<DevelopmentDependency>true</DevelopmentDependency>-->
         <CompilerVisibleProperty  />
-        <Version>1.0.7</Version>
+        <Version>1.0.8</Version>
         <Description>NativeAOT optimized DeepClone source generator.</Description>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     </PropertyGroup>
+
+    <Target Name="ClearSelfFromNuGetCache"
+            AfterTargets="Build"
+            Condition="'$(Configuration)' == 'Debug'">
+
+        <PropertyGroup>
+            <_PackagePath>
+                $(NuGetPackageRoot)$([System.String]::Copy('$(PackageId)').ToLower())\$(Version)
+            </_PackagePath>
+        </PropertyGroup>
+
+        <Message Text="Clearing NuGet cache: $(_PackagePath)" Importance="high" />
+        <RemoveDir Directories="$(_PackagePath)"
+                   Condition="Exists('$(_PackagePath)')" />
+
+    </Target>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
