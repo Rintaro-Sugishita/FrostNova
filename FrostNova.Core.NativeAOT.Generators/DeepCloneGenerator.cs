@@ -441,44 +441,24 @@ public class DeepCloneGenerator : IIncrementalGenerator
 
     private static string BuildAssignment(IPropertySymbol prop, ImmutableDictionary<ITypeSymbol, ExternalCloneMap> methodMap)
     {
+
+
+        var attr = prop.GetAttributes()
+                .FirstOrDefault(a => a.AttributeClass?.Name == "DeepCloneAttribute");
+
+        // Modeを取得（デフォルトは Default）
+        var mode = attr != null ? (int)attr.ConstructorArguments[0].Value : 0;
+
+        if (mode == 2) // Ignore
+            return "// Ignored: " + prop.Name;
+
+        if (mode == 1) // Shallow
+            return $"target.{prop.Name} = source.{prop.Name};";
+
         var type = prop.Type;
         var name = prop.Name;
         var sourceExpr = $"source.{name}";
         var targetExpr = $"target.{name}";
-
-        //// ICollection を実装しており、かつ ReadOnly でない場合のみ Clear & Add を検討
-        //// (ITypeSymbol の拡張メソッドか直接判定)
-        //bool isReusableCollection = type.AllInterfaces.Any(i => i.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.ICollection<T>")
-        //                             && !type.ToDisplayString().Contains("ReadOnlyCollection");
-
-        //if (isReusableCollection)
-        //{
-        //    // 要素の型を取得 (Dictionary かどうかで分岐)
-        //    var namedType = type as INamedTypeSymbol;
-        //    string addLogic;
-
-        //    if (IsDictionary(namedType))
-        //    {
-        //        var kType = namedType!.TypeArguments[0];
-        //        var vType = namedType.TypeArguments[1];
-        //        // 要素のクローン式は GetCloneExpression に任せる
-        //        var kClone = GetCloneExpression(kType, "x.Key", methodMap);
-        //        var vClone = GetCloneExpression(vType, "x.Value", methodMap);
-        //        addLogic = $"{targetExpr}.Add({kClone}, {vClone});";
-        //    }
-        //    else
-        //    {
-        //        var eType = GetElementType(namedType)!;
-        //        var eClone = GetCloneExpression(eType, "x", methodMap);
-        //        addLogic = $"{targetExpr}.Add({eClone});";
-        //    }
-
-        //    return $@"if (updateReference || {targetExpr} == null) {{ {targetExpr} = {GetCloneExpression(type, sourceExpr, methodMap)}; }}
-        //else {{ 
-        //    {targetExpr}.Clear(); 
-        //    if ({sourceExpr} != null) foreach(var x in {sourceExpr}) {addLogic} 
-        //}}";
-        //}
         var counter = new VariableCounter();
         // コレクション以外、または再利用不可な場合は GetCloneExpression の結果を直接代入
         //return $"{targetExpr} = {GetCloneExpression(type, sourceExpr, methodMap, targetExpr)};";
@@ -594,13 +574,18 @@ public class DeepCloneGenerator : IIncrementalGenerator
 
         string resultExpr;
 
-        //TupleはImmutableとして判断されるため優先度を上げる
+        //Tupleの処理TupleはImmutableとして判断されるため優先度高
+        //if (actualType.IsTupleType && actualType is INamedTypeSymbol tuple)
         if (actualType.IsTupleType && actualType is INamedTypeSymbol tuple)
         {
             //// 各要素を再帰的にクローンする式を生成
             int id = counter.NextValue();
             string vName = $"v{id}";
             var valName = isNullable ? vName : sourcePath;
+
+            // 要素名を排除したクリーンな型名を取得 (例: (int, ImplementICloneableClass))
+            // SymbolDisplayFormat.MinimallyQualifiedFormat などを活用
+            var cleanTupleType = actualType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
 
             // 要素の再帰呼び出し
             var elements = tuple.TupleElements.Select(e =>
@@ -610,19 +595,29 @@ public class DeepCloneGenerator : IIncrementalGenerator
 
             if (isNullable)
             {
-                // ここがポイント：
-                // (int a, Class b) ではなく、要素名を省いた (int, Class) で判定する
-                // これにより、変数 a, b がスコープに導入されるのを防ぎます
-                var typeWithoutNames = actualType.WithNullableAnnotation(NullableAnnotation.None).ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                //// ここがポイント：
+                //// (int a, Class b) ではなく、要素名を省いた (int, Class) で判定する
+                //// これにより、変数 a, b がスコープに導入されるのを防ぎます
+                //var typeWithoutNames = actualType.WithNullableAnnotation(NullableAnnotation.None).ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
 
-                // 元の actualType.ToDisplayString() でも、要素名が含まれない形式を指定すればOK
-                string tupleType = actualType.ToDisplayString();
+                //// 元の actualType.ToDisplayString() でも、要素名が含まれない形式を指定すればOK
+                //string tupleType = actualType.ToDisplayString();
 
-                resultExpr = $"{sourcePath} is {tupleType} {vName} ? {tupleExpr} : ({tupleType}?)default";
+                //resultExpr = $"{sourcePath} is {tupleType} {vName} ? {tupleExpr} : ({tupleType}?)default";
+                // Nullableの場合は is 判定で値を vName に取り出す
+                // キャスト先も (int, ImplementICloneableClass)? のように要素名なしにする
+
+                var nonNullableType = actualType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                resultExpr = $"{sourcePath} is {cleanTupleType} {vName} ? {tupleExpr} :({nonNullableType}?) default";
             }
             else
             {
-                resultExpr = $"{sourcePath} == default ? default : {tupleExpr}";
+                // resultExpr = $"{sourcePath} == default ? default : {tupleExpr}";
+                // 非Nullableの場合は sourcePath をそのまま使う（valName経由）
+                //var valName = sourcePath;
+                var nonNullableElements = tuple.TupleElements.Select((e, idx) =>
+                    GetCloneExpression(e.Type, $"{valName}.Item{idx + 1}", methodMap, counter, null));
+                resultExpr = $"({string.Join(", ", nonNullableElements)})";
             }
             if (targetPath != null)
             {
@@ -631,12 +626,16 @@ public class DeepCloneGenerator : IIncrementalGenerator
                 {targetPath} = {resultExpr};
             }}";
             }
+            else
+            {
+                return resultExpr;
+            }
 
             //return targetPath != null ? $"{targetPath} = {resultExpr};" : resultExpr;
         }
 
 
-        // 1. 不変型・値型
+        // Tupleではない不変型・値型
         if (IsImmutableOrValueType(actualType))
         {
             return targetPath != null ? $"{targetPath} = {sourcePath};" : sourcePath;
@@ -710,17 +709,53 @@ public class DeepCloneGenerator : IIncrementalGenerator
                 : $"{sourcePath} == null ? null : new {createTypeName}({sourcePath}.Select(x => {e}){suffix})";
 
         }
+        //else if (actualType is IArrayTypeSymbol multiArray && multiArray.Rank > 1)
+        //{
+        //    //2次元配列
+        //    resultExpr = $"{sourcePath} == null ? null : ({multiArray.ToDisplayString()}){sourcePath}.Clone()";
+        //    // [*,*] のような出力を避けるため、要素型名 + カンマで型名を組み立てる
+        //    var commas = new string(',', multiArray.Rank - 1);
+        //    var elementTypeName = multiArray.ElementType.ToDisplayString();
+        //    var arrayTypeName = $"{elementTypeName}[{commas}]";
+
+        //    resultExpr = $"{sourcePath} == null ? null : ({arrayTypeName}){sourcePath}.Clone()";
+
+        //}
         else if (actualType is IArrayTypeSymbol multiArray && multiArray.Rank > 1)
         {
-            //2次元配列
-            resultExpr = $"{sourcePath} == null ? null : ({multiArray.ToDisplayString()}){sourcePath}.Clone()";
-            // [*,*] のような出力を避けるため、要素型名 + カンマで型名を組み立てる
-            var commas = new string(',', multiArray.Rank - 1);
             var elementTypeName = multiArray.ElementType.ToDisplayString();
+            var commas = new string(',', multiArray.Rank - 1);
             var arrayTypeName = $"{elementTypeName}[{commas}]";
 
-            resultExpr = $"{sourcePath} == null ? null : ({arrayTypeName}){sourcePath}.Clone()";
-
+            // 要素が不変型（intなど）なら Clone() でOK
+            if (IsImmutableOrValueType(multiArray.ElementType))
+            {
+                resultExpr = $"{sourcePath} == null ? null : ({arrayTypeName}){sourcePath}.Clone()";
+            }
+            else
+            {
+                // 要素が参照型なら、再帰的にクローンするヘルパーを呼ぶか、その場でループを回す
+                // 今回はシンプルに、要素ごとに DeepClone を呼ぶコードを生成します（2次元の例）
+                if (multiArray.Rank == 2)
+                {
+                    int id = counter.NextValue();
+                    string vName = $"arr{id}";
+                    // 2次元配列を全走査してコピーする即席コード
+                    resultExpr = $@"((Func<{arrayTypeName}, {arrayTypeName}?>)((src) => {{
+                if (src == null) return null;
+                var dest = new {elementTypeName}[src.GetLength(0), src.GetLength(1)];
+                for (int i = 0; i < src.GetLength(0); i++)
+                    for (int j = 0; j < src.GetLength(1); j++)
+                        dest[i, j] = {GetCloneExpression(multiArray.ElementType, "src[i, j]", methodMap, counter, null)};
+                return dest;
+            }}))({sourcePath})";
+                }
+                else
+                {
+                    // 3次元以上は一旦 Clone() に逃げるか、汎用ヘルパーに飛ばす（今回は暫定でClone）
+                    resultExpr = $"{sourcePath} == null ? null : ({arrayTypeName}){sourcePath}.Clone()";
+                }
+            }
         }
         // 3. 単体オブジェクトのクローン
         else if (HasDeepCloneAttribute(actualType) || IsDeepCloneable(actualType))
@@ -739,7 +774,9 @@ public class DeepCloneGenerator : IIncrementalGenerator
             var castType = actualType.WithNullableAnnotation(NullableAnnotation.None).ToDisplayString();
             resultExpr = $"{sourcePath}?.Clone() as {castType}";
         }
-        else if (actualType.SpecialType == SpecialType.System_Object || actualType.TypeKind == TypeKind.TypeParameter)
+        else if (actualType.SpecialType == SpecialType.System_Object ||
+                    actualType.TypeKind == TypeKind.Interface ||
+                    actualType.TypeKind == TypeKind.TypeParameter)
         {
             // 実行時に動的にチェックするコードを生成
             // actualType.ToDisplayString() が "T" や "object" になる
