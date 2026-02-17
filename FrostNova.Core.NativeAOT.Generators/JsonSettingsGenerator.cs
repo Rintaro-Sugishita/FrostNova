@@ -294,12 +294,30 @@ namespace FrostNova.Core.NativeAOT
         public static {className}{q} FromJson(string json) 
         {{
             if (string.IsNullOrWhiteSpace(json)) return null;
-            try {{ return JsonSerializer.Deserialize<{className}>(json, {option2}); }}
+            try
+            {{
+                var a = JsonSerializer.Deserialize<{className}>(json, {option2});
+                AfterDeserialize(a);
+                return a;
+            }}
             catch {{ return null; }}
         }}
         {genAttr}
-        public string ToJson(bool isIndented = true) => JsonSerializer.Serialize(this, {option});");
+        public string ToJson(bool isIndented = true)
+        {{
+            BeforeSerialize(); 
+            JsonSerializer.Serialize(this, {option});
+        }}
+
+");
             }
+
+            sb.AppendLine($@"
+        {genAttr}
+        partial void BeforeSerialize();
+        {genAttr}
+        partial static void AfterDeserialize({className} value);
+        ");
 
             GenerateFileIOMethods(sb, q, className, contextTypeName, customConverters, genAttr);
             if (getPathMethodName != null) GenerateSettingsMethods(sb, className, getPathMethodName, genAttr);
