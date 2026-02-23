@@ -269,15 +269,36 @@ namespace FrostNova.Core.NativeAOT
             if (contextTypeName != null)
             {
                 sb.AppendLine($@"
-        {genAttr}
+        /// <summary>
+        /// Deserializes the specified JSON string into a <see cref=""{{className}}""/> object.
+        /// </summary>
+        /// <param name=""json"">The JSON string to deserialize.</param>
+        /// <returns>A <see cref=""{{className}}""/> object, or <see langword=""null""/> if the string is null, empty, or invalid.</returns>        {genAttr}
         public static {className}{q} FromJson(string json) 
         {{
             if (string.IsNullOrWhiteSpace(json)) return null;
-            try {{ return JsonSerializer.Deserialize(json, _indentedContext.{className}); }}
+            try
+            {{
+                var a = JsonSerializer.Deserialize(json, _indentedContext.{className});
+                a?.AfterDeserialize();
+                return a;
+            }}
             catch {{ return null; }}
         }}
+
+        /// <summary>
+        /// Serializes the current instance to a JSON string.
+        /// </summary>
+        /// <param name=""isIndented""><see langword=""true""/> to format the JSON with indentation; otherwise, <see langword=""false""/>. Default is <see langword=""true""/>.</param>
+        /// <returns>A JSON string representation of the current instance.</returns>
         {genAttr}
-        public string ToJson(bool isIndented = true) => JsonSerializer.Serialize(this, isIndented ? _indentedContext.{className} : _defaultContext.{className});");
+        public string ToJson(bool isIndented = true)
+        {{
+            BeforeSerialize();
+            return JsonSerializer.Serialize(this, isIndented ? _indentedContext.{className} : _defaultContext.{className});
+        }}");
+
+
             }
             else
             {
@@ -290,6 +311,11 @@ namespace FrostNova.Core.NativeAOT
                     ;
 
                 sb.AppendLine($@"
+        /// <summary>
+        /// Deserializes the specified JSON string into a <see cref=""{{className}}""/> object.
+        /// </summary>
+        /// <param name=""json"">The JSON string to deserialize.</param>
+        /// <returns>A <see cref=""{{className}}""/> object, or <see langword=""null""/> if the string is null, empty, or invalid.</returns>
         {genAttr}
         public static {className}{q} FromJson(string json) 
         {{
@@ -297,26 +323,38 @@ namespace FrostNova.Core.NativeAOT
             try
             {{
                 var a = JsonSerializer.Deserialize<{className}>(json, {option2});
-                AfterDeserialize(a);
+                a.AfterDeserialize();
                 return a;
             }}
             catch {{ return null; }}
         }}
+
+        /// <summary>
+        /// Serializes the current instance to a JSON string.
+        /// </summary>
+        /// <param name=""isIndented""><see langword=""true""/> to format the JSON with indentation; otherwise, <see langword=""false""/>. Default is <see langword=""true""/>.</param>
+        /// <returns>A JSON string representation of the current instance.</returns>
         {genAttr}
         public string ToJson(bool isIndented = true)
         {{
             BeforeSerialize(); 
-            JsonSerializer.Serialize(this, {option});
+            return JsonSerializer.Serialize(this, {option});
         }}
 
 ");
             }
 
             sb.AppendLine($@"
+        /// <summary>
+        /// Extensibility method called before the serialization process starts.
+        /// </summary>
         {genAttr}
         partial void BeforeSerialize();
-        {genAttr}
-        partial static void AfterDeserialize({className} value);
+
+        /// <summary>
+        /// Extensibility method called after the deserialization process is completed.
+        /// </summary>        {genAttr}
+        partial void AfterDeserialize();
         ");
 
             GenerateFileIOMethods(sb, q, className, contextTypeName, customConverters, genAttr);

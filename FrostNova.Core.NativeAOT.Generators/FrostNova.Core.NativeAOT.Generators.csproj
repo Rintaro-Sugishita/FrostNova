@@ -11,16 +11,15 @@
         <IsRoslynComponent>true</IsRoslynComponent>
         <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
         <!--<DevelopmentDependency>true</DevelopmentDependency>-->
-        <CompilerVisibleProperty  />
+        <CompilerVisibleProperty />
         <Version>1.0.8</Version>
         <Description>NativeAOT optimized DeepClone source generator.</Description>
+        <PackageReadmeFile>readme.md</PackageReadmeFile>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     </PropertyGroup>
 
-    <Target Name="ClearSelfFromNuGetCache"
-            AfterTargets="Build"
-            Condition="'$(Configuration)' == 'Debug'">
+    <Target Name="ClearSelfFromNuGetCache" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
 
         <PropertyGroup>
             <_PackagePath>
@@ -29,8 +28,7 @@
         </PropertyGroup>
 
         <Message Text="Clearing NuGet cache: $(_PackagePath)" Importance="high" />
-        <RemoveDir Directories="$(_PackagePath)"
-                   Condition="Exists('$(_PackagePath)')" />
+        <RemoveDir Directories="$(_PackagePath)" Condition="Exists('$(_PackagePath)')" />
 
     </Target>
 
@@ -51,5 +49,12 @@
             <Visible>false</Visible>
             <PackagePath>analyzers/dotnet/cs/</PackagePath>
         </None>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <None Update="readme.md">
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+      </None>
     </ItemGroup>
 </Project>
