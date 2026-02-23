@@ -10,6 +10,7 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Tests/FrostNova.Core.NativeAOTTest/FrostNova.Core.NativeAOTTest.csproj" Id="b9e30476-736b-45c6-9725-d8732f5b7e00" />
+    <Project Path="Tests/FrostNova.Core.TableWorkTest/FrostNova.Core.TableWorkTest.csproj" Id="624e4bee-41d0-40f0-bab3-0830dfa57155" />
     <Project Path="Tests/FrostNova.Core.WpfTest/FrostNova.Core.WpfTest.csproj" />
     <Project Path="Tests/FrostNova.CoreTest/FrostNova.CoreTest.csproj" />
   </Folder>

@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows7.0;net9.0-windows7.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+      <Version>0.0.10</Version>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <ProjectReference Include="..\FrostNova.Core.ExcelWork\FrostNova.Core.ExcelWork.csproj" />
+    <ProjectReference Include="..\FrostNova.Core\FrostNova.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+    <PackageReference Include="FrostNova.Core" Version="0.0.11" />
+    <PackageReference Include="FrostNova.Core.ExcelWork" Version="0.0.8" />
+  </ItemGroup>
+
+</Project>

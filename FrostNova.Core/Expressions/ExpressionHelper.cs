@@ -1,4 +1,4 @@
-﻿using FrostNova.Core.TypeToolkit;
+using FrostNova.Core.TypeToolkit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -192,6 +192,39 @@ namespace FrostNova.Core.Expressions
             }
 
             lastProp.SetValue(obj, value);
+        }
+
+        /// <summary>
+        /// 指定された Expression から、高速に値をセットするための Action デリゲートを作成します。
+        /// x => x.A.B.C のような深い階層にも対応します。
+        /// </summary>
+        public static Action<TModel, TProperty?>? CreateSetter<TModel, TProperty>(Expression<Func<TModel, TProperty?>> selector)
+        {
+            if (selector.Body is not MemberExpression memberExpr) return null;
+
+            // 最終的なターゲットプロパティ (例: C)
+            var property = memberExpr.Member as PropertyInfo;
+            if (property == null || !property.CanWrite) return null;
+
+            var modelParam = Expression.Parameter(typeof(TModel), "model");
+            var valueParam = Expression.Parameter(typeof(TProperty), "value");
+
+            // 親パス (例: x.A.B) を再構築する
+            // selector.Parameters[0] を modelParam に差し替えてたどる
+            var parentExpr = ReplaceParameter(memberExpr.Expression, selector.Parameters[0], modelParam);
+
+            // 代入式 (例: model.A.B.C = value)
+            var assignExpr = Expression.Assign(Expression.Property(parentExpr, property), valueParam);
+
+            return Expression.Lambda<Action<TModel, TProperty?>>(assignExpr, modelParam, valueParam).Compile();
+        }
+
+        private static Expression ReplaceParameter(Expression expr, ParameterExpression oldParam, ParameterExpression newParam)
+        {
+            if (expr == oldParam) return newParam;
+            if (expr is MemberExpression me)
+                return Expression.MakeMemberAccess(ReplaceParameter(me.Expression, oldParam, newParam), me.Member);
+            return expr;
         }
     }
 }

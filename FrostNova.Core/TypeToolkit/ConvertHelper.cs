@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -45,7 +45,7 @@ namespace FrostNova.Core.TypeToolkit
         /// <param name="obj"></param>
         /// <param name="def"></param>
         /// <returns></returns>
-        public static decimal ConvToDec(object obj, decimal def = 0)
+        public static decimal ConvToDec(object? obj, decimal def = 0)
         {
             var retValue = ConvToDecNull(obj, def);
             return retValue ?? def;
@@ -80,7 +80,7 @@ namespace FrostNova.Core.TypeToolkit
         /// <param name="obj"></param>
         /// <param name="def"></param>
         /// <returns></returns>
-        public static double ConvToDbl(object obj, double def = 0D)
+        public static double ConvToDbl(object? obj, double def = 0D)
         {
             var retValue = ConvToDblNull(obj, def);
             return retValue ?? def;
@@ -146,7 +146,7 @@ namespace FrostNova.Core.TypeToolkit
 
         }
 
-        public static long ConvToLong(object obj, long def = 0)
+        public static long ConvToLong(object? obj, long def = 0)
         {
             var retValue = ConvToLongNull(obj, def);
             return retValue ?? def;
@@ -178,7 +178,7 @@ namespace FrostNova.Core.TypeToolkit
         }
 
 
-        public static string ConvToStr(object obj, string def = "")
+        public static string ConvToStr(object? obj, string def = "")
         {
             var retValue = ConvToStrNull(obj, def);
             return retValue ?? def;
@@ -196,7 +196,7 @@ namespace FrostNova.Core.TypeToolkit
             }
         }
 
-        public static bool ConvToBool(object obj, bool def = false)
+        public static bool ConvToBool(object? obj, bool def = false)
         {
             var retValue = ConvToBoolNull(obj, def);
             return retValue ?? def;
@@ -234,7 +234,7 @@ namespace FrostNova.Core.TypeToolkit
 
         }
 
-        public static DateTime ConvToDateTime(object obj, DateTime def = default, string? parseFormat = null)
+        public static DateTime ConvToDateTime(object? obj, DateTime def = default, string? parseFormat = null)
         {
             var retValue = ConvToDateTimeNull(obj, def, parseFormat);
             return retValue ?? def;
@@ -275,7 +275,7 @@ namespace FrostNova.Core.TypeToolkit
             }
         }
 
-        public static TimeSpan ConvToTimeSpan(object obj, TimeSpan def = default)
+        public static TimeSpan ConvToTimeSpan(object? obj, TimeSpan def = default)
         {
             var retValue = ConvToTimeSpanNull(obj, def);
             return retValue ?? def;
