@@ -323,7 +323,7 @@ namespace FrostNova.Core.NativeAOT
             try
             {{
                 var a = JsonSerializer.Deserialize<{className}>(json, {option2});
-                a.AfterDeserialize();
+                a?.AfterDeserialize();
                 return a;
             }}
             catch {{ return null; }}
