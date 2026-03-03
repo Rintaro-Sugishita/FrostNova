@@ -5,7 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-      <Version>0.0.10</Version>
+      <Version>1.1.1</Version>
+      <PackageReadmeFile>readme.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
@@ -16,5 +17,11 @@
     <PackageReference Include="FrostNova.Core" Version="0.0.11" />
     <PackageReference Include="FrostNova.Core.ExcelWork" Version="0.0.8" />
   </ItemGroup>
+    <ItemGroup>
+        <None Include="readme.md">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+    </ItemGroup>
 
 </Project>
