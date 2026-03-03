@@ -1,4 +1,4 @@
-﻿using FrostNova.Core.Wpf.Behaviors;
+using FrostNova.Core.Wpf.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -63,6 +63,28 @@ namespace FrostNova.Core.Wpf.AttachedProperties
         {
             target.SetValue(UseSyncProperty, value);
         }
+
+
+        public static readonly DependencyProperty IsGeneratedProperty =
+             DependencyProperty.RegisterAttached(
+                 "IsGenerated",
+                 typeof(bool),
+                 typeof(DataGridColumnEx),
+                 new PropertyMetadata(false, OnIsGeneratedChanged));
+
+        public static bool GetIsGenerated(DependencyObject element) => (bool)element.GetValue(IsGeneratedProperty);
+
+        public static void SetIsGenerated(DependencyObject element, bool value) => element.SetValue(IsGeneratedProperty, value);
+
+        private static void OnIsGeneratedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DependencyObject ctrl)
+            {
+
+            }
+        }
+
+
 
     }
 }
