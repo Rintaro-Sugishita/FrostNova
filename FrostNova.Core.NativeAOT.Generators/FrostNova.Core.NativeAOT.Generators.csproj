@@ -18,6 +18,9 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     </PropertyGroup>
+    <ItemGroup Condition="'$(Configuration)' == 'Release'">
+        <PackageReference Include="FrostNova.Core.NativeAOT.Abstractions" Version="1.0.5" />
+    </ItemGroup>
 
     <Target Name="ClearSelfFromNuGetCache" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
 
