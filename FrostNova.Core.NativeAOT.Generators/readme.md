@@ -87,6 +87,19 @@ public partial class AppSettings { ... }
 * `LoadFromFileAsync(string path)` / `SaveToFileAsync(string path)`.
 * **Collection Extensions**: Generates `ToClassNameList()` and `ToClassNameArray()` for JSON strings.
 
+### Interface Support (for .NET 8+)
+The generated classes automatically implement the `IJsonSerializable<T>` interface when targeting .NET 8.0 or greater. This allows you to handle various settings classes generically:
+
+```csharp
+public void ProcessConfig<T>(string path) where T : IJsonSerializable<T>
+{
+    T? settings = T.LoadFromFile(path);
+    if (settings != null)
+    {
+        Console.WriteLine(settings.ToJson());
+    }
+}
+```
 ---
 
 ## Lifecycle Hooks
