@@ -14,6 +14,9 @@ public class ExtensionColumnInfo
     public string HeaderText { get; set; } = string.Empty;
     public ColumnType Type { get; set; }
     public bool IsReadOnly { get; set; } = false;
+
+    public bool CanUserSort { get; set; } = true;
+
     public Visibility Visibility { get; set; } = Visibility.Visible;
 
     public string Width { get; set; } = "Auto";
@@ -24,4 +27,5 @@ public class ExtensionColumnInfo
     // コマンドに渡す固定パラメーター（必要であれば）
     public object CommandParameter { get; set; }
     public List<ComboBoxOption> Options { get; set; } = new();
+
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -9,7 +9,7 @@ using System.Windows.Input;
 
 namespace FrostNova.Core.Common
 {
-    public class ObservableDictionary<TKey, TValue> : CollectionBasedDictionary<TKey, TValue>, INotifyCollectionChanged, INotifyPropertyChanged, ICloneable where TKey : notnull where TValue : notnull
+    public class ObservableDictionary<TKey, TValue> : CollectionBasedDictionary<TKey, TValue?>, INotifyCollectionChanged, INotifyPropertyChanged, ICloneable where TKey : notnull
     {
         #region Constructor
         /// <summary>
@@ -38,7 +38,7 @@ namespace FrostNova.Core.Common
         /// <exception cref="T:System.ArgumentException">
         ///   <paramref name="dictionary" /> に、1 つ以上の重複するキーが格納されています。
         /// </exception>
-        public ObservableDictionary(IDictionary<TKey, TValue> dictionary)
+        public ObservableDictionary(IDictionary<TKey, TValue?> dictionary)
             : base(dictionary)
         {
         }
@@ -77,7 +77,7 @@ namespace FrostNova.Core.Common
         /// <exception cref="T:System.ArgumentException">
         ///   <paramref name="dictionary" /> に、1 つ以上の重複するキーが格納されています。
         /// </exception>
-        public ObservableDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer)
+        public ObservableDictionary(IDictionary<TKey, TValue?> dictionary, IEqualityComparer<TKey> comparer)
             : base(dictionary, comparer)
         {
         }
@@ -85,7 +85,7 @@ namespace FrostNova.Core.Common
 
         #region Field
         private const string DictionaryName = "Dictionary";
-        private const string ItemsName = "Items[]";
+        private const string ItemsName = "Item[]";
         private const string KeysName = "Keys[]";
         private const string ValuesName = "Values[]";
         private const string CountName = "Count";
@@ -140,7 +140,7 @@ namespace FrostNova.Core.Common
             }
         }
 
-        private void OnCollectionAdded(KeyValuePair<TKey, TValue> changedItem, int startingIndex)
+        private void OnCollectionAdded(KeyValuePair<TKey, TValue?> changedItem, int startingIndex)
         {
             OnPropertyChanged(DictionaryName);
             OnPropertyChanged(ItemsName);
@@ -148,7 +148,7 @@ namespace FrostNova.Core.Common
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, changedItem, startingIndex));
         }
 
-        private void OnCollectionRemoved(KeyValuePair<TKey, TValue> changedItem, int startingIndex)
+        private void OnCollectionRemoved(KeyValuePair<TKey, TValue?> changedItem, int startingIndex)
         {
             OnPropertyChanged(DictionaryName);
             OnPropertyChanged(ItemsName);
@@ -158,7 +158,7 @@ namespace FrostNova.Core.Common
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, changedItem, startingIndex));
         }
 
-        private void OnCollectionMoved(KeyValuePair<TKey, TValue> changedItem, int index, int oldIndex)
+        private void OnCollectionMoved(KeyValuePair<TKey, TValue?> changedItem, int index, int oldIndex)
         {
             OnPropertyChanged(DictionaryName);
             OnPropertyChanged(ItemsName);
@@ -167,7 +167,7 @@ namespace FrostNova.Core.Common
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Move, changedItem, index, oldIndex));
         }
 
-        private void OnCollectionReplaced(KeyValuePair<TKey, TValue> newItem, KeyValuePair<TKey, TValue> oldItem)
+        private void OnCollectionReplaced(KeyValuePair<TKey, TValue?> newItem, KeyValuePair<TKey, TValue?> oldItem)
         {
             OnPropertyChanged(DictionaryName);
             OnPropertyChanged(ItemsName);
@@ -193,9 +193,9 @@ namespace FrostNova.Core.Common
         /// </summary>
         /// <param name="index">置き換えられる項目の 0 から始まるインデックス。</param>
         /// <param name="item">新しい項目。</param>
-        protected override void SetItem(int index, KeyValuePair<TKey, TValue> item)
+        protected override void SetItem(int index, KeyValuePair<TKey, TValue?> item)
         {
-            KeyValuePair<TKey, TValue> oldItem = this[index];
+            KeyValuePair<TKey, TValue?> oldItem = this[index];
             base.SetItem(index, item);
             OnCollectionReplaced(item, oldItem);
         }
@@ -213,7 +213,7 @@ namespace FrostNova.Core.Common
         ///   <paramref name="index" /> が 0 未満です。
         ///   または<paramref name="index" /> が <see cref="P:System.Collections.Generic.ObservableDictionary`2Count" /> より大きくなっています。
         /// </exception>
-        protected override void InsertItem(int index, KeyValuePair<TKey, TValue> item)
+        protected override void InsertItem(int index, KeyValuePair<TKey, TValue?> item)
         {
             if (!this.ContainsKey(item.Key))
             {
@@ -228,7 +228,7 @@ namespace FrostNova.Core.Common
         /// <param name="index">削除する要素のインデックス。</param>
         protected override void RemoveItem(int index)
         {
-            KeyValuePair<TKey, TValue> removedItem = this[index];
+            KeyValuePair<TKey, TValue?> removedItem = this[index];
             base.RemoveItem(index);
             OnCollectionRemoved(removedItem, index);
         }

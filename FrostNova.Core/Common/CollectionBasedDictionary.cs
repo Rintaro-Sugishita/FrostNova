@@ -1,15 +1,16 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace FrostNova.Core.Common
 {
-    public class CollectionBasedDictionary<TKey, TValue> : KeyedCollection<TKey, KeyValuePair<TKey, TValue>>, IDictionary<TKey, TValue> where TKey : notnull where TValue : notnull
+    public class CollectionBasedDictionary<TKey, TValue> : KeyedCollection<TKey, KeyValuePair<TKey, TValue?>>, IDictionary<TKey, TValue?> where TKey : notnull 
     {
         #region Constructor
         /// <summary>
@@ -37,7 +38,7 @@ namespace FrostNova.Core.Common
         /// <exception cref="T:System.ArgumentException">
         ///   <paramref name="dictionary" /> に、1 つ以上の重複するキーが格納されています。
         /// </exception>
-        public CollectionBasedDictionary(IDictionary<TKey, TValue> dictionary)
+        public CollectionBasedDictionary(IDictionary<TKey, TValue?> dictionary)
             : base()
         {
             foreach (var kvp in dictionary)
@@ -80,7 +81,7 @@ namespace FrostNova.Core.Common
         /// <exception cref="T:System.ArgumentException">
         ///   <paramref name="dictionary" /> に、1 つ以上の重複するキーが格納されています。
         /// </exception>
-        public CollectionBasedDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer)
+        public CollectionBasedDictionary(IDictionary<TKey, TValue?> dictionary, IEqualityComparer<TKey> comparer)
             : base(comparer)
         {
             foreach (var kvp in dictionary)
@@ -96,7 +97,7 @@ namespace FrostNova.Core.Common
         /// </summary>
         /// <returns>指定した要素のキー。</returns>
         /// <param name="item">キーの抽出元要素。</param>
-        protected override TKey GetKeyForItem(KeyValuePair<TKey, TValue> item)
+        protected override TKey GetKeyForItem(KeyValuePair<TKey, TValue?> item)
         {
             return item.Key;
         }
@@ -124,7 +125,7 @@ namespace FrostNova.Core.Common
         ///   <see cref="T:System.Collections.Generic.CollectionBasedDictionary`2" /> 内の値を
         ///   格納しているコレクションを取得します。
         /// </summary>
-        public ICollection<TValue> Values
+        public ICollection<TValue?> Values
         {
             get
             {
@@ -155,7 +156,7 @@ namespace FrostNova.Core.Common
         /// <exception cref="T:System.Collections.Generic.KeyNotFoundException">
         ///   プロパティが取得されましたが、コレクション内に <paramref name="key" /> が存在しません。
         /// </exception>
-        public new TValue this[TKey key]
+        public new TValue? this[TKey key]
         {
             get
             {
@@ -168,11 +169,25 @@ namespace FrostNova.Core.Common
             set
             {
                 // KeyValuePair を作成して追加 or 置換する。
-                KeyValuePair<TKey, TValue> newValue = new KeyValuePair<TKey, TValue>(key, value);
-                KeyValuePair<TKey, TValue> oldValue;
-                if (base.Contains(newValue) && base.Dictionary != null)
+                KeyValuePair<TKey, TValue?> newValue = new KeyValuePair<TKey, TValue?>(key, value);
+                //KeyValuePair<TKey, TValue> oldValue;
+                //if (base.Dictionary.Contains(newValue) && base.Dictionary != null)
+                //{
+                //    oldValue = base.Dictionary[key];
+                //    var index = Items.IndexOf(oldValue);
+                //    SetItem(index, newValue);
+                //}
+                //else
+                //{
+                //    base.Add(newValue);
+                //}
+                //KeyValuePair<TKey, TValue> newValue = new KeyValuePair<TKey, TValue>(key, value);
+                // 修正: 既存判定に KeyValuePair の等価比較を使うと
+                // 「同じキーだが値が違う」場合に false となり更新されないため、
+                // キーの存在で判定するように変更。
+                if (base.Dictionary != null && base.Dictionary.ContainsKey(key))
                 {
-                    oldValue = base.Dictionary[key];
+                    var oldValue = base.Dictionary[key];
                     var index = Items.IndexOf(oldValue);
                     SetItem(index, newValue);
                 }
@@ -194,10 +209,10 @@ namespace FrostNova.Core.Common
         /// <exception cref="T:System.ArgumentException">
         ///   同じキーを持つ要素が、<see cref="T:System.Collections.Generic.CollectionBasedDictionary`2" /> に既に存在します。
         /// </exception>
-        public void Add(TKey key, TValue value)
+        public void Add(TKey key, TValue? value)
         {
             // KeyValuePair を作成して追加する。
-            var kvp = new KeyValuePair<TKey, TValue>(key, value);
+            var kvp = new KeyValuePair<TKey, TValue?>(key, value);
             Add(kvp);
         }
 
@@ -235,9 +250,9 @@ namespace FrostNova.Core.Common
         /// <exception cref="T:System.ArgumentNullException">
         ///   <paramref name="key" /> が null です。
         /// </exception>
-        public bool TryGetValue(TKey key, out TValue value)
+        public bool TryGetValue(TKey key, out TValue? value)
         {
-            KeyValuePair<TKey, TValue> kvp = new KeyValuePair<TKey, TValue>();
+            KeyValuePair<TKey, TValue?> kvp = new KeyValuePair<TKey, TValue?>();
 
             // 取得した KeyValuePair から Value を抜き出す。
             if (Dictionary?.TryGetValue(key, out kvp) == true)

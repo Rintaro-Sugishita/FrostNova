@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Controls;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -12,6 +13,7 @@ using FrostNova.Core.Wpf;
 using FrostNova.Core.Wpf.AttachedProperties;
 using FrostNova.Core.Wpf.Controls.Dialogs;
 using FrostNova.Core.Wpf.Messages;
+using FrostNova.Core.Wpf.Models.DataGrdExtCols;
 
 namespace FrostNova.Core.Wpf.Controls.Sample
 {
@@ -28,6 +30,17 @@ namespace FrostNova.Core.Wpf.Controls.Sample
 
         [ObservableProperty]
         private NotifyCollection<DataGridSampleModel1> _samples = new NotifyCollection<DataGridSampleModel1>();
+        [ObservableProperty]
+        private NotifyCollection<DataGridSampleModel2> _samples2 = new NotifyCollection<DataGridSampleModel2>();
+
+        [ObservableProperty]
+        private NotifyCollection<ExtensionColumnInfo> _extCols = new NotifyCollection<ExtensionColumnInfo>();
+
+        [ObservableProperty]
+        private NotifyCollection<ColumnType> _colTypes = new NotifyCollection<ColumnType>(Enum.GetValues(typeof(ColumnType)).Cast<ColumnType>());
+
+        [ObservableProperty]
+        private ColumnType _selectedColType;
 
         [ObservableProperty]
         private List<object> _selectedSamples = new List<object>();
@@ -48,11 +61,18 @@ namespace FrostNova.Core.Wpf.Controls.Sample
         {
             base.InitializeOnExecute();
             Samples.Clear();
-            Samples.Add(new DataGridSampleModel1() {ColumnValue = "aaaa", NumValue = 20,MultiLineText="aaa\nbbbb" });
-            Samples.Add(new DataGridSampleModel1() {ColumnValue = "bbbb", NumValue = 40 });
-            Samples.Add(new DataGridSampleModel1() {ColumnValue = "cccc", NumValue = 60 });
-            Samples.Add(new DataGridSampleModel1() {ColumnValue = "cccc", NumValue = 80 });
-            Samples.Add(new DataGridSampleModel1() {ColumnValue = "dddd", NumValue = 100 });
+            Samples.Add(new DataGridSampleModel1() { ColumnValue = "aaaa", NumValue = 20, MultiLineText = "aaa\nbbbb" });
+            Samples.Add(new DataGridSampleModel1() { ColumnValue = "bbbb", NumValue = 40 });
+            Samples.Add(new DataGridSampleModel1() { ColumnValue = "cccc", NumValue = 60 });
+            Samples.Add(new DataGridSampleModel1() { ColumnValue = "cccc", NumValue = 80 });
+            Samples.Add(new DataGridSampleModel1() { ColumnValue = "dddd", NumValue = 100 });
+
+
+            Samples2.Clear();
+            Samples2.Add(new DataGridSampleModel2() { ColumnValue = "aaaa" });
+            Samples2.Add(new DataGridSampleModel2() { ColumnValue = "bbbb" });
+            Samples2.Add(new DataGridSampleModel2() { ColumnValue = "cccc" });
+            Samples2.Add(new DataGridSampleModel2() { ColumnValue = "dddd" });
 
             MessageBox = new FrostNovaMessageBox();
 
@@ -64,13 +84,13 @@ namespace FrostNova.Core.Wpf.Controls.Sample
         private void SelectedItemsChanged(List<object> selected)
         {
 
-            using (var _= new OperationScope(SelectedIndices))
+            using (var _ = new OperationScope(SelectedIndices))
             {
                 SelectedIndices.Clear();
                 foreach (var item in selected)
                 {
                     var index = Samples.IndexOf((item as DataGridSampleModel1)!);
-                    SelectedIndices.Add(index+1);
+                    SelectedIndices.Add(index + 1);
                 }
             }
 
@@ -94,6 +114,68 @@ namespace FrostNova.Core.Wpf.Controls.Sample
         private void ShowWarningMessage()
         {
             MessageBox?.Show("warning!!!", button: System.Windows.MessageBoxButton.OKCancel, icon: System.Windows.MessageBoxImage.Warning);
+        }
+
+        [RelayCommand]
+        private void AddCustomColumn()
+        {
+            var newCol = new ExtensionColumnInfo() { HeaderText = $"CustomCol{ExtCols.Count}", UniqueKey = $"CustomCol{ExtCols.Count}", };
+
+            newCol.Type = SelectedColType;
+            newCol.Command = RunCustomColumnCommand;
+
+            newCol.Options = new List<ComboBoxOption>()
+            {
+                new ComboBoxOption() { Value = "1", Label = "Vla1" },
+                new ComboBoxOption() { Value = "2", Label = "Vla2" },
+                new ComboBoxOption() { Value = "3", Label = "Vla3" },
+            };
+
+            foreach (var item in Samples2)
+            {
+               (string key, object value )pair =  newCol.Type switch
+                {
+                    ColumnType.text => (newCol.UniqueKey, string.Empty),
+                    ColumnType.checkBox => (newCol.UniqueKey, false),
+                    ColumnType.date => (newCol.UniqueKey, DateTime.Today),
+                    ColumnType.comboBox => (newCol.UniqueKey,newCol.Options.First().Value),
+                    ColumnType.numeric => (newCol.UniqueKey, 0m),
+                    ColumnType.button => (newCol.UniqueKey, string.Empty),
+                    _ => (newCol.UniqueKey, string.Empty)
+
+                };
+                item.CustomItems.Add(pair.key, pair.value);
+            }
+
+            ExtCols.Add(newCol);
+        }
+
+        [RelayCommand]
+        private void ApplyTo()
+        {
+            foreach (var item in Samples2)
+            {
+                foreach (var item2 in ExtCols)
+                {
+                    if (item2.Type == ColumnType.text)
+                    {
+                        item.CustomItems[item2.UniqueKey] = "aaa";
+                    }
+                }
+
+
+
+            }
+        }
+
+        [RelayCommand]
+        private void RunCustomColumn(object parameter)
+        {
+            if (parameter is DataGridSampleModel2 colInfo)
+            {
+                MessageBox?.Show($"Command executed for {colInfo.ColumnValue}");
+            }
+
         }
     }
 }

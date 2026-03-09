@@ -46,7 +46,7 @@ namespace FrostNova.Core.Wpf.AttachedProperties
         }
 
         /// <summary>
-        /// command with argument type List<object>
+        /// command with argument type List
         /// </summary>
         public static readonly DependencyProperty SelectedItemsChangeCommandProperty =
                     DependencyProperty.RegisterAttached(
@@ -97,6 +97,48 @@ namespace FrostNova.Core.Wpf.AttachedProperties
             }
         }
 
+        public static readonly DependencyProperty ExtColumnBindingPathProperty =
+            DependencyProperty.RegisterAttached(
+                "ExtColumnBindingPath",
+                typeof(string),
+                typeof(DataGridEx),
+                new PropertyMetadata("CustomItems", OnExtColumnBindingPathChanged));
+
+        public static string GetExtColumnBindingPath(DataGrid element) => (string)element.GetValue(ExtColumnBindingPathProperty);
+
+        public static void SetExtColumnBindingPath(DataGrid element, string value) => element.SetValue(ExtColumnBindingPathProperty, value);
+
+        private static void OnExtColumnBindingPathChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DataGrid ctrl)
+            {
+
+            }
+        }
+
+
+        public static readonly DependencyProperty ExtColumnInsertIndexProperty =
+            DependencyProperty.RegisterAttached(
+                "ExtColumnInsertIndex",
+                typeof(int?),
+                typeof(DataGridEx),
+                new PropertyMetadata(null, OnExtColumnInsertIndexChanged));
+
+        public static int? GetExtColumnInsertIndex(DataGrid element) => (int?)element.GetValue(ExtColumnInsertIndexProperty);
+
+        public static void SetExtColumnInsertIndex(DataGrid element, int? value) => element.SetValue(ExtColumnInsertIndexProperty, value);
+
+        private static void OnExtColumnInsertIndexChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DataGrid ctrl)
+            {
+
+            }
+        }
+
+
+
+
 
         public static readonly DependencyProperty ExtColumnsProperty =
             DependencyProperty.RegisterAttached(
@@ -127,22 +169,23 @@ namespace FrostNova.Core.Wpf.AttachedProperties
         private static void RebuildColumns(DataGrid dataGrid, IEnumerable<ExtensionColumnInfo> config)
         {
             // 自作した拡張カラムだけを特定して削除（固定列は残す）
-            var dynamicCols = dataGrid.Columns.Where(c => (bool)c.GetValue(DataGridColumnEx .IsGeneratedProperty)).ToList();
+            var dynamicCols = dataGrid.Columns.Where(c => (bool)c.GetValue(DataGridColumnEx.IsGeneratedProperty)).ToList();
             foreach (var col in dynamicCols) dataGrid.Columns.Remove(col);
 
             if (config == null) return;
 
+            var insertIndex = GetExtColumnInsertIndex(dataGrid)?? (Math.Max( 0,  dataGrid.Columns.Count-1));
             foreach (var info in config)
             {
                 DataGridColumn newCol = info.Type switch
                 {
                     ColumnType.checkBox => new DataGridCheckBoxColumn
                     {
-                        Binding = CreateBinding(info.UniqueKey)
+                        Binding = CreateBinding(dataGrid, info.UniqueKey)
                     },
                     ColumnType.comboBox => new DataGridComboBoxColumn
                     {
-                        SelectedValueBinding = CreateBinding(info.UniqueKey),
+                        SelectedValueBinding = CreateBinding(dataGrid, info.UniqueKey),
                         SelectedValuePath = "Value",
                         DisplayMemberPath = "Label",
                         ItemsSource = info.Options
@@ -150,24 +193,25 @@ namespace FrostNova.Core.Wpf.AttachedProperties
 
                     ColumnType.numeric => new DataGridTextColumn
                     {
-                        Binding = CreateBinding(info.UniqueKey),
+                        Binding = CreateBinding(dataGrid, info.UniqueKey),
                         ElementStyle = CreateRightAlignedStyle() // 数値なので右寄せ
                     },
                     ColumnType.date => new DataGridTemplateColumn
                     {
-                        CellTemplate = CreateDatePickerTemplate(info.UniqueKey),
-                        CellEditingTemplate = CreateDatePickerTemplate(info.UniqueKey)
+                        CellTemplate = CreateDatePickerTemplate(dataGrid, info.UniqueKey),
+                        CellEditingTemplate = CreateDatePickerTemplate(dataGrid, info.UniqueKey)
                     },
                     ColumnType.button => CreateButtonColumn(info),
 
                     _ => new DataGridTextColumn
                     {
-                        Binding = CreateBinding(info.UniqueKey)
+                        Binding = CreateBinding(dataGrid, info.UniqueKey)
                     }
                 };
 
                 newCol.IsReadOnly = info.IsReadOnly;
                 newCol.Visibility = info.Visibility;
+                newCol.CanUserSort = info.CanUserSort;
 
                 // 幅の設定 (文字列からDataGridLengthへの変換)
                 var converter = new DataGridLengthConverter();
@@ -177,14 +221,17 @@ namespace FrostNova.Core.Wpf.AttachedProperties
                 }
                 newCol.Header = info.HeaderText;
                 newCol.SetValue(DataGridColumnEx.IsGeneratedProperty, true); // 削除用目印をセット
-                dataGrid.Columns.Add(newCol);
+                dataGrid.Columns.Insert(insertIndex, newCol);
+                insertIndex++;
             }
         }
 
-        private static Binding CreateBinding(string key)
+        private static Binding CreateBinding(DependencyObject datagrid, string key)
         {
+            var bindingPath = datagrid.GetValue(ExtColumnBindingPathProperty);
+
             // Dictionaryのキーにドットが含まれることを想定し [] で囲む
-            return new Binding($"CustomItems[{key}]")
+            return new Binding($"{bindingPath}[{key}]")
             {
                 UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
                 Mode = BindingMode.TwoWay
@@ -199,10 +246,12 @@ namespace FrostNova.Core.Wpf.AttachedProperties
         }
 
         // DatePickerのテンプレート生成
-        private static DataTemplate CreateDatePickerTemplate(string key)
+        private static DataTemplate CreateDatePickerTemplate(DependencyObject datagrid, string key)
         {
+            var bindingPath = datagrid.GetValue(ExtColumnBindingPathProperty);
+
             var factory = new FrameworkElementFactory(typeof(DatePicker));
-            factory.SetBinding(DatePicker.SelectedDateProperty, new Binding($"CustomItems[{key}]") { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+            factory.SetBinding(DatePicker.SelectedDateProperty, new Binding($"{bindingPath}[{key}]") { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
             factory.SetValue(DatePicker.BorderThicknessProperty, new Thickness(0));
             return new DataTemplate { VisualTree = factory };
         }

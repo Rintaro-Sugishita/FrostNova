@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="FrostNova.Core.Wpf.Controls.Sample.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -225,6 +225,39 @@
                         <StackPanel Grid.Row="1">
                             <CheckBox x:Name="lineBreakCheckbox" Content="CanLineBreak" />
                             <CheckBox x:Name="alwaysEditCheckbox" Content="AlwaysEdit" />
+                        </StackPanel>
+
+                    </Grid>
+                </Grid>
+            </TabItem>
+            <TabItem Header="DataGrid2">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <DataGrid
+                        att:DataGridEx.ExtColumns="{Binding ExtCols}"
+                        att:DataGridEx.ExtColumnInsertIndex="1"
+                        ItemsSource="{Binding Samples2}">
+                        <i:Interaction.Behaviors>
+                            <behaviors:DataGridRowNumberDisplayBehavior />
+                        </i:Interaction.Behaviors>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding ColumnValue}" Header="Column1" />
+                        </DataGrid.Columns>
+
+
+                    </DataGrid>
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <StackPanel>
+                            <ComboBox ItemsSource="{Binding ColTypes}" SelectedValue="{Binding SelectedColType}" />
+                            <Button Command="{Binding AddCustomColumnCommand}" >Add</Button>
+                            <Button Command="{Binding ApplyToCommand}" >apply to aaa</Button>
                         </StackPanel>
 
                     </Grid>
