@@ -24,7 +24,7 @@ internal partial class JsonSettingModel
 
 
     [JsonSettingPath]
-    public static string GetSavePath()
+    public static string GetSavePath111()
     {
         return "ss.json";
     }

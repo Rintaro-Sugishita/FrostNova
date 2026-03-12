@@ -17,6 +17,8 @@ public  interface IJsonStore<T>
 
 
     Task SaveSettingsAsync();
+
+    static abstract string GetSavePath();
 }
 
 #endif

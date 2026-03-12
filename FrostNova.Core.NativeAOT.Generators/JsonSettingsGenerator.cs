@@ -562,6 +562,18 @@ namespace FrostNova.Core.NativeAOT
         public static async Task<{className}> LoadSettingsAsync() => await LoadFromFileAsync({methodName}()) ?? new {className}();
         {genAttr}
         public Task SaveSettingsAsync() => SaveToFileAsync({methodName}());");
+
+
+            if (methodName != "GetSavePath")
+            {
+                sb.AppendLine($@"
+        {genAttr}
+        static string FrostNova.Core.NativeAOT.IJsonStore<{className}>.GetSavePath() => {methodName}();");
+            }
+
+
+
+
         }
 
         private static void GenerateCollectionExtensions(StringBuilder sb, string className, string accessibility, string? contextTypeName, List<ITypeSymbol> contextTargetTypes, string[] customConverters, string genAttr, string q)

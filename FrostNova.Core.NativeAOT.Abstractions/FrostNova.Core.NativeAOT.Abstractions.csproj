@@ -6,7 +6,7 @@
         <RootNamespace>FrostNova.Core.NativeAOT</RootNamespace>
         <Description>NativeAOT optimized DeepClone source generator.</Description>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-     <Version>1.1.0</Version>
+     <Version>1.1.1</Version>
         <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 
         <ArtifactsPath Condition="'$(UseArtifactsOutput)' == 'false'"></ArtifactsPath>

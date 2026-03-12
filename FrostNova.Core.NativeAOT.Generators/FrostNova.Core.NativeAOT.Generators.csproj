@@ -12,14 +12,14 @@
         <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
         <!--<DevelopmentDependency>true</DevelopmentDependency>-->
         <CompilerVisibleProperty />
-        <Version>1.2.0</Version>
+        <Version>1.2.1</Version>
         <Description>NativeAOT optimized DeepClone source generator.</Description>
         <PackageReadmeFile>readme.md</PackageReadmeFile>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     </PropertyGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
-        <PackageReference Include="FrostNova.Core.NativeAOT.Abstractions" Version="1.1.0" />
+        <PackageReference Include="FrostNova.Core.NativeAOT.Abstractions" Version="1.1.1" />
     </ItemGroup>
 
     <Target Name="ClearSelfFromNuGetCache" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
