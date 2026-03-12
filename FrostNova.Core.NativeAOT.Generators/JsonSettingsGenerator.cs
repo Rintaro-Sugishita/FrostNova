@@ -206,6 +206,7 @@ namespace FrostNova.Core.NativeAOT
 
 
             var interfaceDeclaration = $" : FrostNova.Core.NativeAOT.IJsonSerializable<{className}>";
+            var interfaceDeclaration2 = $" , FrostNova.Core.NativeAOT.IJsonStore<{className}>";
 
 
             var sb = new StringBuilder();
@@ -222,11 +223,26 @@ namespace FrostNova.Core.NativeAOT
             sb.AppendLine($"namespace {namespaceName}");
             sb.AppendLine("{");
 
-            sb.AppendLine("#if NET8_0_OR_GREATER");
-            sb.AppendLine($"    partial class {className}{interfaceDeclaration}");
-            sb.AppendLine("#else");
-            sb.AppendLine($"    partial class {className}");
-            sb.AppendLine("#endif");
+
+            if (getPathMethodName != null)
+            {
+                sb.AppendLine("#if NET8_0_OR_GREATER");
+                sb.AppendLine($"    partial class {className}{interfaceDeclaration}{interfaceDeclaration2}");
+                sb.AppendLine("#else");
+                sb.AppendLine($"    partial class {className}");
+                sb.AppendLine("#endif");
+
+            }
+            else
+            {
+                sb.AppendLine("#if NET8_0_OR_GREATER");
+                sb.AppendLine($"    partial class {className}{interfaceDeclaration}");
+                sb.AppendLine("#else");
+                sb.AppendLine($"    partial class {className}");
+                sb.AppendLine("#endif");
+
+            }
+
 
             sb.AppendLine("    {");
 

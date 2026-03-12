@@ -23,6 +23,12 @@ internal partial class JsonSettingModel
     }
 
 
+    [JsonSettingPath]
+    public static string GetSavePath()
+    {
+        return "ss.json";
+    }
+
     //void Aaa()
     //{
 
