@@ -35,6 +35,8 @@ public interface IProcessStep<TKey> : IPendingTimeRange
     /// <summary>前工程との段取り時間</summary>
     TimeSpan SetupTime { get; }
 
+    public object? LineId { get; set; }
+    public object? MemberId { get; set; }
 }
 public interface IProcessStep<TKey, TMachine, TMember> : IProcessStep<TKey>, IResourceConstraint
 {

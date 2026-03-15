@@ -8,6 +8,6 @@ namespace FrostNova.Scheduling.Engine;
 
 public interface IResourceConstraint
 {
-    IEnumerable<(object Id, double Efficiency)> GetLineCandidates();
-    IEnumerable<(object Id, double Efficiency)> GetMemberCandidates();
+    IEnumerable<(object? Id, double Efficiency)> GetLineCandidates();
+    IEnumerable<(object? Id, double Efficiency)> GetMemberCandidates();
 }
