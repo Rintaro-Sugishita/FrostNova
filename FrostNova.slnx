@@ -13,6 +13,7 @@
     <Project Path="Tests/FrostNova.Core.TableWorkTest/FrostNova.Core.TableWorkTest.csproj" Id="624e4bee-41d0-40f0-bab3-0830dfa57155" />
     <Project Path="Tests/FrostNova.Core.WpfTest/FrostNova.Core.WpfTest.csproj" />
     <Project Path="Tests/FrostNova.CoreTest/FrostNova.CoreTest.csproj" />
+    <Project Path="Tests/FrostNova.Scheduling.Engine/FrostNova.Scheduling.Engine.Tests.csproj" Id="5992db38-285f-459b-ad93-d1a7680141d3" />
   </Folder>
   <Folder Name="/FrostNova.TimeRangeChart/">
     <Project Path="FrostNova.TimeRangeChart/FrostNova.TimeRangeChart.Wpf.Sample/FrostNova.TimeRangeChart.Wpf.Sample.csproj" />
@@ -29,5 +30,6 @@
   <Project Path="FrostNova.Core.Wpf.Controls/FrostNova.Core.Wpf.Controls.csproj" />
   <Project Path="FrostNova.Core.Wpf/FrostNova.Core.Wpf.csproj" />
   <Project Path="FrostNova.Core/FrostNova.Core.csproj" />
+  <Project Path="FrostNova.Scheduling.Engine/FrostNova.Scheduling.Engine.csproj" Id="68974a45-7bae-4988-95be-19c7673929f8" />
   <Project Path="FrostNova.WindowEventPickers/FrostNova.WindowEventPickers.csproj" />
 </Solution>
