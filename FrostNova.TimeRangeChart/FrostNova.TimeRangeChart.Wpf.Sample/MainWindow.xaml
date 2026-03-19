@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="FrostNova.TimeRangeChart.Wpf.Sample.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -235,7 +235,6 @@ SnapsToDevicePixels="True"
                         RuledLineThickness="0.5"
                         ScaleIncrement="{StaticResource minSpan}"
                         StartTime="{Binding GridVm.ChartStart}"
-                        TimeRangeStyle="{StaticResource rangeStyle}"
                         WidthPerRuledLine="100">
                         <chart:GridTimeRangeChart.CornerHeaderSource>
                             <TextBlock Text="aaaa" />
@@ -260,12 +259,12 @@ SnapsToDevicePixels="True"
                                                     SnapsToDevicePixels="True"
                                                     >
                                                 <StackPanel Orientation="Horizontal"  HorizontalAlignment="Left" VerticalAlignment="Center">
-                                                        <TextBlock >(</TextBlock>
-                                                        <TextBlock Text="{Binding StartTime}" />
-                                                        <TextBlock >)-(</TextBlock>
-                                                        <TextBlock Text="{Binding EndTime}" />
-                                                        <TextBlock >)</TextBlock>
-                                                    </StackPanel>
+                                                    <TextBlock >(</TextBlock>
+                                                    <TextBlock Text="{Binding StartTime}" />
+                                                    <TextBlock >)-(</TextBlock>
+                                                    <TextBlock Text="{Binding EndTime}" />
+                                                    <TextBlock >)</TextBlock>
+                                                </StackPanel>
 
                                             </Border>
                                         </DataTemplate>
@@ -273,6 +272,11 @@ SnapsToDevicePixels="True"
                                 </Setter>
                             </Style>
                         </chart:GridTimeRangeChart.ChartStyle>
+                        <chart:GridTimeRangeChart.TimeRangeStyle>
+                            <Style BasedOn="{StaticResource rangeStyle}" TargetType="{x:Type chart:TimeRangeControl}">
+                                <Setter Property="StackBaseTop" Value="20" />
+                            </Style>
+                        </chart:GridTimeRangeChart.TimeRangeStyle>
 
                     </chart:GridTimeRangeChart>
                     <GridSplitter
