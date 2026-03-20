@@ -26,6 +26,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Xml.Linq;
+using System.Windows.Threading;
 
 namespace FrostNova.TimeRangeChart.Wpf
 {
@@ -65,6 +66,12 @@ namespace FrostNova.TimeRangeChart.Wpf
         public Action<TimeRangeControl, DragDropRangeEventArgs> TaskDragEndAction { get; private set; }
 
         private ColumnHeaderRenderLayer? columnHeaderLayer;
+        // keep references to scroll viewers so we can adjust offsets when time range changes
+        private ScrollViewer? _chartScrollViewer;
+        private ScrollViewer? _columnHeaderScrollViewer;
+        private bool _isSyncingScroll = false;
+        private DispatcherTimer? _scrollSyncTimer;
+        private double? _pendingHorizontalOffset;
 
         [Bindable(true)]
         public DateTime StartTime
@@ -431,9 +438,152 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             if (d is GridTimeRangeChart gridChart)
             {
-                gridChart.DrawBorder();
-                gridChart.InvalidateVisual();
+                gridChart.OnRangeChanged(e);
             }
+        }
+
+        public enum ScrollResetMode
+        {
+            ResetToLeft,
+            PreserveVisibleDate
+        }
+
+        public ScrollResetMode RangeChangeScrollMode
+        {
+            get => (ScrollResetMode)GetValue(RangeChangeScrollModeProperty);
+            set => SetValue(RangeChangeScrollModeProperty, value);
+        }
+        public static readonly DependencyProperty RangeChangeScrollModeProperty = DependencyProperty.Register(nameof(RangeChangeScrollMode), typeof(ScrollResetMode), typeof(GridTimeRangeChart), new PropertyMetadata(ScrollResetMode.PreserveVisibleDate));
+
+        private void OnRangeChanged(DependencyPropertyChangedEventArgs e)
+        {
+            // Handle changes to axis-related properties specially so we can preserve scroll position or reset
+            bool isTimeRangeProperty = e.Property == StartTimeProperty || e.Property == EndTimeProperty || e.Property == ScaleIncrementProperty || e.Property == SubScaleIncrementProperty || e.Property == WidthPerIncrementProperty || e.Property == TimeUnitProperty || e.Property == MonthSpanProperty;
+
+            if (!isTimeRangeProperty || _columnHeaderScrollViewer == null || _chartScrollViewer == null)
+            {
+                // fallback: just redraw
+                DrawBorder();
+                InvalidateVisual();
+                return;
+            }
+
+            // capture old visible center date (use old start/end when available)
+            double oldCenterPoint = _columnHeaderScrollViewer.HorizontalOffset + _columnHeaderScrollViewer.ViewportWidth / 2.0;
+
+            // Determine old start/end for conversion. If the changed property is StartTime/EndTime use e.OldValue accordingly
+            DateTime oldStart = this.StartTime;
+            DateTime oldEnd = this.EndTime;
+            if (e.Property == StartTimeProperty)
+            {
+                oldStart = (DateTime)e.OldValue;
+            }
+            else if (e.Property == EndTimeProperty)
+            {
+                oldEnd = (DateTime)e.OldValue;
+            }
+
+            double oldWidth = ChartWidth;
+            if (double.IsNaN(oldWidth) || oldWidth <= 0)
+            {
+                // fallback to extent width
+                oldWidth = _columnHeaderScrollViewer.ExtentWidth;
+            }
+
+            DateTime? preservedDate = null;
+            try
+            {
+                if (TimeUnit == TimeUnitType.Normal)
+                {
+                    preservedDate = TimeScreenHelper.PointToTime(oldCenterPoint, oldStart, oldEnd, oldWidth, MinSpan);
+                }
+                else
+                {
+                    preservedDate = TimeScreenHelper.PointToTimeMonth(oldCenterPoint, WidthPerRuledLine, MinSpan, TimeTicks);
+                }
+            }
+            catch
+            {
+                preservedDate = null;
+            }
+
+            // Recalculate ticks/visuals
+            DrawBorder();
+            InvalidateVisual();
+
+            // Stop any throttled timer and clear pending offsets so we can perform immediate sync
+            try
+            {
+                if (_scrollSyncTimer != null && _scrollSyncTimer.IsEnabled)
+                {
+                    _scrollSyncTimer.Stop();
+                }
+                _pendingHorizontalOffset = null;
+            }
+            catch { }
+
+            // Perform immediate sync after layout pass to ensure Extent/Viewport are updated
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+            {
+                if (_columnHeaderScrollViewer == null || _chartScrollViewer == null)
+                {
+                    return;
+                }
+
+                try
+                {
+                    _isSyncingScroll = true;
+
+                    if (RangeChangeScrollMode == ScrollResetMode.ResetToLeft)
+                    {
+                        _columnHeaderScrollViewer.ScrollToHorizontalOffset(0);
+                        _chartScrollViewer.ScrollToHorizontalOffset(0);
+                        return;
+                    }
+
+                    if (RangeChangeScrollMode == ScrollResetMode.PreserveVisibleDate && preservedDate.HasValue)
+                    {
+                        double newCenterPoint = 0;
+                        try
+                        {
+                            if (TimeUnit == TimeUnitType.Normal)
+                            {
+                                var newWidth = ChartWidth;
+                                if (double.IsNaN(newWidth) || newWidth <= 0)
+                                {
+                                    newWidth = _columnHeaderScrollViewer.ExtentWidth;
+                                }
+                                newCenterPoint = TimeScreenHelper.TimeToPoint(preservedDate.Value, this.StartTime, this.EndTime, newWidth);
+                            }
+                            else
+                            {
+                                newCenterPoint = TimeScreenHelper.TimeToPointMonth(preservedDate.Value, WidthPerRuledLine, TimeTicks);
+                            }
+                        }
+                        catch
+                        {
+                            newCenterPoint = 0;
+                        }
+
+                        double targetOffset = newCenterPoint - _columnHeaderScrollViewer.ViewportWidth / 2.0;
+                        if (targetOffset < 0) targetOffset = 0;
+                        var maxOffset = Math.Max(0, _columnHeaderScrollViewer.ExtentWidth - _columnHeaderScrollViewer.ViewportWidth);
+                        if (targetOffset > maxOffset) targetOffset = maxOffset;
+
+                        _columnHeaderScrollViewer.ScrollToHorizontalOffset(targetOffset);
+                        _chartScrollViewer.ScrollToHorizontalOffset(targetOffset);
+                        return;
+                    }
+
+                    // fallback
+                    _columnHeaderScrollViewer.ScrollToHorizontalOffset(0);
+                    _chartScrollViewer.ScrollToHorizontalOffset(0);
+                }
+                finally
+                {
+                    _isSyncingScroll = false;
+                }
+            }));
         }
         //private static void OnNonWorkingTimesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         //{
@@ -487,11 +637,13 @@ namespace FrostNova.TimeRangeChart.Wpf
                 //    }
             }
 
-            TimeTicks.AddRange(localTimeTicks);
-            ChartWidth = localTimeTicks.Count * WidthPerRuledLine;
+            // assign new lists so bindings see the change
+            TimeTicks = localTimeTicks.Cast<IRuledLine>().ToList();
+            // ChartWidth should represent the drawable width between first and last tick
+            ChartWidth = newWidth;
 
             var localSubTimeTicks = TimeRangeChart.GenerateSubScaleTicks(this, ticks.subTicks, this.SubScaleFormat, tf, newWidth);
-            SubTimeTicks.AddRange(localSubTimeTicks);
+            SubTimeTicks = localSubTimeTicks.Cast<IRuledLine>().ToList();
 
             //TimeTicksForColumnHeader = localTimeTickForColumn;
 
@@ -527,6 +679,20 @@ namespace FrostNova.TimeRangeChart.Wpf
                 columnHeaderLayer.ParentChart = this;
             }
 
+            // store references for scroll sync and range change handling
+            _chartScrollViewer = scrollViewer;
+            _columnHeaderScrollViewer = columnHeaderScrollViewer;
+
+            // setup scroll sync timer for throttling
+            if (_scrollSyncTimer == null)
+            {
+                _scrollSyncTimer = new DispatcherTimer(DispatcherPriority.Background)
+                {
+                    Interval = TimeSpan.FromMilliseconds(30)
+                };
+                _scrollSyncTimer.Tick += ScrollSyncTimer_Tick;
+            }
+
 
 
             this.Loaded += (s, e) =>
@@ -552,11 +718,31 @@ namespace FrostNova.TimeRangeChart.Wpf
             if (scrollViewer != null)
             {
                 scrollViewer.ScrollChanged += ScrollViewer_ScrollChanged;
+                // ensure header follows chart horizontal offset
+                scrollViewer.ScrollChanged += (s, e) =>
+                {
+                    if (_columnHeaderScrollViewer == null) return;
+                    if (_isSyncingScroll) return;
+                    // only sync horizontal offset
+                    if (!DoubleUtil.AreClose(_columnHeaderScrollViewer.HorizontalOffset, e.HorizontalOffset))
+                    {
+                        try
+                        {
+                            _isSyncingScroll = true;
+                            _columnHeaderScrollViewer.ScrollToHorizontalOffset(e.HorizontalOffset);
+                        }
+                        finally
+                        {
+                            _isSyncingScroll = false;
+                        }
+                    }
+                };
             }
 
             if (columnHeaderScrollViewer != null)
             {
                 columnHeaderScrollViewer.ScrollChanged += ColumnHeaderScrollViewer_ScrollChanged;
+                // no immediate sync here; ColumnHeaderScrollViewer_ScrollChanged will schedule throttled sync
             }
 
             this.MouseLeftButtonDown += (s, e) =>
@@ -647,6 +833,48 @@ namespace FrostNova.TimeRangeChart.Wpf
             ScrollLeftDate = LeftItem;
             ScrollRightDate = rightItem ;
             ScrollCenterDate = centerItem;
+
+            // When header is scrolled (user dragging header), schedule sync to chart
+            if (_chartScrollViewer != null)
+            {
+                _pendingHorizontalOffset = e.HorizontalOffset;
+                if (!_scrollSyncTimer.IsEnabled) _scrollSyncTimer.Start();
+            }
+        }
+
+        private void ScrollSyncTimer_Tick(object? sender, EventArgs e)
+        {
+            try
+            {
+                if (!_pendingHorizontalOffset.HasValue) return;
+
+                var offset = _pendingHorizontalOffset.Value;
+                _pendingHorizontalOffset = null;
+
+                if (_isSyncingScroll) return;
+                _isSyncingScroll = true;
+                try
+                {
+                    if (_columnHeaderScrollViewer != null && !DoubleUtil.AreClose(_columnHeaderScrollViewer.HorizontalOffset, offset))
+                    {
+                        _columnHeaderScrollViewer.ScrollToHorizontalOffset(offset);
+                    }
+                    if (_chartScrollViewer != null && !DoubleUtil.AreClose(_chartScrollViewer.HorizontalOffset, offset))
+                    {
+                        _chartScrollViewer.ScrollToHorizontalOffset(offset);
+                    }
+                }
+                finally
+                {
+                    _isSyncingScroll = false;
+                }
+            }
+            finally
+            {
+                // stop timer if no pending work
+                if (!_pendingHorizontalOffset.HasValue && _scrollSyncTimer != null && _scrollSyncTimer.IsEnabled)
+                    _scrollSyncTimer.Stop();
+            }
         }
 
 
@@ -667,6 +895,15 @@ namespace FrostNova.TimeRangeChart.Wpf
 
 
         #endregion
+
+        private static class DoubleUtil
+        {
+            private const double Epsilon = 0.5; // pixels tolerance to avoid oscillation
+            public static bool AreClose(double a, double b)
+            {
+                return Math.Abs(a - b) < Epsilon;
+            }
+        }
 
 
     }

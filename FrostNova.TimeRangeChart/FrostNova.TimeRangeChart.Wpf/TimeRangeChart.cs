@@ -807,7 +807,6 @@ public class TimeRangeChart : Control
                 ComputeStackLevelsFromData();
             }
             catch { }
-            Debug.WriteLine($"ApplyStackingIfNeeded: CanStackRange={CanStackRange}, ItemsSourceCount={(ItemsSource?.Count ?? 0)}, ItemsControlItems={( _itemsControl?.Items.Count ?? 0)}, controlsFound={controls.Count}");
             // If there are no visuals and no items, ensure any forced Height is cleared so chart can shrink back.
             if (ItemsSource == null || ItemsSource.Count == 0)
             {
@@ -914,6 +913,7 @@ public class TimeRangeChart : Control
             }
         }
     }
+
     private void ComputeStackLevelsFromData()
     {
         _dataStackLevelMap.Clear();
@@ -1073,9 +1073,6 @@ public class TimeRangeChart : Control
                 ApplyStackingIfNeeded();
             }));
         }
-
-        //AddSeries();
-        //AddPoints();
 
         TimeRangeNeedRefresh?.Invoke(this, new EventArgs());
 

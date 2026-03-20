@@ -286,6 +286,15 @@ SnapsToDevicePixels="True"
                         VerticalAlignment="Stretch"
                         ResizeDirection="Columns" />
                     <StackPanel Grid.Column="2">
+                        <Grid >
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <DatePicker SelectedDate="{Binding GridVm.ChartStart}" />
+                            <DatePicker Grid.Column="1" SelectedDate="{Binding GridVm.ChartEnd}" />
+                        </Grid>
+                        
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="scroll top: " />
                             <TextBlock Text="{Binding ElementName=gridChart, Path=ScrollTopItem.Name}" />

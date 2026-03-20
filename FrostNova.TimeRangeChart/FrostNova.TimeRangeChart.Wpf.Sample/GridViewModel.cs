@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using Microsoft.Xaml.Behaviors.Core;
 using System;
@@ -49,12 +49,14 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
 
         public void SetData()
         {
-            SetData(300, 10, 10);
+            SetData(300, 10 + Random.Shared.Next(2), 10);
 
         }
 
         private void SetData(int days, int r, int c)
         {
+            ModelList.Clear();
+
 
             var nowDay = DateTime.Now.Date;
             ChartStart = DateTime.Now.Date.AddDays(-3);

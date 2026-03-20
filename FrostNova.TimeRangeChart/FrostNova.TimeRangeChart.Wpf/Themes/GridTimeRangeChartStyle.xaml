@@ -19,7 +19,7 @@
         <Setter Property="Padding" Value="0" />
         <Setter Property="Margin" Value="0" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+        <Setter Property="ScrollViewer.CanContentScroll" Value="False" />
         <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True" />
         <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling" />
         <Setter Property="Template">
@@ -28,7 +28,7 @@
                     <ScrollViewer Focusable="false"
                       Padding="0"
                                   x:Name="PART_ScrollViewer"
-                                  CanContentScroll="True"
+                                  CanContentScroll="False"
                                   VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}"
                       Background="Transparent">
                         <ItemsPresenter />
@@ -137,6 +137,7 @@
                             x:Name="columnScrollViewer"
                             Grid.Row="0"
                             Grid.Column="2"
+                            ScrollViewer.CanContentScroll="False"
                             HorizontalScrollBarVisibility="Hidden"
                             VerticalScrollBarVisibility="Disabled">
                             <local:ColumnHeaderRenderLayer Grid.Row="0" Grid.Column="2"
@@ -152,7 +153,7 @@
                                 Padding="0"
                                 BorderThickness="0"
                                 ItemsSource="{TemplateBinding ItemsSource}"
-                                ScrollViewer.CanContentScroll="True"
+                                ScrollViewer.CanContentScroll="False"
                                 Style="{StaticResource virtualContainerListBoxStyle}"
                                 VirtualizingStackPanel.IsVirtualizing="True"
                                 VirtualizingStackPanel.VirtualizationMode="Recycling"
