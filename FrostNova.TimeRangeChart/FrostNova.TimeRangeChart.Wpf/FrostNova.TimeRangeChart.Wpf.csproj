@@ -6,11 +6,10 @@
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+      <UseSharedCompilation>false</UseSharedCompilation>
+      <Version>0.0.15</Version>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <Version>0.0.15</Version>
-  </PropertyGroup>
-
+  
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <ProjectReference Include="..\..\FrostNova.Core.Wpf\FrostNova.Core.Wpf.csproj" />
     <ProjectReference Include="..\FrostNova.TimeRangeChart\FrostNova.TimeRangeChart.csproj" />

@@ -6,9 +6,8 @@
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <Version>0.0.12</Version>
+      <UseSharedCompilation>false</UseSharedCompilation>
+      <Version>0.0.12</Version>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
