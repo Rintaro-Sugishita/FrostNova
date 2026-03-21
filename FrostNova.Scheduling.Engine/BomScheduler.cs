@@ -9,8 +9,45 @@ using System.Xml.Linq;
 
 namespace FrostNova.Scheduling.Engine;
 
+
+/// <summary>
+/// Provides scheduling logic for bill of materials (BOM) process steps, supporting forward and backward scheduling with
+/// resource and non-working time constraints.
+/// </summary>
+/// <remarks>The BomScheduler class is designed for advanced manufacturing or production planning scenarios where
+/// process steps must be scheduled across multiple resources, considering both global and resource-specific non-working
+/// periods. It supports both forward (from material to product) and backward (from product to material) scheduling
+/// strategies, and can handle complex dependencies between process steps, resources, and BOM hierarchies. All members
+/// are static and thread safety is ensured by design. This class is intended for use in applications that require
+/// detailed and constraint-aware scheduling, such as MES or APS systems.</remarks>
 public static class BomScheduler
 {
+
+    /// <summary>
+    /// Schedules process steps for the specified target nodes, assigning start and end times based on resource
+    /// availability, non-working periods, and scheduling direction.
+    /// </summary>
+    /// <remarks>This method updates the start and end times of each process step in the target nodes based on
+    /// resource constraints, non-working periods, and scheduling direction. It ensures that steps are scheduled in a
+    /// valid order, respecting dependencies and existing reservations. The method does not return a value; results are
+    /// reflected by updating the properties of the process steps in the provided target nodes.</remarks>
+    /// <typeparam name="TBom">The type representing a bill of materials (BOM) node, which must implement IBomNode with the specified key and
+    /// operation types.</typeparam>
+    /// <typeparam name="TBomKey">The type used as the unique identifier for BOM nodes. Must be non-nullable.</typeparam>
+    /// <typeparam name="TOperation">The type representing a process step, which must implement IProcessStep with the specified operation key type.</typeparam>
+    /// <typeparam name="TOperationKey">The type used as the unique identifier for process steps.</typeparam>
+    /// <param name="targetNodes">The collection of BOM nodes to be scheduled. Each node's process steps will be assigned start and end times.</param>
+    /// <param name="referenceNodes">The collection of BOM nodes representing existing reservations. Steps from these nodes are considered as already
+    /// scheduled and are excluded from rescheduling if they are also present in targetNodes.</param>
+    /// <param name="nonWorkingTimes">A collection of global non-working time ranges that apply to all resources. These periods are excluded from
+    /// scheduling.</param>
+    /// <param name="resourceNonWorkingGetter">A function that returns non-working time ranges for a given resource key. Used to determine resource-specific
+    /// availability.</param>
+    /// <param name="baseDateGetter">A function that retrieves base date information for a given process step. Used to determine scheduling
+    /// constraints and priorities.</param>
+    /// <param name="isForward">A value indicating whether to schedule forward (from earliest possible date) or backward (from latest possible
+    /// date).</param>
+    /// <param name="unit">The minimum time unit for scheduling operations. Used as the default lead time if not specified for a step.</param>
     public static void Schedule<TBom, TBomKey, TOperation, TOperationKey>
 (
         IEnumerable<TBom> targetNodes,
@@ -19,12 +56,14 @@ public static class BomScheduler
         Func<ResourceKey, IEnumerable<IPendingTimeRange>> resourceNonWorkingGetter,
         Func<TOperation, BaseDateInfo> baseDateGetter,
         bool isForward,
-        TimeSpan unit)
+        TimeSpan unit,
+        Dictionary<ResourceType, IEqualityComparer<object>>? comparers = null
+        )
         where TBom : class, IBomNode<TBom, TBomKey, TOperationKey, TOperation>
         where TOperation : IProcessStep<TOperationKey>
         where TBomKey : notnull
     {
-        var resourceManager = new ResourceScheduler(unit, resourceNonWorkingGetter);
+        var resourceManager = new ResourceScheduler(unit, resourceNonWorkingGetter, comparers);
 
         // 既存予約（referenceNodes）の登録
         // targetNodesに含まれるものは再計算対象なので除外
@@ -32,7 +71,7 @@ public static class BomScheduler
         foreach (var refNode in referenceNodes.Where(n => !targetIds.Contains(n.Id)))
         {
             foreach (var step in refNode.ProcessSteps)
-                resourceManager.Book<TOperation, TOperationKey>(step, step.Start, step.End, step.LineId, step.MemberId); // 既存リソースIDが取れるなら渡す
+                resourceManager.Book<TOperation, TOperationKey>(step, step.LineId, step.MemberId); // 既存リソースIDが取れるなら渡す
         }
 
         // 共通の非稼働時間を登録    
@@ -62,14 +101,14 @@ public static class BomScheduler
 
         var stepCursors = allStepsWithMeta.ToDictionary(
             item => item.Step,
-            item => baseDateGetter(item.Step).BaseDate
+            item => item.Info.BaseDate
         );
 
         var completedSteps = new HashSet<TOperation>();
 
         foreach (var item in allStepsWithMeta)
         {
-            var baseLeadTime = item.Step.LeadTime ?? TimeSpan.Zero;
+            var baseLeadTime = item.Step.LeadTime ?? unit;
             var currentStep = item.Step;
             var currentCursor = stepCursors[item.Step];
 
@@ -117,6 +156,8 @@ public static class BomScheduler
                 if (parentStart.HasValue) constraintDates.Add(parentStart.Value);
 
                 if (constraintDates.Count > 0) limit = constraintDates.Min();
+
+                currentCursor = currentCursor.Add(currentStep.PreBuffer);
             }
             else
             {
@@ -139,12 +180,13 @@ public static class BomScheduler
                 if (childEnd.HasValue) constraintDates.Add(childEnd.Value);
 
                 if (constraintDates.Count > 0) limit = constraintDates.Max();
+                currentCursor = currentCursor.Subtract(currentStep.PostBuffer);
             }
 
             // 計算実行
             var result = useForward
                     ? resourceManager.FindBestSlotForward<TOperation, TOperationKey>(item.Step, currentCursor, baseLeadTime, limit)
-                    : resourceManager.FindBestSlotBackward<TOperation, TOperationKey>(item.Step, currentCursor, baseLeadTime,limit);
+                    : resourceManager.FindBestSlotBackward<TOperation, TOperationKey>(item.Step, currentCursor, baseLeadTime, limit);
 
             // 結果を保存
             item.Step.Start = result.Start;
@@ -175,7 +217,7 @@ public static class BomScheduler
             PropagateConstraints<TBom, TBomKey, TOperation, TOperationKey>(item.Node, item.Step, isForward, stepCursors);
 
             // リソース予約の確定
-            resourceManager.Book<TOperation, TOperationKey>(item.Step, item.Step.Start, item.Step.End, result.LineId, result.MemberId);
+            resourceManager.Book<TOperation, TOperationKey>(item.Step, result.LineId, result.MemberId);
 
             completedSteps.Add(currentStep);
         }
@@ -205,12 +247,18 @@ public static class BomScheduler
             if (other.StepOrder < calculatedStep.StepOrder)
             {
                 // 先行工程に対して：今回の開始日以前に終わらなければならない (Min)
-                if (start < stepConstraints[other]) stepConstraints[other] = start;
+                //if (start < stepConstraints[other]) stepConstraints[other] = start;
+                var gap = other.PostSetupTime + other.PostBuffer + calculatedStep.PreBuffer + calculatedStep.SetupTime;
+                var latestEnd = start - gap;
+                if (latestEnd < stepConstraints[other]) stepConstraints[other] = latestEnd;
             }
             else if (other.StepOrder > calculatedStep.StepOrder)
             {
                 // 後続工程に対して：今回の終了日以降に始めなければならない (Max)
-                if (end > stepConstraints[other]) stepConstraints[other] = end;
+                //if (end > stepConstraints[other]) stepConstraints[other] = end;
+                var gap = calculatedStep.PostSetupTime + calculatedStep.PostBuffer + other.PreBuffer + other.SetupTime;
+                var earliestStart = end + gap;
+                if (earliestStart > stepConstraints[other]) stepConstraints[other] = earliestStart;
             }
         }
 
@@ -222,7 +270,10 @@ public static class BomScheduler
             {
                 // 親（後続）の全ステップは、このノードの最終終了日より後でなければならない
                 // ここでは簡易的に「現在のステップの終了日」で押し上げる
-                if (end > stepConstraints[pStep]) stepConstraints[pStep] = end;
+                //if (end > stepConstraints[pStep]) stepConstraints[pStep] = end;
+                var gap = calculatedStep.PostSetupTime + calculatedStep.PostBuffer + pStep.PreBuffer + pStep.SetupTime;
+                var earliestStart = end + gap;
+                if (earliestStart > stepConstraints[pStep]) stepConstraints[pStep] = earliestStart;
             }
         }
 
@@ -232,10 +283,14 @@ public static class BomScheduler
             foreach (var cStep in childNode.ProcessSteps)
             {
                 // 子（先行）の全ステップは、このノードの開始日より前に終わらなければならない
-                if (start < stepConstraints[cStep]) stepConstraints[cStep] = start;
+                //if (start < stepConstraints[cStep]) stepConstraints[cStep] = start;
+                var gap = cStep.PostSetupTime + cStep.PostBuffer + calculatedStep.PreBuffer + calculatedStep.SetupTime;
+                var latestEnd = start - gap;
+                if (latestEnd < stepConstraints[cStep]) stepConstraints[cStep] = latestEnd;
             }
         }
     }
+
 
     /// <summary>
     /// 伝播された基準日と、ユーザー指定の基準日を比較し、より厳しい方の制約を返します。
@@ -259,11 +314,31 @@ public static class BomScheduler
     }
 
 
+    /// <summary>
+    /// Represents a unique identifier for a resource, consisting of a resource type and an associated identifier.
+    /// </summary>
+    /// <remarks>A ResourceKey is used to distinguish resources by combining their type with a unique
+    /// identifier. This struct is immutable and can be used as a key in collections that require value-based equality,
+    /// such as dictionaries or hash sets. Two ResourceKey instances are considered equal if both their Type and Id
+    /// values are equal.</remarks>
     public readonly struct ResourceKey : IEquatable<ResourceKey>
     {
+        /// <summary>
+        /// Gets the type of the resource represented by this instance.
+        /// </summary>
         public readonly ResourceType Type;
+
+        /// <summary>
+        /// Gets the unique identifier associated with the instance.
+        /// </summary>
         public readonly object Id;
 
+        /// <summary>
+        /// Initializes a new instance of the ResourceKey class with the specified resource type and identifier.
+        /// </summary>
+        /// <param name="type">The type of the resource to associate with this key.</param>
+        /// <param name="id">The unique identifier for the resource. Must be non-null and uniquely identify the resource within the
+        /// specified type.</param>
         public ResourceKey(ResourceType type, object id)
         {
             Type = type;
@@ -275,12 +350,28 @@ public static class BomScheduler
         public override int GetHashCode() => HashCode.Combine(Type, Id);
     }
 
-
+    /// <summary>
+    /// Provides an equality comparer for ResourceKey instances that supports custom comparison logic per resource type.
+    /// </summary>
+    /// <remarks>This comparer allows callers to specify custom equality comparers for different ResourceType
+    /// values via a dictionary. If no custom comparer is provided for a given type, the default object equality
+    /// comparer is used. This is useful when different resource types require specialized comparison logic for their
+    /// identifiers. The comparer can be used in collections or algorithms that require equality checks or hash codes
+    /// for ResourceKey objects.</remarks>
     public class ResourceKeyComparer : IEqualityComparer<ResourceKey>
     {
         private readonly Dictionary<ResourceType, IEqualityComparer<object>> _comparers;
         private readonly IEqualityComparer<object> _defaultComparer = EqualityComparer<object>.Default;
 
+        /// <summary>
+        /// Initializes a new instance of the ResourceKeyComparer class using the specified dictionary of comparers for
+        /// resource types.
+        /// </summary>
+        /// <remarks>Use this constructor to provide custom equality comparers for specific resource types
+        /// when comparing resource keys. If no comparers are provided, default equality comparison is used for all
+        /// resource types.</remarks>
+        /// <param name="comparers">A dictionary that maps each ResourceType to its corresponding IEqualityComparer<object>. If null, an empty
+        /// dictionary is used.</param>
         public ResourceKeyComparer(Dictionary<ResourceType, IEqualityComparer<object>>? comparers)
         {
             // 外部から渡された比較器の辞書を保持（null なら空の辞書）
@@ -324,11 +415,36 @@ public static class BomScheduler
         }
     }
 
-    public enum ResourceType { Line, Member, Global }
+    /// <summary>
+    /// Specifies the type of resource to be used or referenced.
+    /// </summary>
+    /// <remarks>Use this enumeration to indicate whether a resource is associated with a specific line, a
+    /// member, or is global in scope. The meaning of each value depends on the context in which the enumeration is
+    /// used.</remarks>
+    public enum ResourceType {
+        /// <summary>
+        /// Represents a single line of data.
+        /// </summary>
+        Line,
+
+        /// <summary>
+        /// Represents a member
+        /// </summary>
+        Member
+    }
 
 
     //製造ラインとメンバーの指定がある場合、その空き状況を管理しておくクラス
-
+    /// <summary>
+    /// Manages scheduling and availability of resources, such as production lines and members, for booking and
+    /// allocation in manufacturing or similar environments.
+    /// </summary>
+    /// <remarks>The ResourceScheduler coordinates resource usage by tracking non-working periods and
+    /// reservations for both global and resource-specific contexts. It provides methods to register non-working times,
+    /// book resources for operations, and search for optimal time slots considering efficiency, setup, and batch
+    /// constraints. This class is designed to support forward and backward scheduling scenarios, handling complex
+    /// constraints such as overlapping reservations, non-working calendars, and resource capacities. Thread safety is
+    /// not guaranteed; external synchronization is required if used concurrently.</remarks>
     public class ResourceScheduler
     {
         private readonly List<IPendingTimeRange> _globalNonWorking = new();
@@ -353,18 +469,31 @@ public static class BomScheduler
         /// Registers global non-working time intervals.
         /// </summary>
         public void RegisterGlobalNonWorkingTime(IPendingTimeRange range) => _globalNonWorking.Add(range);
-        public void RegisterGlobalNonWorkingTime(IEnumerable< IPendingTimeRange> ranges) => _globalNonWorking.AddRange(ranges);
+        public void RegisterGlobalNonWorkingTime(IEnumerable<IPendingTimeRange> ranges) => _globalNonWorking.AddRange(ranges);
 
 
         /// <summary>
-        /// リソースを予約する。LeadTimeがnullの場合は予約（占有）を行わない。
+        /// Books the specified process step for the given resource line and member, reserving the associated time range
+        /// for resource usage.
         /// </summary>
-        public void Book<TOperation, TOperationKey>(TOperation step, DateTime? start, DateTime? end, object? lineId, object? memberId)
+        /// <typeparam name="TOperation">The type of the process step to be booked. Must implement the IProcessStep interface with the specified
+        /// operation key type.</typeparam>
+        /// <typeparam name="TOperationKey">The type of the key used to identify the process step.</typeparam>
+        /// <param name="step">The process step to book. Must have valid lead time, start, and end values.</param>
+        /// <param name="lineId">An optional identifier for the resource line to associate with the booking. Can be null to indicate no
+        /// specific line.</param>
+        /// <param name="memberId">An optional identifier for the resource member to associate with the booking. Can be null to indicate no
+        /// specific member.</param>
+        public void Book<TOperation, TOperationKey>(TOperation step, object? lineId, object? memberId)
                     where TOperation : IProcessStep<TOperationKey>
         {
-            if (step.LeadTime == null || !start.HasValue || !end.HasValue) return;
+            if (step.LeadTime == null || !step.Start.HasValue || !step.End.HasValue) return;
 
-            var range = new TimeRangeInstance { Start = start, End = end };
+            var range = new TimeRangeInstance
+            {
+                Start = step.Start - step.SetupTime,
+                End = step.End + step.PostSetupTime
+            };
             foreach (var key in GetSelectedResourceKeys(lineId, memberId))
             {
                 if (!_resourceUsage.TryGetValue(key, out var usages))
@@ -376,6 +505,22 @@ public static class BomScheduler
             }
         }
 
+        /// <summary>
+        /// Finds the earliest available time slot for the specified process step, starting from the given cursor, by
+        /// evaluating possible resource combinations and their efficiencies.
+        /// </summary>
+        /// <remarks>This method considers all combinations of available lines and members, adjusting the
+        /// required duration based on their combined efficiencies. If no candidates are found, the method falls back to
+        /// scheduling with default efficiency. The returned ScheduleResult includes the scheduled start and end times,
+        /// resource identifiers, and the actual duration.</remarks>
+        /// <typeparam name="TOperation">The type of the process step to be scheduled. Must implement the IProcessStep interface.</typeparam>
+        /// <typeparam name="TOperationKey">The type of the key used to identify the process step.</typeparam>
+        /// <param name="step">The process step for which to find an available time slot. Cannot be null.</param>
+        /// <param name="startCursor">The date and time from which to begin searching for an available slot.</param>
+        /// <param name="baseDuration">The base duration required to complete the process step, before efficiency adjustments are applied.</param>
+        /// <param name="latestFinish">The latest allowable finish time for the scheduled step, or null if there is no constraint.</param>
+        /// <returns>A ScheduleResult representing the best available slot found for the process step. If no suitable resources
+        /// are available, returns a result based on default efficiency and the provided start time.</returns>
         public ScheduleResult FindBestSlotForward<TOperation, TOperationKey>(TOperation step, DateTime startCursor, TimeSpan baseDuration, DateTime? latestFinish = null) where TOperation : IProcessStep<TOperationKey>
 
         {
@@ -393,35 +538,51 @@ public static class BomScheduler
                 {
                     // ラインとメンバー、両方の効率を掛け合わせる（例：ライン2.0倍 × 人1.0倍 = 2.0倍速）
                     var totalEfficiency = line.Efficiency * member.Efficiency;
+                    var keys = GetSelectedResourceKeys(line.Id, member.Id).ToList();
 
                     // 効率を加味した実際の所要時間を計算
                     var actualDuration = CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, totalEfficiency);
 
-                    if (step.LeadTime == null)
-                    //return new ScheduleResult(startCursor, startCursor.Add(actualDuration), null, null, actualDuration);
+                    // リソースを占有すべき全時間を計算 (Setup + Lead + PostSetup)
+                    var totalOccupancy = step.SetupTime + actualDuration + step.PostSetupTime;
+
+
+                    // 2. 検索。LeadTimeがnull（マイルストーン等）なら最小単位で検索
+                    var searchDuration = (step.LeadTime == null) ? _unit : totalOccupancy;
+
+                    var (foundStart, foundEnd) = FindFirstAvailableStart(keys, startCursor, totalOccupancy, step.BatchCapacity, latestFinish);
+
+
+                    var leadStart = foundStart.Add(step.SetupTime);
+                    var leadEnd = foundEnd.Subtract(step.PostSetupTime);
+
+                    // 「最も早く終わる」組み合わせを保持iya
+                    if (bestResult == null || leadEnd < bestResult.Value.End)
                     {
-                        var keys2 = GetSelectedResourceKeys(line.Id, member.Id).ToList();
-                        // 順算なら、指定時間以降で最初の稼働時間を探す
-                        var adjustedStart = FindFirstAvailableStart(keys2, startCursor, _unit, 0, latestFinish);
-
-                        return new ScheduleResult(adjustedStart.Start, adjustedStart.End, null, null, _unit);
-                    }
-
-                    var keys = GetSelectedResourceKeys(line.Id, member.Id).ToList();
-                    var searchStart = startCursor.Add(step.SetupTime);
-
-                    var (start, end) = FindFirstAvailableStart(keys, searchStart, actualDuration, step.BatchCapacity, latestFinish);
-
-                    // 「最も早く終わる」組み合わせを保持
-                    if (bestResult == null || end < bestResult.Value.End)
-                    {
-                        bestResult = new ScheduleResult(start, end, line.Id, member.Id, actualDuration);
+                        bestResult = new ScheduleResult(leadStart, leadEnd, line.Id, member.Id, actualDuration);
                     }
                 }
 
             // 候補がない場合のフォールバック（効率1.0で計算）
             return bestResult ?? new ScheduleResult(startCursor, startCursor.Add(CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, 1.0)), null, null, baseDuration);
         }
+
+        /// <summary>
+        /// Finds the optimal time slot for scheduling the specified process step by searching backward from the given
+        /// end time, considering resource availability and efficiency constraints.
+        /// </summary>
+        /// <remarks>This method evaluates combinations of available lines and members to maximize
+        /// scheduling efficiency. If no candidates are available, a fallback slot is returned using the default
+        /// efficiency. The method does not guarantee that the returned slot is feasible if resource constraints change
+        /// after the call.</remarks>
+        /// <typeparam name="TOperation">The type of process step to schedule. Must implement the IProcessStep interface.</typeparam>
+        /// <typeparam name="TOperationKey">The type of the key used to identify the process step.</typeparam>
+        /// <param name="step">The process step to be scheduled. Must not be null.</param>
+        /// <param name="endCursor">The latest possible end time for the scheduled slot. The search will proceed backward from this point.</param>
+        /// <param name="baseDuration">The base duration required to complete the process step, before efficiency adjustments are applied.</param>
+        /// <param name="earliestStart">The earliest allowed start time for the scheduled slot. If null, no lower bound is enforced.</param>
+        /// <returns>A ScheduleResult representing the best available time slot found for the process step. If no suitable slot
+        /// is found, returns a fallback result using the default efficiency.</returns>
         public ScheduleResult FindBestSlotBackward<TOperation, TOperationKey>(TOperation step, DateTime endCursor, TimeSpan baseDuration, DateTime? earliestStart = null) where TOperation : IProcessStep<TOperationKey>
         {
             const double DefaultEfficiency = 1.0;
@@ -436,31 +597,27 @@ public static class BomScheduler
                 {
                     // 効率の掛け合わせ
                     var totalEfficiency = line.Efficiency * member.Efficiency;
+                    var keys = GetSelectedResourceKeys(line.Id, member.Id).ToList();
 
                     // 効率を加味した実際の所要時間を計算
                     var actualDuration = CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, totalEfficiency);
+                    // リソースを占有すべき全時間を計算 (Setup + Lead + PostSetup)
+                    var totalOccupancy = step.SetupTime + actualDuration + step.PostSetupTime;
+                    var searchDuration = (step.LeadTime == null) ? _unit : totalOccupancy;
 
-                    // LeadTimeがnullなら、リソース判定をスキップ
-                    if (step.LeadTime == null)
-                    //   return new ScheduleResult(endCursor.Subtract(actualDuration), endCursor, null, null, actualDuration);
+                    // 2. 探索。endCursorから遡って searchDuration 分の空きを探す
+                    var (foundStart, foundEnd) = FindFirstAvailableEnd(keys, endCursor, totalOccupancy, step.BatchCapacity, earliestStart);
+
+                    // 3. スケジュール結果の算出
+                    // LeadTimeの終了 = 見つかった枠の末尾 - PostSetupTime
+                    var leadEnd = foundEnd.Subtract(step.PostSetupTime);
+                    var leadStart = foundStart.Subtract(step.SetupTime);
+
+                    if (bestResult == null || leadEnd > bestResult.Value.End)
                     {
-                        var keys2 = GetSelectedResourceKeys(line.Id, member.Id).ToList();
-                        // 逆算なら、指定時間以前で最初の稼働可能（終了）時間を探す
-                        var adjustedEnd = FindFirstAvailableEnd(keys2, endCursor, _unit, 0, earliestStart);
-
-                        return new ScheduleResult(adjustedEnd.Start, adjustedEnd.End, null, null, _unit);
+                        bestResult = new ScheduleResult(leadStart, leadEnd, line.Id, member.Id, actualDuration);
                     }
 
-                    var keys = GetSelectedResourceKeys(line.Id, member.Id).ToList();
-
-                    // バックワードでの探索：指定された完了期限(endCursor)から遡る
-                    var (start, end) = FindFirstAvailableEnd(keys, endCursor, actualDuration, step.BatchCapacity, earliestStart);
-
-                    // 判定：完了日が「より納期に近い（＝遅い）」ものをベストとする
-                    if (bestResult == null || end > bestResult.Value.End)
-                    {
-                        bestResult = new ScheduleResult(start, end, line.Id, member.Id, actualDuration);
-                    }
                 }
 
             // 候補がない場合のフォールバック
@@ -474,7 +631,23 @@ public static class BomScheduler
         }
 
 
-
+        /// <summary>
+        /// Finds the earliest available time window that satisfies the specified duration and capacity constraints
+        /// within the working calendar for the given resources.
+        /// </summary>
+        /// <remarks>If no suitable window is found before the latest finish time, the method returns a
+        /// window ending at the latest finish and starting as late as possible to accommodate the required duration.
+        /// The search skips non-working periods and avoids conflicts with existing reservations, except for calendar
+        /// holidays, which are automatically excluded from the search.</remarks>
+        /// <param name="keys">A list of resource keys representing the resources to check for availability.</param>
+        /// <param name="start">The earliest date and time at which the search for an available window should begin.</param>
+        /// <param name="duration">The required length of the available window as a time span. Only working time is counted toward this
+        /// duration.</param>
+        /// <param name="capacity">The minimum required capacity for the resources during the scheduled window.</param>
+        /// <param name="latestFinish">An optional latest finish time. If specified, the returned window will not end after this time.</param>
+        /// <returns>A tuple containing the start and end date-times of the first available window that meets the specified
+        /// criteria. The window is guaranteed to fall within working hours and not exceed the latest finish time if
+        /// provided.</returns>
         private (DateTime Start, DateTime End) FindFirstAvailableStart(List<ResourceKey> keys, DateTime start, TimeSpan duration, double capacity, DateTime? latestFinish)
         {
             // 1. まず開始地点を稼働時間（非稼働じゃない時間）まで進める
@@ -560,7 +733,18 @@ public static class BomScheduler
             return current;
         }
 
-
+        /// <summary>
+        /// Searches for the first pending time range that overlaps with the specified time interval for the given
+        /// resources.
+        /// </summary>
+        /// <remarks>The method checks for collisions in the following order: global non-working periods,
+        /// resource-specific non-working periods, and existing bookings for each resource. The search stops at the
+        /// first detected collision.</remarks>
+        /// <param name="resourceKeys">A collection of resource keys to check for collisions with the specified time interval.</param>
+        /// <param name="start">The start date and time of the interval to check for collisions.</param>
+        /// <param name="end">The end date and time of the interval to check for collisions.</param>
+        /// <returns>An object representing the first pending time range that collides with the specified interval, or null if no
+        /// collision is found.</returns>
         private IPendingTimeRange? FindCollision(IEnumerable<ResourceKey> resourceKeys, DateTime start, DateTime end)
         {
             // 1. 全体非稼働との衝突
@@ -585,7 +769,6 @@ public static class BomScheduler
             return null;
         }
 
-        private class TimeRangeInstance : IPendingTimeRange { public DateTime? Start { get; set; } public DateTime? End { get; set; } public TimeSpan? WorkingSpan { get; set; } }
 
         /// <summary>
         /// 見つかった衝突が「カレンダー由来」か「他人の予約由来」かを判定する補助関数
@@ -712,7 +895,16 @@ public static class BomScheduler
         private static DateTime RoundUp(DateTime dt, TimeSpan d) => new((dt.Ticks + d.Ticks - 1) / d.Ticks * d.Ticks, dt.Kind);
         private static DateTime RoundDown(DateTime dt, TimeSpan d) => new(dt.Ticks / d.Ticks * d.Ticks, dt.Kind);
 
+        private class TimeRangeInstance : IPendingTimeRange { public DateTime? Start { get; set; } public DateTime? End { get; set; } public TimeSpan? WorkingSpan { get; set; } }
 
+        /// <summary>
+        /// Represents the result of a scheduling operation, including the scheduled time range, associated line and
+        /// member identifiers, and the total working duration.
+        /// </summary>
+        /// <remarks>This structure is typically used to convey the outcome of a scheduling process, such
+        /// as shift assignments or resource allocations. The identifiers for line and member are stored as objects to
+        /// allow for flexibility in identifier types. All fields are publicly accessible for direct use in scheduling
+        /// logic or reporting.</remarks>
         public struct ScheduleResult
         {
             public DateTime Start;

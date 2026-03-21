@@ -8,7 +8,7 @@ namespace FrostNova.Scheduling.Engine.Tests;
 
 internal class Common
 {
-    private static string ToDispalyResult(IEnumerable<MyBom> nodes)
+    internal static string ToDispalyResult(IEnumerable<MyBom> nodes)
     {
         var sb = new StringBuilder();
 
@@ -25,8 +25,12 @@ internal class Common
                 sb.Append($"Id: {p.Id}");
                 sb.Append($", Start: {p.Start}");
                 sb.Append($", End: {p.End}");
+                sb.Append($", Step: {p.StepOrder}");
+                sb.Append($", ({p.PreBuffer.TotalHours}");
+                sb.Append($", {p.SetupTime.TotalHours}");
                 sb.Append($", Lead: {p.LeadTime}");
-                sb.Append($", {p.StepOrder}");
+                sb.Append($", {p.PostSetupTime.TotalHours}");
+                sb.Append($", {p.PostBuffer.TotalHours})");
                 sb.Append($", {p.LineId}");
                 sb.AppendLine();
             }

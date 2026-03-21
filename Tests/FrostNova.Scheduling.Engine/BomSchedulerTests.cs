@@ -43,11 +43,11 @@ public class BomSchedulerTests
         var lunchBreak = new MyRange(new(2026, 4, 1, 12, 0, 0), new(2026, 4, 1, 13, 0, 0));
         var step = new MyStep { Id = "S1", LeadTime = TimeSpan.FromHours(2) }; // 2時間作業
         var node = new MyBom { Id = "N1", ProcessSteps = new List<MyStep> { step } };
-
+        var nodes = new []{ node };
         // Act
         // 11:00開始 -> 12~13時休み -> 14:00終了になるはず
         BomScheduler.Schedule<MyBom, string, MyStep, string>(
-            new[] { node }, Enumerable.Empty<MyBom>(), new[] { lunchBreak },
+            nodes, Enumerable.Empty<MyBom>(), new[] { lunchBreak },
             k => Enumerable.Empty<IPendingTimeRange>(),
             s => new(0, _baseDate.AddHours(2)), true, _unit);
 

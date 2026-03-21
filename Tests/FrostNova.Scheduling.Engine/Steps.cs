@@ -13,12 +13,14 @@ public class MyStep : IProcessStep<string>, IResourceConstraint
     public string Id { get; set; } = "";
     public DateTime? Start { get; set; }
     public DateTime? End { get; set; }
+    public TimeSpan PreBuffer { get; set; } = TimeSpan.Zero;
+    public TimeSpan SetupTime { get; set; } = TimeSpan.Zero;
     public TimeSpan? LeadTime { get; set; }
-    public int StepOrder { get; set; }
+    public TimeSpan PostSetupTime { get; set; } = TimeSpan.Zero;
+    public TimeSpan PostBuffer { get; set; } = TimeSpan.Zero; public int StepOrder { get; set; }
     public double Quantity { get; set; } = 1;
     public bool IsFixedTime { get; set; }
     public double BatchCapacity { get; set; } = 1;
-    public TimeSpan SetupTime { get; set; } = TimeSpan.Zero;
 
     // リソース候補
     public List<(object? Id, double Efficiency)> Lines { get; set; } = new();

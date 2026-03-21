@@ -159,7 +159,7 @@ public class BomSchedulerBackwardTests
     }
 
     [Fact]
-    public void Backward_SetupTime_Pushback()
+     public void Forward_SetupTime_Pushback()
     {
         // リードタイム2日、段取り(SetupTime)1日。
         // 期待値: 作業に2日、その前に段取り1日が必要。合計3日前から開始。
@@ -170,12 +170,33 @@ public class BomSchedulerBackwardTests
         BomScheduler.Schedule<MyBom, string, MyStep, string>(
             new[] { node }, Enumerable.Empty<MyBom>(), Enumerable.Empty<IPendingTimeRange>(),
             k => Enumerable.Empty<IPendingTimeRange>(),
+            s => new(0, _deadline), true, _unitDay);
+
+        // バックワードの場合、FindFirstAvailableEndが「段取り分」を考慮して
+        // 他の予約とぶつからない最も遅い時間を探す。
+        Assert.Equal(_deadline.AddDays(1), step.Start);
+        Assert.Equal(_deadline.AddDays(3), step.End);
+        // Step内部のStart/Endは純粋な作業時間。SetupTimeは「その前に必要だった時間」
+    }
+
+    [Fact]
+     public void Backward_SetupTime_Pushback()
+    {
+        // リードタイム2日、段取り(SetupTime)1日。
+        // 期待値: 作業に2日、その前に段取り1日が必要。合計3日前から開始。
+        // 注意: 現在の実装では SetupTime は作業期間に含まれない「着手前の空き」として計算
+        var step = new MyStep { Id = "SetupStep", LeadTime = TimeSpan.FromDays(2), PostSetupTime = TimeSpan.FromDays(1) };
+        var node = new MyBom { Id = "N1", ProcessSteps = new List<MyStep> { step } };
+
+        BomScheduler.Schedule<MyBom, string, MyStep, string>(
+            new[] { node }, Enumerable.Empty<MyBom>(), Enumerable.Empty<IPendingTimeRange>(),
+            k => Enumerable.Empty<IPendingTimeRange>(),
             s => new(0, _deadline), false, _unitDay);
 
         // バックワードの場合、FindFirstAvailableEndが「段取り分」を考慮して
         // 他の予約とぶつからない最も遅い時間を探す。
-        Assert.Equal(_deadline, step.End);
-        Assert.Equal(_deadline.AddDays(-2), step.Start);
+        Assert.Equal(_deadline.AddDays(-1), step.End);
+        Assert.Equal(_deadline.AddDays(-3), step.Start);
         // Step内部のStart/Endは純粋な作業時間。SetupTimeは「その前に必要だった時間」
     }
 
@@ -187,9 +208,9 @@ public class BomSchedulerBackwardTests
         var s1 = new MyStep { Id = "S1", LeadTime = null, Quantity = 1 }; // nullなので即時
         var s2 = new MyStep { Id = "S2", LeadTime = TimeSpan.FromDays(1) };
         var node = new MyBom { Id = "N1", ProcessSteps = new List<MyStep> { s1, s2 } };
-
+        var nodes = new[] { node };
         BomScheduler.Schedule<MyBom, string, MyStep, string>(
-            new[] { node }, Enumerable.Empty<MyBom>(), Enumerable.Empty<IPendingTimeRange>(),
+            nodes, Enumerable.Empty<MyBom>(), Enumerable.Empty<IPendingTimeRange>(),
             k => Enumerable.Empty<IPendingTimeRange>(),
             s => new(0, _deadline), false, _unitDay);
 
@@ -552,7 +573,114 @@ public class BomSchedulerBackwardTests
     }
 
 
+    [Fact]
+    /// <summary>5要素の完全検証_リソース占有とバッファによる押し出しが正しく計算されること</summary>
+    public void Should_CalculateCorrectSchedule_With_AllFiveTimeParameters()
+    {
+        // Arrange
+        var baseDate = new DateTime(2026, 4, 1, 9, 0, 0);
+        var machineA = "MachineA";
+        var _unit = TimeSpan.FromMinutes(1);
+        // Step 1: 1時間作業 + 前後1時間ずつの段取り + 前後1時間ずつのバッファ
+        // 合計の時間的影響：5時間
+        // リソース占有：3時間 (Setup 1h + Lead 1h + PostSetup 1h)
+        var step1 = new MyStep
+        {
+            Id = "S1",
+            StepOrder = 1,
+            PreBuffer = TimeSpan.FromHours(1),     // 9:00 - 10:00 (Buffer)
+            SetupTime = TimeSpan.FromHours(1),     // 10:00 - 11:00 (Resource Occupied)
+            LeadTime = TimeSpan.FromHours(1),      // 11:00 - 12:00 (Resource Occupied/Start-End)
+            PostSetupTime = TimeSpan.FromHours(1), // 12:00 - 13:00 (Resource Occupied)
+            PostBuffer = TimeSpan.FromHours(1),    // 13:00 - 14:00 (Buffer)
+            Lines = new List<(object, double)> { (machineA, 1.0) }
+        };
 
+        // Step 2: Step 1の直後の工程（同じマシンを使用）
+        // S1のPostBuffer(1h) + S2のPreBuffer(0h) + S2のSetup(1h) を経て開始されるべき
+        var step2 = new MyStep
+        {
+            Id = "S2",
+            StepOrder = 2,
+            SetupTime = TimeSpan.FromHours(1),
+            LeadTime = TimeSpan.FromHours(1),
+            Lines = new List<(object, double)> { (machineA, 1.0) }
+        };
+
+        var node = new MyBom { Id = "N1", ProcessSteps = new List<MyStep> { step1, step2 } };
+
+        var nodes = new[] { node };
+        // Act
+        BomScheduler.Schedule<MyBom, string, MyStep, string>(
+            nodes,
+            Enumerable.Empty<MyBom>(),
+            Enumerable.Empty<IPendingTimeRange>(),
+            k => Enumerable.Empty<IPendingTimeRange>(),
+            s => new(0, baseDate), true, _unit);
+
+        // Assert
+        // --- Step 1 の検証 ---
+        // PreBuffer(1h) により、LeadStart は 11:00 になる
+        Assert.Equal(baseDate.AddHours(2), step1.Start); // 11:00
+        Assert.Equal(baseDate.AddHours(3), step1.End);   // 12:00
+
+        // --- Step 2 の検証 ---
+        // 計算式: 
+        // S1.End(12:00) + S1.PostSetup(1h) + S1.PostBuffer(1h) + S2.PreBuffer(0h) + S2.Setup(1h)
+        // = 12:00 + 3h = 15:00
+        Assert.Equal(baseDate.AddHours(7), step2.Start); // 15:00
+        Assert.Equal(baseDate.AddHours(8), step2.End); // 15:00
+    }
+
+    [Fact]
+    /// <summary>リソース競合の検証_段取り時間が重なる位置には配置されないこと</summary>
+    public void Should_NotOverlap_ResourceOccupancyIncludingSetupAndPostSetup()
+    {
+        // Arrange
+        var baseDate = new DateTime(2026, 4, 1, 9, 0, 0);
+        var machineA = "MachineA";
+        var _unit = TimeSpan.FromMinutes(1);
+
+        // Node 1: 10:00-11:00 作業 (Setup 1h / PostSetup 1h) -> リソース占有は 9:00-12:00
+        var step1 = new MyStep
+        {
+            Id = "S1",
+            LeadTime = TimeSpan.FromHours(1),
+            SetupTime = TimeSpan.FromHours(1),
+            PostSetupTime = TimeSpan.FromHours(1),
+            Lines = new List<(object, double)> { (machineA, 1.0) }
+        };
+
+        // Node 2: 同じリソースを使う別ノード。
+        // 本来 9:00 から開始したいが、S1 が 9:00-12:00 を占有しているため、その後ろに回るはず
+        var step2 = new MyStep
+        {
+            Id = "S2",
+            LeadTime = TimeSpan.FromHours(1),
+            SetupTime = TimeSpan.FromHours(1),
+            Lines = new List<(object, double)> { (machineA, 1.0) }
+        };
+
+        var node1 = new MyBom { Id = "N1", ProcessSteps = new List<MyStep> { step1 } };
+        var node2 = new MyBom { Id = "N2", ProcessSteps = new List<MyStep> { step2 } };
+
+        // Act
+        // S1 を先に計算させるために Priority を設定（数値が小さいほうが優先と仮定）
+        node1.Priority = 1;
+        node2.Priority = 2;
+        var nodes = new[] { node1, node2 };
+        BomScheduler.Schedule<MyBom, string, MyStep, string>(
+           nodes,
+            Enumerable.Empty<MyBom>(),
+            Enumerable.Empty<IPendingTimeRange>(),
+            k => Enumerable.Empty<IPendingTimeRange>(),
+            s => new(0, baseDate), true, _unit); // 10:00開始基準
+
+        // Assert
+        // S1: 10:00-11:00 (Occupies 9:00-12:00)
+        // S2: S1の占有終了(12:00) + S2.Setup(1h) = 13:00 Start であるべき
+        Assert.Equal(baseDate.AddHours(4), step2.Start);
+    }
 }
 
 
