@@ -80,8 +80,55 @@ public class TimeRangeChart : Control
 
         }
         _ruledLinePen = GetRuledLinePen();
+        this.Unloaded += TimeRangeChart_Unloaded;
     }
+    private bool _isDisposed = false;
+    private void TimeRangeChart_Unloaded(object sender, RoutedEventArgs e)
+    {
+        _isDisposed = true;
 
+        // タイマーの停止
+        if (_stackingRetryTimer != null)
+        {
+            _stackingRetryTimer.Stop();
+            _stackingRetryTimer.Tick -= StackingRetryTimer_Tick;
+            _stackingRetryTimer = null;
+        }
+
+        // ItemsControl のイベント解除
+        DetachItemsControlEvents();
+
+        // ItemsSource のイベント解除
+        if (ItemsSource is INotifyCollectionChanged observable)
+        {
+            observable.CollectionChanged -= itemsSourceChangedHandler;
+        }
+
+        // NonWorkingTimes のイベント解除
+        if (NonWorkingTimes is INotifyCollectionChanged obsNonWorking)
+        {
+            obsNonWorking.CollectionChanged -= _nonworkingTimesCollectionChangedHandler;
+        }
+    }
+    private void DetachItemsControlEvents()
+    {
+        if (_itemsControl != null)
+        {
+            if (_itemContainerStatusHandler != null)
+                _itemsControl.ItemContainerGenerator.StatusChanged -= _itemContainerStatusHandler;
+
+            if (_itemsControlLoadedHandler != null)
+                _itemsControl.Loaded -= _itemsControlLoadedHandler;
+
+            if (_itemsControlLayoutUpdatedHandler != null)
+                _itemsControl.LayoutUpdated -= _itemsControlLayoutUpdatedHandler;
+
+            _itemContainerStatusHandler = null;
+            _itemsControlLoadedHandler = null;
+            _itemsControlLayoutUpdatedHandler = null;
+            _itemsControl = null;
+        }
+    }
     public Func<DateTime, double> TimeToPointFunc { get; private set; }
     public Func<double, TimeSpan?, DateTime> PointToTimeFunc { get; private set; }
 
@@ -150,27 +197,20 @@ public class TimeRangeChart : Control
             // ObservableCollection<> かどうかを判定
             if (e.NewValue is INotifyCollectionChanged observable)
             {
-                chart.itemsSourceChangedHandler = (s, e) =>
+                chart.itemsSourceChangedHandler = (s, ev) =>
                 {
                     chart.RefreshCall();
-                    // Ensure stacking runs after items are materialized in the ItemsControl
-                    if (!chart._stackingRetryScheduled)
-                    {
-                        chart._stackingRetryScheduled = true;
-                        chart.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
-                        {
-                            chart._stackingRetryScheduled = false;
-                            chart.ApplyStackingIfNeeded();
-                        }));
-                    }
+                    // 直接 ApplyStackingIfNeeded を呼ばず、予約だけ行う
+                    chart.RequestStacking();
                 };
+                observable.CollectionChanged += chart.itemsSourceChangedHandler;
                 // イベントの購読などの処理
                 observable.CollectionChanged += chart.itemsSourceChangedHandler;
             }
         }
     }
 
-    private NotifyCollectionChangedEventHandler itemsSourceChangedHandler;
+    private NotifyCollectionChangedEventHandler? itemsSourceChangedHandler;
 
     /// <summary>
     /// Height
@@ -737,180 +777,188 @@ public class TimeRangeChart : Control
     private int _consecutiveMatches = 0;
     internal void ApplyStackingIfNeeded()
     {
-        if (!CanStackRange) return;
-
-        // Try to collect TimeRangeControl from the ItemsControl item containers if available
-        List<TimeRangeControl> controls = new();
-        if (_itemsControl != null && _itemsControl.Items.Count > 0)
+        if (_isDisposed || !CanStackRange || _isApplyingHeight) return;
+        try
         {
-            for (int i = 0; i < _itemsControl.Items.Count; i++)
-            {
-                var container = _itemsControl.ItemContainerGenerator.ContainerFromIndex(i) as FrameworkElement;
-                if (container == null)
-                {
-                    // container not yet generated for this item
-                    continue;
-                }
-                // find TimeRangeControl within container
-                var tr = GeneralHelper.FindVisualChild<TimeRangeControl>(container);
-                if (tr != null && tr.CanStack) controls.Add(tr);
-            }
-        }
 
-        // fallback to searching whole visual tree
-        if (controls.Count == 0)
-        {
-            controls.AddRange(GeneralHelper.FindVisualChildren<TimeRangeControl>(this).Where(x => x.CanStack));
-        }
 
-        // Ensure we recompute stacking when any control finishes loading
-        foreach (var tr in controls.ToList())
-        {
-            // Ensure ParentChart is assigned so TimeRangeControl can calculate positions
-            try
+            // Try to collect TimeRangeControl from the ItemsControl item containers if available
+            List<TimeRangeControl> controls = new();
+            if (_itemsControl != null && _itemsControl.Items.Count > 0)
             {
-                if (!ReferenceEquals(tr.ParentChart, this))
+                for (int i = 0; i < _itemsControl.Items.Count; i++)
                 {
-                    tr.ParentChart = this;
-                }
-            }
-            catch { }
-            if (!_registeredLoadedHandlers.Contains(tr))
-            {
-                RoutedEventHandler? handler = null;
-                handler = (s, e) =>
-                {
-                    try
+                    var container = _itemsControl.ItemContainerGenerator.ContainerFromIndex(i) as FrameworkElement;
+                    if (container == null)
                     {
+                        // container not yet generated for this item
+                        continue;
+                    }
+                    // find TimeRangeControl within container
+                    var tr = GeneralHelper.FindVisualChild<TimeRangeControl>(container);
+                    if (tr != null && tr.CanStack) controls.Add(tr);
+                }
+            }
+
+            // fallback to searching whole visual tree
+            if (controls.Count == 0)
+            {
+                controls.AddRange(GeneralHelper.FindVisualChildren<TimeRangeControl>(this).Where(x => x.CanStack));
+            }
+
+            // Ensure we recompute stacking when any control finishes loading
+            foreach (var tr in controls.ToList())
+            {
+                // Ensure ParentChart is assigned so TimeRangeControl can calculate positions
+                try
+                {
+                    if (!ReferenceEquals(tr.ParentChart, this))
+                    {
+                        tr.ParentChart = this;
+                    }
+                }
+                catch { }
+                if (!_registeredLoadedHandlers.Contains(tr))
+                {
+                    RoutedEventHandler? handler = null;
+                    handler = (s, e) =>
+                    {
+                        try
+                        {
+                            ApplyStackingIfNeeded();
+                        }
+                        finally
+                        {
+                            tr.Loaded -= handler;
+                            _registeredLoadedHandlers.Remove(tr);
+                        }
+                    };
+                    tr.Loaded += handler;
+                    _registeredLoadedHandlers.Add(tr);
+                }
+            }
+            // ask for a layout pass to make sure Canvas positions are updated
+            this.InvalidateArrange();
+            // If there are no visual children yet but the items source contains items,
+            // visuals may not have been generated at this time. Schedule a retry after
+            // the layout/load pass so stacking can run when controls are available.
+            if (controls.Count == 0)
+            {
+                // compute stack levels from data model so we have deterministic positions
+                try
+                {
+                    ComputeStackLevelsFromData();
+                }
+                catch { }
+                // If there are no visuals and no items, ensure any forced Height is cleared so chart can shrink back.
+                if (ItemsSource == null || ItemsSource.Count == 0)
+                {
+                    if (!double.IsNaN(this.Height))
+                    {
+                        _isApplyingHeight = true;
+                        this.ClearValue(HeightProperty);
+                        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => _isApplyingHeight = false));
+                    }
+                    return;
+                }
+
+                if (ItemsSource != null && ItemsSource.Count > 0 && !_stackingRetryScheduled)
+                {
+                    _stackingRetryScheduled = true;
+                    // Schedule ApplyStackingIfNeeded to run after the layout/render pass.
+                    // Use Loaded priority so it runs once visuals are created.
+                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+                    {
+                        _stackingRetryScheduled = false;
                         ApplyStackingIfNeeded();
-                    }
-                    finally
-                    {
-                        tr.Loaded -= handler;
-                        _registeredLoadedHandlers.Remove(tr);
-                    }
-                };
-                tr.Loaded += handler;
-                _registeredLoadedHandlers.Add(tr);
-            }
-        }
-        // ask for a layout pass to make sure Canvas positions are updated
-        this.InvalidateArrange();
-        // If there are no visual children yet but the items source contains items,
-        // visuals may not have been generated at this time. Schedule a retry after
-        // the layout/load pass so stacking can run when controls are available.
-        if (controls.Count == 0)
-        {
-            // compute stack levels from data model so we have deterministic positions
-            try
-            {
-                ComputeStackLevelsFromData();
-            }
-            catch { }
-            // If there are no visuals and no items, ensure any forced Height is cleared so chart can shrink back.
-            if (ItemsSource == null || ItemsSource.Count == 0)
-            {
-                if (!double.IsNaN(this.Height))
-                {
-                    _isApplyingHeight = true;
-                    this.ClearValue(HeightProperty);
-                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => _isApplyingHeight = false));
+                    }));
                 }
                 return;
             }
 
-            if (ItemsSource != null && ItemsSource.Count > 0 && !_stackingRetryScheduled)
+            // itemHeight: 各コントロールの Height を優先して使用（未設定時は ActualHeight、さらに未設定なら ParentGridChart.RowHeight）
+            double itemHeight = 0;
+            foreach (var c in controls)
             {
-                _stackingRetryScheduled = true;
-                // Schedule ApplyStackingIfNeeded to run after the layout/render pass.
-                // Use Loaded priority so it runs once visuals are created.
-                Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
-                {
-                    _stackingRetryScheduled = false;
-                    ApplyStackingIfNeeded();
-                }));
+                double h = c.Height;
+                if (double.IsNaN(h) || h <= 0) h = c.ActualHeight;
+                if (double.IsNaN(h) || h <= 0) h = ParentGridChart?.RowHeight ?? 30.0;
+                itemHeight = Math.Max(itemHeight, h);
             }
-            return;
-        }
+            if (itemHeight <= 0) itemHeight = ParentGridChart?.RowHeight ?? 30.0;
 
-        // itemHeight: 各コントロールの Height を優先して使用（未設定時は ActualHeight、さらに未設定なら ParentGridChart.RowHeight）
-        double itemHeight = 0;
-        foreach (var c in controls)
-        {
-            double h = c.Height;
-            if (double.IsNaN(h) || h <= 0) h = c.ActualHeight;
-            if (double.IsNaN(h) || h <= 0) h = ParentGridChart?.RowHeight ?? 30.0;
-            itemHeight = Math.Max(itemHeight, h);
-        }
-        if (itemHeight <= 0) itemHeight = ParentGridChart?.RowHeight ?? 30.0;
-
-        double maxBaseTop = 0;
-        foreach (var c in controls)
-        {
-            double h = c.StackBaseTop;
-            if (double.IsNaN(h) || h <= 0) h = 0;
-            maxBaseTop = Math.Max(maxBaseTop, h);
-        }
-        if (maxBaseTop <= 0) maxBaseTop = 0.0;
-
-
-
-        // If we have a mapping calculated from data, apply it first so positions are deterministic
-        if (_dataStackLevelMap != null && _dataStackLevelMap.Count > 0)
-        {
-            foreach (var ctrl in controls)
+            double maxBaseTop = 0;
+            foreach (var c in controls)
             {
-                if (ctrl.DataContext != null && _dataStackLevelMap.TryGetValue(ctrl.DataContext, out var lev))
+                double h = c.StackBaseTop;
+                if (double.IsNaN(h) || h <= 0) h = 0;
+                maxBaseTop = Math.Max(maxBaseTop, h);
+            }
+            if (maxBaseTop <= 0) maxBaseTop = 0.0;
+
+
+
+            // If we have a mapping calculated from data, apply it first so positions are deterministic
+            if (_dataStackLevelMap != null && _dataStackLevelMap.Count > 0)
+            {
+                foreach (var ctrl in controls)
                 {
-                    ctrl.StackLevel = lev;
-                    var extraOffset = ctrl.StackBaseTop;
-                    ctrl.Top =  lev * (itemHeight + _defaultStackVerticalMargin) + extraOffset;
+                    if (ctrl.DataContext != null && _dataStackLevelMap.TryGetValue(ctrl.DataContext, out var lev))
+                    {
+                        ctrl.StackLevel = lev;
+                        var extraOffset = ctrl.StackBaseTop;
+                        ctrl.Top = lev * (itemHeight + _defaultStackVerticalMargin) + extraOffset;
+                    }
+                }
+            }
+            else
+            {
+                RecalculateStackLevels(controls, itemHeight, _defaultStackVerticalMargin, maxBaseTop);
+            }
+
+
+            // 必要高さを確保（見切れ防止）
+            int maxLevel = controls.Select(c => c.StackLevel).DefaultIfEmpty(0).Max();
+            double requiredHeight = maxBaseTop + (maxLevel + 1) * (itemHeight + _defaultStackVerticalMargin);
+
+            // ループ抑止用: 自分で Height を設定中は反応しない
+            if (_isApplyingHeight) return;
+
+            double baseHeight = ChartHeight > 0 ? ChartHeight : (ParentGridChart?.RowHeight ?? 30.0);
+
+            // 判定基準を「コンテナのActualHeight」から「本来のベース高さ」に変える
+            // Coalesce height adjustments: schedule a single recalculation after layout and avoid transient spikes.
+            if (_heightAdjustmentPending)
+            {
+                // already scheduled; do not schedule another
+                return;
+            }
+
+
+            //Set Chart Height
+            if (requiredHeight > baseHeight + _heightEpsilon)
+            {
+                if (double.IsNaN(this.Height) || Math.Abs(this.Height - requiredHeight) > _heightEpsilon)
+                {
+                    _isApplyingHeight = true;
+                    this.Height = requiredHeight; // 拡張が必要
+                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => _isApplyingHeight = false));
+                }
+            }
+            else
+            {
+                // 算出した必要高がベース以下なら、Height指定を解除してベース（＝初期値）に戻れるようにする
+                if (!double.IsNaN(this.Height))
+                {
+                    _isApplyingHeight = true;
+                    this.ClearValue(HeightProperty); // 解除
+                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => _isApplyingHeight = false));
                 }
             }
         }
-        else
+        finally
         {
-            RecalculateStackLevels(controls, itemHeight, _defaultStackVerticalMargin, maxBaseTop);
-        }
-
-
-        // 必要高さを確保（見切れ防止）
-        int maxLevel = controls.Select(c => c.StackLevel).DefaultIfEmpty(0).Max();
-        double requiredHeight = maxBaseTop + (maxLevel + 1) * (itemHeight + _defaultStackVerticalMargin);
-
-        // ループ抑止用: 自分で Height を設定中は反応しない
-        if (_isApplyingHeight) return;
-
-        double baseHeight = ChartHeight > 0 ? ChartHeight : (ParentGridChart?.RowHeight ?? 30.0);
-
-        // 判定基準を「コンテナのActualHeight」から「本来のベース高さ」に変える
-        // Coalesce height adjustments: schedule a single recalculation after layout and avoid transient spikes.
-        if (_heightAdjustmentPending)
-        {
-            // already scheduled; do not schedule another
-            return;
-        }
-
-
-        //Set Chart Height
-        if (requiredHeight > baseHeight + _heightEpsilon)
-        {
-            if (double.IsNaN(this.Height) || Math.Abs(this.Height - requiredHeight) > _heightEpsilon)
-            {
-                _isApplyingHeight = true;
-                this.Height = requiredHeight; // 拡張が必要
-                Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => _isApplyingHeight = false));
-            }
-        }
-        else
-        {
-            // 算出した必要高がベース以下なら、Height指定を解除してベース（＝初期値）に戻れるようにする
-            if (!double.IsNaN(this.Height))
-            {
-                _isApplyingHeight = true;
-                this.ClearValue(HeightProperty); // 解除
-                Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => _isApplyingHeight = false));
-            }
+            _isApplyingHeight = false;
         }
     }
 
@@ -1058,57 +1106,57 @@ public class TimeRangeChart : Control
     private void Refresh()
     {
         CalculateBorder();
-        //DrawBorder();
         InvalidateVisual();
 
         // スタック再計算（表示用 Top / Chart 高さの調整）
-        ApplyStackingIfNeeded();
-        // Also ensure stacking runs after the render pass so visual children are available
-        if (!_stackingRenderScheduled)
-        {
-            _stackingRenderScheduled = true;
-            Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
-            {
-                _stackingRenderScheduled = false;
-                ApplyStackingIfNeeded();
-            }));
-        }
+        RequestStacking();
 
-        TimeRangeNeedRefresh?.Invoke(this, new EventArgs());
-
-        // Start a short retry timer to handle cases where visuals are created shortly after refresh
-        StartStackingRetryTimer();
+  
     }
 
-    private void StartStackingRetryTimer()
+
+    private bool _isStackingPending = false;
+    private void RequestStacking()
     {
-        try
-        {
-            _stackingRetryCount = 0;
-            if (_stackingRetryTimer == null)
-            {
-                _stackingRetryTimer = new DispatcherTimer(DispatcherPriority.Background)
-                {
-                    Interval = TimeSpan.FromMilliseconds(60)
-                };
-                _stackingRetryTimer.Tick += StackingRetryTimer_Tick;
-            }
-            _stackingRetryTimer.Stop();
-            _stackingRetryTimer.Start();
-        }
-        catch { }
-    }
+        if (_isDisposed) return;
 
+        _isStackingPending = true;
+
+        if (_stackingRetryTimer == null)
+        {
+            _stackingRetryTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(100) // 少し長めに待機して入力をまとめる
+            };
+            _stackingRetryTimer.Tick += StackingRetryTimer_Tick;
+        }
+
+        _stackingRetryTimer.Stop();
+        _stackingRetryTimer.Start();
+    }
     private void StackingRetryTimer_Tick(object? sender, EventArgs e)
     {
-        _stackingRetryCount++;
-        ApplyStackingIfNeeded();
-        // stop if controls are present
-        var any = GeneralHelper.FindVisualChildren<TimeRangeControl>(this).Any();
-        if (any || _stackingRetryCount >= _stackingRetryMax)
+        if (_isDisposed)
         {
             _stackingRetryTimer?.Stop();
+            return;
         }
+        int expectedCount = ItemsSource?.Count ?? 0;
+        var currentControls = GeneralHelper.FindVisualChildren<TimeRangeControl>(this).ToList();
+
+        // まだコントロールが生成途中の場合は、次回のタイマーTickに譲る
+        if (currentControls.Count < expectedCount)
+        {
+            // 最大リトライ回数を超えていなければ継続
+            if (_stackingRetryCount++ < _stackingRetryMax) return;
+        }
+
+        // 条件が整ったので実行
+        _stackingRetryTimer!.Stop();
+        _stackingRetryCount = 0;
+        _isStackingPending = false;
+
+        ApplyStackingIfNeeded();
     }
 
     private void RefreshCall()
@@ -1157,6 +1205,7 @@ public class TimeRangeChart : Control
 
     public override void OnApplyTemplate()
     {
+        DetachItemsControlEvents();
         base.OnApplyTemplate();
 
         if (TimeTicks == null && IsControlTick)
@@ -1197,16 +1246,14 @@ public class TimeRangeChart : Control
                     // When containers are generated, try stacking
                     if (_itemsControl.ItemContainerGenerator.Status == System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated)
                     {
-                        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => ApplyStackingIfNeeded()));
+                        RequestStacking();
                     }
                 };
                 _itemsControl.ItemContainerGenerator.StatusChanged += _itemContainerStatusHandler;
+
                 // attach Loaded and LayoutUpdated to catch timing cases
                 _itemsControlLoadedHandler = (s, e) => ApplyStackingIfNeeded();
                 _itemsControl.Loaded += _itemsControlLoadedHandler;
-
-                _itemsControlLayoutUpdatedHandler = (s, e) => ApplyStackingIfNeeded();
-                _itemsControl.LayoutUpdated += _itemsControlLayoutUpdatedHandler;
             }
         }
 
