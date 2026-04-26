@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using System;
 using System.Collections.Generic;
@@ -24,7 +24,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         {
         }
 
-
+        public string InstanceId => $"VM_{this.GetHashCode():X8}";
 
         [ObservableProperty]
         private Color _color = Colors.Red;
@@ -32,6 +32,10 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
 
         [ObservableProperty]
         private TimeSpan? _minSpan = null;
+
+        [ObservableProperty]
+        private MilestoneStyle _milestoneStyle = MilestoneStyle.None;
+
 
 
        // TimeSpan? ITimeRange.WorkingSpan { get => WorkingSpan; set => throw new NotImplementedException(); }

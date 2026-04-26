@@ -1,17 +1,13 @@
-using CommunityToolkit.Mvvm.Input;
-using FrostNova.Core.Common;
-using FrostNova.Core.Wpf.Behaviors;
-using FrostNova.Core.Wpf.VisualHelpers;
-using FrostNova.TimeRangeChart.TimeRangeHelpers;
-using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.DirectoryServices;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,75 +21,73 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using System.Xml.Linq;
 using System.Windows.Threading;
+using System.Xml.Linq;
+using CommunityToolkit.Mvvm.Input;
+using FrostNova.Core.Common;
+using FrostNova.Core.Wpf.Behaviors;
+using FrostNova.Core.Wpf.VisualHelpers;
+using FrostNova.TimeRangeChart.TimeRangeHelpers;
+using FrostNova.TimeRangeChart.Wpf.TimeRangeHelpers;
+using Microsoft.Xaml.Behaviors;
 
 namespace FrostNova.TimeRangeChart.Wpf
 {
 
-    public partial class GridTimeRangeChart : Control
+
+    [TemplatePart(Name = "PART_RowHeaderListBox", Type = typeof(ListBox))]
+    [TemplatePart(Name = "PART_Chart", Type = typeof(TimeRangeChart))]
+    [TemplatePart(Name = "PART_ColumnGrid", Type = typeof(ColumnHeaderRenderLayer))]
+    [TemplatePart(Name = "PART_ChartScrollViewer", Type = typeof(ScrollViewer))]
+    [TemplatePart(Name = "PART_RowScrollViewer", Type = typeof(ScrollViewer))]
+    [TemplatePart(Name = "PART_ColumnScrollViewer", Type = typeof(ScrollViewer))]
+    [TemplatePart(Name = "PART_ColumnRightSpacer", Type = typeof(Border))]
+    [TemplatePart(Name = "PART_RowBottomSpacer", Type = typeof(Border))]
+
+    public class GridTimeRangeChart : Control
     {
+        //TODO: DragEvent
+
+
         static GridTimeRangeChart()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(GridTimeRangeChart), new FrameworkPropertyMetadata(typeof(GridTimeRangeChart)));
         }
+
         public GridTimeRangeChart()
         {
-            if (TimeTicks == null)
-            {
-                TimeTicks = new List<IRuledLine>();
-                SubTimeTicks = new List<IRuledLine>();
-            }
-            //if (TimeTicksForColumnHeader == null)
-            //{
-            //    TimeTicksForColumnHeader = new NotifyCollection<IRuledLine>();
-            //}
-
-            if (SelectedRanges == null)
-            {
-                SelectedRanges = new ObservableCollection<TimeRangeControl>();
-            }
-            if (SelectedValues == null)
-            {
-                SelectedValues = new ObservableCollection<object>();
-            }
-            TaskDragStartAction = OnTaskDragStart;
-            TaskDragEndAction = OnTaskDragEnd;
-
 
         }
-        public Action<TimeRangeControl, DragDropRangeEventArgs> TaskDragStartAction { get; private set; }
-        public Action<TimeRangeControl, DragDropRangeEventArgs> TaskDragEndAction { get; private set; }
 
-        private ColumnHeaderRenderLayer? columnHeaderLayer;
-        // keep references to scroll viewers so we can adjust offsets when time range changes
-        private ScrollViewer? _chartScrollViewer;
-        private ScrollViewer? _columnHeaderScrollViewer;
-        private bool _isSyncingScroll = false;
-        private DispatcherTimer? _scrollSyncTimer;
-        private double? _pendingHorizontalOffset;
+        #region cashe of the children
 
-        [Bindable(true)]
+        internal ListBox _rowHeaderListBox = null!;
+        internal TimeRangeChart _chart = null!;
+        internal ColumnHeaderRenderLayer _columnHeaderLayer = null!;
+        internal ScrollViewer _chartScrollViewer = null!;
+        internal Border _columnRightSpacer = null!;
+        internal Border _rowBottomSpacer = null!;
+
+        #endregion
+
+        #region DependencyProperties
+
+        #region Time properties
+
         public DateTime StartTime
         {
             get { return (DateTime)GetValue(StartTimeProperty); }
             set { SetValue(StartTimeProperty, value); }
         }
-        public static readonly DependencyProperty StartTimeProperty = DependencyProperty.Register(nameof(StartTime), typeof(DateTime), typeof(GridTimeRangeChart), new FrameworkPropertyMetadata(DateTime.Now.AddDays(-3), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnMyPropertyChanged));
+        public static readonly DependencyProperty StartTimeProperty = DependencyProperty.Register(nameof(StartTime), typeof(DateTime), typeof(GridTimeRangeChart), new FrameworkPropertyMetadata(DateTime.Now.AddDays(-3), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         public DateTime EndTime
         {
             get { return (DateTime)GetValue(EndTimeProperty); }
             set { SetValue(EndTimeProperty, value); }
         }
-        public static readonly DependencyProperty EndTimeProperty = DependencyProperty.Register(nameof(EndTime), typeof(DateTime), typeof(GridTimeRangeChart), new FrameworkPropertyMetadata(DateTime.Now.AddDays(9), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnMyPropertyChanged));
+        public static readonly DependencyProperty EndTimeProperty = DependencyProperty.Register(nameof(EndTime), typeof(DateTime), typeof(GridTimeRangeChart), new FrameworkPropertyMetadata(DateTime.Now.AddDays(9), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
-        public IList ItemsSource
-        {
-            get { return (IList)GetValue(ItemsSourceProperty); }
-            set { SetValue(ItemsSourceProperty, value); }
-        }
-        public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register(nameof(ItemsSource), typeof(IList), typeof(GridTimeRangeChart));
 
         public TimeSpan ScaleIncrement
         {
@@ -103,14 +97,21 @@ namespace FrostNova.TimeRangeChart.Wpf
                 SetValue(ScaleIncrementProperty, value);
             }
         }
-        public static readonly DependencyProperty ScaleIncrementProperty = DependencyProperty.Register(nameof(ScaleIncrement), typeof(TimeSpan), typeof(GridTimeRangeChart), new PropertyMetadata(new TimeSpan(1, 0, 0), OnMyPropertyChanged));
+        public static readonly DependencyProperty ScaleIncrementProperty = DependencyProperty.Register(nameof(ScaleIncrement), typeof(TimeSpan), typeof(GridTimeRangeChart), new PropertyMetadata(new TimeSpan(1, 0, 0)));
 
         public TimeSpan SubScaleIncrement
         {
             get { return (TimeSpan)GetValue(SubScaleIncrementProperty); }
             set { SetValue(SubScaleIncrementProperty, value); }
         }
-        public static DependencyProperty SubScaleIncrementProperty = DependencyProperty.Register(nameof(SubScaleIncrement), typeof(TimeSpan), typeof(GridTimeRangeChart), new PropertyMetadata(new TimeSpan(1, 0, 0), OnMyPropertyChanged));
+        public static DependencyProperty SubScaleIncrementProperty = DependencyProperty.Register(nameof(SubScaleIncrement), typeof(TimeSpan), typeof(GridTimeRangeChart), new PropertyMetadata(new TimeSpan(1, 0, 0)));
+        public string SubScaleFormat
+        {
+            get { return (string)GetValue(SubScaleFormatProperty); }
+            set { SetValue(SubScaleFormatProperty, value); }
+        }
+        public static DependencyProperty SubScaleFormatProperty = DependencyProperty.Register(nameof(SubScaleFormat), typeof(string), typeof(GridTimeRangeChart));
+
 
 
         public TimeSpan MinSpan
@@ -120,61 +121,106 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static readonly DependencyProperty MinSpanProperty = DependencyProperty.Register(nameof(MinSpan), typeof(TimeSpan), typeof(GridTimeRangeChart), new PropertyMetadata(TimeSpan.FromMinutes(15)));
 
-        public Brush RuledLineFill
-        {
-            get { return (Brush)GetValue(RuledLineFillProperty); }
-            set { SetValue(RuledLineFillProperty, value); }
-        }
-        public static DependencyProperty RuledLineFillProperty = DependencyProperty.Register(nameof(RuledLineFill), typeof(Brush), typeof(GridTimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromArgb(0, 255, 255, 255)), OnMyPropertyChanged));
 
-        public double RuledLineThickness
+        public TimeUnitType TimeUnit
         {
-            get { return (double)GetValue(RuledLineThicknessProperty); }
-            set { SetValue(RuledLineThicknessProperty, value); }
+            get { return (TimeUnitType)GetValue(TimeUnitProperty); }
+            set { SetValue(TimeUnitProperty, value); }
         }
-        public static DependencyProperty RuledLineThicknessProperty = DependencyProperty.Register(nameof(RuledLineThickness), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(1.0, OnMyPropertyChanged));
+        public static DependencyProperty TimeUnitProperty = DependencyProperty.Register(nameof(TimeUnit), typeof(TimeUnitType), typeof(GridTimeRangeChart), new PropertyMetadata(TimeUnitType.Normal));
+
+        public int MonthSpan
+        {
+            get { return (int)GetValue(MonthSpanProperty); }
+            set { SetValue(MonthSpanProperty, value); }
+        }
+        public static DependencyProperty MonthSpanProperty = DependencyProperty.Register(nameof(MonthSpan), typeof(int), typeof(GridTimeRangeChart), new PropertyMetadata(1));
+
+        public string HeaderFormat
+        {
+            get { return (string)GetValue(HeaderFormatProperty); }
+            set { SetValue(HeaderFormatProperty, value); }
+        }
+        public static DependencyProperty HeaderFormatProperty = DependencyProperty.Register(nameof(HeaderFormat), typeof(string), typeof(GridTimeRangeChart));
+        public Func<TimeRangeChart, DateTime, Brush> HeaderBrushSelector
+        {
+            get { return (Func<TimeRangeChart, DateTime, Brush>)GetValue(HeaderBrushSelectorProperty); }
+            set { SetValue(HeaderBrushSelectorProperty, value); }
+        }
+        public static DependencyProperty HeaderBrushSelectorProperty = DependencyProperty.Register(nameof(HeaderBrushSelector), typeof(Func<TimeRangeChart, DateTime, Brush>), typeof(GridTimeRangeChart), new PropertyMetadata(new Func<TimeRangeChart, DateTime, Brush>((gridChart, d) => DefaultHeaderSelector(gridChart, d))));
+
+
+        internal static Brush DefaultHeaderSelector(TimeRangeChart gridChart, DateTime date)
+        {
+            if (gridChart.TimeUnit == TimeUnitType.Month) return Brushes.Black;
+
+            var b = date.DayOfWeek switch
+            {
+                DayOfWeek.Saturday => Brushes.Blue,
+                DayOfWeek.Sunday => Brushes.Red,
+                _ => Brushes.Black
+            };
+            b.Freeze();
+            return b;
+        }
+
+        #endregion
+
+        #region Drag Controls
+
+        public bool CanStackRange
+        {
+            get { return (bool)GetValue(CanStackRangeProperty); }
+            set { SetValue(CanStackRangeProperty, value); }
+        }
+        public static DependencyProperty CanStackRangeProperty = DependencyProperty.Register(nameof(CanStackRange), typeof(bool), typeof(GridTimeRangeChart), new PropertyMetadata(false));
+
+        public bool CanDragTasksBetweenRows
+        {
+            get { return (bool)GetValue(CanDragTasksBetweenRowsProperty); }
+            set { SetValue(CanDragTasksBetweenRowsProperty, value); }
+        }
+        public static DependencyProperty CanDragTasksBetweenRowsProperty = DependencyProperty.Register(nameof(CanDragTasksBetweenRows), typeof(bool), typeof(GridTimeRangeChart), new PropertyMetadata(true));
 
         /// <summary>
-        /// background of non-working ranges
+        /// Get or Set the height of task when stack.
         /// </summary>
-        public Brush NonWorkingRangeBackground
+        public double StackHeight
         {
-            get { return (Brush)GetValue(NonWorkingRangeBackgroundProperty); }
-            set { SetValue(NonWorkingRangeBackgroundProperty, value); }
+            get { return (double)GetValue(StackHeightProperty); }
+            set { SetValue(StackHeightProperty, value); }
         }
-        public static DependencyProperty NonWorkingRangeBackgroundProperty = DependencyProperty.Register(nameof(NonWorkingRangeBackground), typeof(Brush), typeof(GridTimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromRgb(0xd8, 0xd8, 0xd8))));
+        public static DependencyProperty StackHeightProperty = DependencyProperty.Register(nameof(StackHeight), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(24.0));
 
         /// <summary>
-        /// string
+        /// Gets or sets a value indicating whether multiple items can be selected simultaneously.
         /// </summary>
-        //public IList<ITimeRange> NonWorkingTimes
-        //{
-        //    get { return (IList<ITimeRange>)GetValue(NonWorkingTimesProperty); }
-        //    set { SetValue(NonWorkingTimesProperty, value); }
-        //}
-        //public static DependencyProperty NonWorkingTimesProperty = DependencyProperty.Register(nameof(NonWorkingTimes), typeof(IList<ITimeRange>), typeof(GridTimeRangeChart), new PropertyMetadata(OnNonWorkingTimesChanged));
+        /// <remarks>Set this property to <see langword="true"/> to allow users to select more than one item at a
+        /// time. When set to <see langword="false"/>, only single selection is permitted.</remarks>
+        public bool AllowMultiSelection
+        {
+            get => (bool)GetValue(AllowMultiSelectionProperty);
+            set => SetValue(AllowMultiSelectionProperty, value);
+        }
+        public static readonly DependencyProperty AllowMultiSelectionProperty =
+        DependencyProperty.Register(nameof(AllowMultiSelection), typeof(bool), typeof(GridTimeRangeChart), new PropertyMetadata(true));
 
         /// <summary>
-        /// string
+        /// Gets or sets a value indicating whether multiple items can be dragged simultaneously.
         /// </summary>
-        [Bindable(true)]
-        [Category("Content")]
-        public Style TimeRangeStyle
+        /// <remarks>Set this property to <see langword="true"/> to enable users to select and drag more than one
+        /// item at a time. When set to <see langword="false"/>, only single-item drag operations are permitted.</remarks>
+        public bool AllowMultiDrag
         {
-            get { return (Style)GetValue(TimeRangeStyleProperty); }
-            set { SetValue(TimeRangeStyleProperty, value); }
+            get => (bool)GetValue(AllowMultiDragProperty);
+            set => SetValue(AllowMultiDragProperty, value);
         }
-        public static DependencyProperty TimeRangeStyleProperty = DependencyProperty.Register(nameof(TimeRangeStyle), typeof(Style), typeof(GridTimeRangeChart), new PropertyMetadata(null));
+        public static readonly DependencyProperty AllowMultiDragProperty =
+            DependencyProperty.Register(nameof(AllowMultiDrag), typeof(bool), typeof(GridTimeRangeChart), new PropertyMetadata(true));
 
-        /// <summary>
-        /// string
-        /// </summary>
-        public Style ChartStyle
-        {
-            get { return (Style)GetValue(ChartStyleProperty); }
-            set { SetValue(ChartStyleProperty, value); }
-        }
-        public static DependencyProperty ChartStyleProperty = DependencyProperty.Register(nameof(ChartStyle), typeof(Style), typeof(GridTimeRangeChart));
+        #endregion
+
+        #region Corner header properties
 
         /// <summary>
         /// string
@@ -206,7 +252,16 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty CornerHeaderSourceProperty = DependencyProperty.Register(nameof(CornerHeaderSource), typeof(object), typeof(GridTimeRangeChart));
 
+        #endregion
 
+        #region Row header properties
+
+        public double MinRowWidth
+        {
+            get { return (double)GetValue(MinRowWidthProperty); }
+            set { SetValue(MinRowWidthProperty, value); }
+        }
+        public static DependencyProperty MinRowWidthProperty = DependencyProperty.Register(nameof(MinRowWidth), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(0.0));
 
         /// <summary>
         /// string
@@ -228,435 +283,241 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty RowHeaderTemplateSelectorProperty = DependencyProperty.Register(nameof(RowHeaderTemplateSelector), typeof(DataTemplateSelector), typeof(GridTimeRangeChart));
 
+        #endregion
+
+        #region TimeRangeControl Properties
+
+        public DataTemplate ItemTemplate
+        {
+            get { return (DataTemplate)GetValue(ItemTemplateProperty); }
+            set { SetValue(ItemTemplateProperty, value); }
+        }
+        public static DependencyProperty ItemTemplateProperty = DependencyProperty.Register(nameof(ItemTemplate), typeof(DataTemplate), typeof(GridTimeRangeChart));
+
+        public DataTemplateSelector ItemTemplateSelector
+        {
+            get { return (DataTemplateSelector)GetValue(ItemTemplateSelectorProperty); }
+            set { SetValue(ItemTemplateSelectorProperty, value); }
+        }
+        public static DependencyProperty ItemTemplateSelectorProperty = DependencyProperty.Register(nameof(ItemTemplateSelector), typeof(DataTemplateSelector), typeof(GridTimeRangeChart));
+        public Style TimeRangeStyle
+        {
+            get { return (Style)GetValue(TimeRangeStyleProperty); }
+            set { SetValue(TimeRangeStyleProperty, value); }
+        }
+        public static DependencyProperty TimeRangeStyleProperty = DependencyProperty.Register(nameof(TimeRangeStyle), typeof(Style), typeof(GridTimeRangeChart), new PropertyMetadata(null));
+
+        #endregion
+
+        #region ViewPort properties
 
         /// <summary>
-        /// string
+        /// Get the first row object in ScrollViewer
         /// </summary>
-        public DataTemplate ColumnHeaderTemplate
+        public object? CurrentFirstRow
         {
-            get { return (DataTemplate)GetValue(ColumnHeaderTemplateProperty); }
-            set { SetValue(ColumnHeaderTemplateProperty, value); }
+            get { return (object)GetValue(CurrentFirstRowProperty); }
+            set { SetValue(CurrentFirstRowProperty, value); }
         }
-        public static DependencyProperty ColumnHeaderTemplateProperty = DependencyProperty.Register(nameof(ColumnHeaderTemplate), typeof(DataTemplate), typeof(GridTimeRangeChart));
-
-        public DataTemplateSelector ColumnHeaderTemplateSelector
-        {
-            get { return (DataTemplateSelector)GetValue(ColumnHeaderTemplateSelectorProperty); }
-            set { SetValue(ColumnHeaderTemplateSelectorProperty, value); }
-        }
-        public static readonly DependencyProperty ColumnHeaderTemplateSelectorProperty =
-            DependencyProperty.Register(nameof(ColumnHeaderTemplateSelector), typeof(DataTemplateSelector), typeof(GridTimeRangeChart));
+        public static DependencyProperty CurrentFirstRowProperty = DependencyProperty.Register(nameof(CurrentFirstRow), typeof(object), typeof(GridTimeRangeChart));
 
         /// <summary>
-        /// string
+        /// Get the last row object in ScrollViewer
         /// </summary>
+        public object? CurrentLastRow
+        {
+            get { return (object)GetValue(CurrentLastRowProperty); }
+            set { SetValue(CurrentLastRowProperty, value); }
+        }
+        public static DependencyProperty CurrentLastRowProperty = DependencyProperty.Register(nameof(CurrentLastRow), typeof(object), typeof(GridTimeRangeChart));
+
+
+        /// <summary>
+        /// Get the center time in ScrollViewer
+        /// </summary>
+        public DateTime CurrentCenterTime
+        {
+            get { return (DateTime)GetValue(CurrentCenterTimeProperty); }
+            set { SetValue(CurrentCenterTimeProperty, value); }
+        }
+        public static DependencyProperty CurrentCenterTimeProperty = DependencyProperty.Register(nameof(CurrentCenterTime), typeof(DateTime), typeof(GridTimeRangeChart));
+
+        /// <summary>
+        /// Get the left time in ScrollViewer
+        /// </summary>
+        public DateTime CurrentLeftTime
+        {
+            get { return (DateTime)GetValue(CurrentLeftTimeProperty); }
+            set { SetValue(CurrentLeftTimeProperty, value); }
+        }
+        public static DependencyProperty CurrentLeftTimeProperty = DependencyProperty.Register(nameof(CurrentLeftTime), typeof(DateTime), typeof(GridTimeRangeChart));
+
+        /// <summary>
+        /// Get the right time in ScrollViewer
+        /// </summary>
+        public DateTime CurrentRightTime
+        {
+            get { return (DateTime)GetValue(CurrentRightTimeProperty); }
+            set { SetValue(CurrentRightTimeProperty, value); }
+        }
+        public static DependencyProperty CurrentRightTimeProperty = DependencyProperty.Register(nameof(CurrentRightTime), typeof(DateTime), typeof(GridTimeRangeChart));
+
+
+        #endregion
+
+        #region Data
+
+        public IList ItemsSource
+        {
+            get { return (IList)GetValue(ItemsSourceProperty); }
+            set { SetValue(ItemsSourceProperty, value); }
+        }
+        public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register(nameof(ItemsSource), typeof(IList), typeof(GridTimeRangeChart), new PropertyMetadata(propertyChangedCallback: OnItemsSourceChanged));
+        // タスクのコレクションが格納されているプロパティ名 (例: "Tasks")
+        public string TasksSourcePath
+        {
+            get => (string)GetValue(TasksSourcePathProperty);
+            set => SetValue(TasksSourcePathProperty, value);
+        }
+        public static readonly DependencyProperty TasksSourcePathProperty =
+            DependencyProperty.Register(nameof(TasksSourcePath), typeof(string), typeof(GridTimeRangeChart), new PropertyMetadata(string.Empty, propertyChangedCallback: OnTasksSourcePathChanged));
+        public IList<ITimeRangeRowIndex> NonWorkingTimes
+        {
+            get { return (IList<ITimeRangeRowIndex>)GetValue(NonWorkingTimesProperty); }
+            set { SetValue(NonWorkingTimesProperty, value); }
+        }
+        public static DependencyProperty NonWorkingTimesProperty = DependencyProperty.Register(nameof(NonWorkingTimes), typeof(IList<ITimeRangeRowIndex>), typeof(GridTimeRangeChart));
+
+
+
+        public IList<IBackgroundTimeRange> BackgroundTimes
+        {
+            get { return (IList<IBackgroundTimeRange>)GetValue(BackgroundTimesProperty); }
+            set { SetValue(BackgroundTimesProperty, value); }
+        }
+        public static DependencyProperty BackgroundTimesProperty = DependencyProperty.Register(nameof(BackgroundTimes), typeof(IList<IBackgroundTimeRange>), typeof(GridTimeRangeChart));
+
+        #endregion
+
+        #region Chart Styles
+
+        public double ChartHeight
+        {
+            get { return (double)GetValue(ChartHeightProperty); }
+            set { SetValue(ChartHeightProperty, value); }
+        }
+        public static DependencyProperty ChartHeightProperty = DependencyProperty.Register(nameof(ChartHeight), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(80.0d));
+
+
         public double WidthPerRuledLine
         {
-            get { return (double)GetValue(WidthPerIncrementProperty); }
-            set { SetValue(WidthPerIncrementProperty, value); }
+            get { return (double)GetValue(WidthPerRuledLineProperty); }
+            set { SetValue(WidthPerRuledLineProperty, value); }
         }
-        public static DependencyProperty WidthPerIncrementProperty = DependencyProperty.Register(nameof(WidthPerRuledLine), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(double.NaN));
+        public static DependencyProperty WidthPerRuledLineProperty = DependencyProperty.Register(nameof(WidthPerRuledLine), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(100.0));
+
+        public Brush RuledLineFill
+        {
+            get { return (Brush)GetValue(RuledLineFillProperty); }
+            set { SetValue(RuledLineFillProperty, value); }
+        }
+        public static DependencyProperty RuledLineFillProperty = DependencyProperty.Register(nameof(RuledLineFill), typeof(Brush), typeof(GridTimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromArgb(255, 125, 125, 125))));
+
+        public double RuledLineThickness
+        {
+            get { return (double)GetValue(RuledLineThicknessProperty); }
+            set { SetValue(RuledLineThicknessProperty, value); }
+        }
+        public static DependencyProperty RuledLineThicknessProperty = DependencyProperty.Register(nameof(RuledLineThickness), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(1.0));
 
         /// <summary>
-        /// string
+        /// background of non-working ranges
         /// </summary>
-        public string HeaderFormat
+        public Brush NonWorkingRangeBackground
         {
-            get { return (string)GetValue(HeaderFormatProperty); }
-            set { SetValue(HeaderFormatProperty, value); }
+            get { return (Brush)GetValue(NonWorkingRangeBackgroundProperty); }
+            set { SetValue(NonWorkingRangeBackgroundProperty, value); }
         }
-        public static DependencyProperty HeaderFormatProperty = DependencyProperty.Register(nameof(HeaderFormat), typeof(string), typeof(GridTimeRangeChart));
+        public static DependencyProperty NonWorkingRangeBackgroundProperty = DependencyProperty.Register(nameof(NonWorkingRangeBackground), typeof(Brush), typeof(GridTimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromRgb(0xd8, 0xd8, 0xd8))));
 
-        public string SubScaleFormat
+
+        #endregion
+
+
+        #endregion
+
+
+        #region Event Definitions
+
+
+        public event EventHandler<RoutedEventArgs>? ViewPortChanged
         {
-            get { return (string)GetValue(SubScaleFormatProperty); }
-            set { SetValue(SubScaleFormatProperty, value); }
+            add { AddHandler(ViewPortChangedEvent, value); }
+            remove { RemoveHandler(ViewPortChangedEvent, value); }
         }
-        public static DependencyProperty SubScaleFormatProperty = DependencyProperty.Register(nameof(SubScaleFormat), typeof(string), typeof(GridTimeRangeChart));
-
-
-        public List<IRuledLine> TimeTicks
-        {
-            get { return (List<IRuledLine>)GetValue(TimeTicksProperty); }
-            internal set { SetValue(TimeTicksProperty, value); }
-        }
-        public static DependencyProperty TimeTicksProperty = DependencyProperty.Register(nameof(TimeTicks), typeof(List<IRuledLine>), typeof(GridTimeRangeChart));
-
-
-        public List<IRuledLine> SubTimeTicks
-        {
-            get { return (List<IRuledLine>)GetValue(SubTimeTicksProperty); }
-            set { SetValue(SubTimeTicksProperty, value); }
-        }
-        public static DependencyProperty SubTimeTicksProperty = DependencyProperty.Register(nameof(SubTimeTicks), typeof(List<IRuledLine>), typeof(GridTimeRangeChart));
-
-
-        /// <summary>
-        /// string
-        /// </summary>
-        public double ChartWidth
-        {
-            get { return (double)GetValue(ChartWidthProperty); }
-            set { SetValue(ChartWidthProperty, value); }
-        }
-        public static DependencyProperty ChartWidthProperty = DependencyProperty.Register(nameof(ChartWidth), typeof(double), typeof(GridTimeRangeChart));
-
-
-        ///// <summary>
-        ///// string
-        ///// </summary>
-        //public NotifyCollection<IRuledLine> TimeTicksForColumnHeader
-        //{
-        //    get { return (NotifyCollection<IRuledLine>)GetValue(TimeTicksForColumnHeaderProperty); }
-        //    set { SetValue(TimeTicksForColumnHeaderProperty, value); }
-        //}
-        //public static DependencyProperty TimeTicksForColumnHeaderProperty = DependencyProperty.Register(nameof(TimeTicksForColumnHeader), typeof(NotifyCollection<IRuledLine>), typeof(GridTimeRangeChart));
+        public static readonly RoutedEvent ViewPortChangedEvent =
+        EventManager.RegisterRoutedEvent(
+            nameof(ViewPortChanged), RoutingStrategy.Bubble,
+            typeof(EventHandler<RoutedEventArgs>), typeof(GridTimeRangeChart));
 
 
 
         /// <summary>
-        /// string
+        /// Occurs when a task drag operation begins, specifically for horizontal movement or resizing within a row.
         /// </summary>
-        public TimeUnitType TimeUnit
+        public event EventHandler<DragDropRangeEventArgs>? TaskDragStart
         {
-            get { return (TimeUnitType)GetValue(TimeUnitProperty); }
-            set { SetValue(TimeUnitProperty, value); }
+            add { AddHandler(TaskDragStartEvent, value); }
+            remove { RemoveHandler(TaskDragStartEvent, value); }
         }
-        public static DependencyProperty TimeUnitProperty = DependencyProperty.Register(nameof(TimeUnit), typeof(TimeUnitType), typeof(GridTimeRangeChart), new PropertyMetadata(TimeUnitType.Normal, OnMyPropertyChanged));
-
+        public static readonly RoutedEvent TaskDragStartEvent =
+            EventManager.RegisterRoutedEvent(
+                nameof(TaskDragStart), RoutingStrategy.Bubble,
+            typeof(EventHandler<DragDropRangeEventArgs>), typeof(GridTimeRangeChart));
 
         /// <summary>
-        /// string
+        /// Occurs when a task drag operation ends, finalizing changes to the task's time range within the row.
         /// </summary>
-        public int MonthSpan
+        public event EventHandler<DragDropRangeEventArgs>? TaskDragEnd
         {
-            get { return (int)GetValue(MonthSpanProperty); }
-            set { SetValue(MonthSpanProperty, value); }
+            add { AddHandler(TaskDragEndEvent, value); }
+            remove { RemoveHandler(TaskDragEndEvent, value); }
+
         }
-        public static DependencyProperty MonthSpanProperty = DependencyProperty.Register(nameof(MonthSpan), typeof(int), typeof(GridTimeRangeChart), new PropertyMetadata(1, OnMyPropertyChanged));
-
-        public MonthSubTickType SubMonthUnit
-        {
-            get { return (MonthSubTickType)GetValue(SubMonthUnitProperty); }
-            set { SetValue(SubMonthUnitProperty, value); }
-        }
-        public static DependencyProperty SubMonthUnitProperty = DependencyProperty.Register(nameof(SubMonthUnit), typeof(MonthSubTickType), typeof(GridTimeRangeChart));
-
-
-        public double MinRowWidth
-        {
-            get { return (double)GetValue(MinRowWidthProperty); }
-            set { SetValue(MinRowWidthProperty, value); }
-        }
-        public static DependencyProperty MinRowWidthProperty = DependencyProperty.Register(nameof(MinRowWidth), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(0.0));
-
-
-        public double RowHeight
-        {
-            get { return (double)GetValue(RowHeightProperty); }
-            set { SetValue(RowHeightProperty, value); }
-        }
-        public static DependencyProperty RowHeightProperty = DependencyProperty.Register(nameof(RowHeight), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(30.0));
-
-        public IList<TimeRangeControl> SelectedRanges
-        {
-            get { return (IList<TimeRangeControl>)GetValue(SelectedRangesProperty); }
-            set { SetValue(SelectedRangesProperty, value); }
-        }
-        public static DependencyProperty SelectedRangesProperty = DependencyProperty.Register(nameof(SelectedRanges), typeof(IList<TimeRangeControl>), typeof(GridTimeRangeChart));
-
-        public IList SelectedValues
-        {
-            get { return (IList)GetValue(SelectedValuesProperty); }
-            set { SetValue(SelectedValuesProperty, value); }
-        }
-        public static DependencyProperty SelectedValuesProperty = DependencyProperty.Register(nameof(SelectedValues), typeof(IList), typeof(GridTimeRangeChart));
-
-        public object ScrollTopItem
-        {
-            get { return (object)GetValue(ScrollTopItemProperty); }
-            set { SetValue(ScrollTopItemProperty, value); }
-        }
-        public static DependencyProperty ScrollTopItemProperty = DependencyProperty.Register(nameof(ScrollTopItem), typeof(object), typeof(GridTimeRangeChart));
-
-        public object ScrollBottomItem
-        {
-            get { return (object)GetValue(ScrollBottomItemProperty); }
-            set { SetValue(ScrollBottomItemProperty, value); }
-        }
-        public static DependencyProperty ScrollBottomItemProperty = DependencyProperty.Register(nameof(ScrollBottomItem), typeof(object), typeof(GridTimeRangeChart));
-
-        public object? ScrollLeftDate
-        {
-            get { return (object?)GetValue(ScrollLeftDateProperty); }
-            set { SetValue(ScrollLeftDateProperty, value); }
-        }
-        public static DependencyProperty ScrollLeftDateProperty = DependencyProperty.Register(nameof(ScrollLeftDate), typeof(object), typeof(GridTimeRangeChart));
-
-
-        public object? ScrollRightDate
-        {
-            get { return (object?)GetValue(ScrollRightDateProperty); }
-            set { SetValue(ScrollRightDateProperty, value); }
-        }
-        public static DependencyProperty ScrollRightDateProperty = DependencyProperty.Register(nameof(ScrollRightDate), typeof(object), typeof(GridTimeRangeChart));
-
-
-        public object? ScrollCenterDate
-        {
-            get { return (object?)GetValue(ScrollCenterDateProperty); }
-            set { SetValue(ScrollCenterDateProperty, value); }
-        }
-        public static DependencyProperty ScrollCenterDateProperty = DependencyProperty.Register(nameof(ScrollCenterDate), typeof(object), typeof(GridTimeRangeChart));
+        public static readonly RoutedEvent TaskDragEndEvent =
+            EventManager.RegisterRoutedEvent(
+                nameof(TaskDragEnd), RoutingStrategy.Bubble,
+            typeof(EventHandler<DragDropRangeEventArgs>), typeof(GridTimeRangeChart));
 
         /// <summary>
-        /// string
+        /// Occurs when a task is dropped onto a row, finalizing vertical movement between different rows.
         /// </summary>
-        public Func<GridTimeRangeChart, DateTime, Brush> HeaderBrushSelector
+        public event EventHandler<DropOnRowEventArgs> TaskDrop
         {
-            get { return (Func<GridTimeRangeChart, DateTime, Brush>)GetValue(HeaderBrushSelectorProperty); }
-            set { SetValue(HeaderBrushSelectorProperty, value); }
+            add { AddHandler(TaskDropEvent, value); }
+            remove { RemoveHandler(TaskDropEvent, value); }
         }
-        public static DependencyProperty HeaderBrushSelectorProperty = DependencyProperty.Register(nameof(HeaderBrushSelector), typeof(Func<GridTimeRangeChart, DateTime, Brush>), typeof(GridTimeRangeChart), new PropertyMetadata(new Func<GridTimeRangeChart,DateTime, Brush>((gridChart,d) => DefaultHeaderSelector(gridChart,d))));
+        public static readonly RoutedEvent TaskDropEvent =
+        EventManager.RegisterRoutedEvent(
+            nameof(TaskDrop), RoutingStrategy.Bubble,
+            typeof(EventHandler<DropOnRowEventArgs>), typeof(GridTimeRangeChart));
 
-
-        private static Brush DefaultHeaderSelector(GridTimeRangeChart gridChart, DateTime date)
+        /// <summary>
+        /// Occurs when a task is about to be dropped onto a row, allowing for validation of vertical movement across rows.
+        /// </summary>
+        public event EventHandler<DropOnRowEventArgs> PreviewTaskDrop
         {
-            if (gridChart.TimeUnit == TimeUnitType.Month) return Brushes.Black;
-
-            var b = date.DayOfWeek switch
-            {
-                DayOfWeek.Saturday => Brushes.Blue,
-                DayOfWeek.Sunday => Brushes.Red,
-                _ => Brushes.Black
-            };
-            b.Freeze();
-            return b;
+            add { AddHandler(PreviewTaskDropEvent, value); }
+            remove { RemoveHandler(PreviewTaskDropEvent, value); }
         }
-
-        private static void OnMyPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            if (d is GridTimeRangeChart gridChart)
-            {
-                gridChart.OnRangeChanged(e);
-            }
-        }
-
-        public enum ScrollResetMode
-        {
-            ResetToLeft,
-            PreserveVisibleDate
-        }
-
-        public ScrollResetMode RangeChangeScrollMode
-        {
-            get => (ScrollResetMode)GetValue(RangeChangeScrollModeProperty);
-            set => SetValue(RangeChangeScrollModeProperty, value);
-        }
-        public static readonly DependencyProperty RangeChangeScrollModeProperty = DependencyProperty.Register(nameof(RangeChangeScrollMode), typeof(ScrollResetMode), typeof(GridTimeRangeChart), new PropertyMetadata(ScrollResetMode.PreserveVisibleDate));
-
-        private void OnRangeChanged(DependencyPropertyChangedEventArgs e)
-        {
-            // Handle changes to axis-related properties specially so we can preserve scroll position or reset
-            bool isTimeRangeProperty = e.Property == StartTimeProperty || e.Property == EndTimeProperty || e.Property == ScaleIncrementProperty || e.Property == SubScaleIncrementProperty || e.Property == WidthPerIncrementProperty || e.Property == TimeUnitProperty || e.Property == MonthSpanProperty;
-
-            if (!isTimeRangeProperty || _columnHeaderScrollViewer == null || _chartScrollViewer == null)
-            {
-                // fallback: just redraw
-                DrawBorder();
-                InvalidateVisual();
-                return;
-            }
-
-            // capture old visible center date (use old start/end when available)
-            double oldCenterPoint = _columnHeaderScrollViewer.HorizontalOffset + _columnHeaderScrollViewer.ViewportWidth / 2.0;
-
-            // Determine old start/end for conversion. If the changed property is StartTime/EndTime use e.OldValue accordingly
-            DateTime oldStart = this.StartTime;
-            DateTime oldEnd = this.EndTime;
-            if (e.Property == StartTimeProperty)
-            {
-                oldStart = (DateTime)e.OldValue;
-            }
-            else if (e.Property == EndTimeProperty)
-            {
-                oldEnd = (DateTime)e.OldValue;
-            }
-
-            double oldWidth = ChartWidth;
-            if (double.IsNaN(oldWidth) || oldWidth <= 0)
-            {
-                // fallback to extent width
-                oldWidth = _columnHeaderScrollViewer.ExtentWidth;
-            }
-
-            DateTime? preservedDate = null;
-            try
-            {
-                if (TimeUnit == TimeUnitType.Normal)
-                {
-                    preservedDate = TimeScreenHelper.PointToTime(oldCenterPoint, oldStart, oldEnd, oldWidth, MinSpan);
-                }
-                else
-                {
-                    preservedDate = TimeScreenHelper.PointToTimeMonth(oldCenterPoint, WidthPerRuledLine, MinSpan, TimeTicks);
-                }
-            }
-            catch
-            {
-                preservedDate = null;
-            }
-
-            // Recalculate ticks/visuals
-            DrawBorder();
-            InvalidateVisual();
-
-            // Stop any throttled timer and clear pending offsets so we can perform immediate sync
-            try
-            {
-                if (_scrollSyncTimer != null && _scrollSyncTimer.IsEnabled)
-                {
-                    _scrollSyncTimer.Stop();
-                }
-                _pendingHorizontalOffset = null;
-            }
-            catch { }
-
-            // Perform immediate sync after layout pass to ensure Extent/Viewport are updated
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
-            {
-                if (_columnHeaderScrollViewer == null || _chartScrollViewer == null)
-                {
-                    return;
-                }
-
-                try
-                {
-                    _isSyncingScroll = true;
-
-                    if (RangeChangeScrollMode == ScrollResetMode.ResetToLeft)
-                    {
-                        _columnHeaderScrollViewer.ScrollToHorizontalOffset(0);
-                        _chartScrollViewer.ScrollToHorizontalOffset(0);
-                        return;
-                    }
-
-                    if (RangeChangeScrollMode == ScrollResetMode.PreserveVisibleDate && preservedDate.HasValue)
-                    {
-                        double newCenterPoint = 0;
-                        try
-                        {
-                            if (TimeUnit == TimeUnitType.Normal)
-                            {
-                                var newWidth = ChartWidth;
-                                if (double.IsNaN(newWidth) || newWidth <= 0)
-                                {
-                                    newWidth = _columnHeaderScrollViewer.ExtentWidth;
-                                }
-                                newCenterPoint = TimeScreenHelper.TimeToPoint(preservedDate.Value, this.StartTime, this.EndTime, newWidth);
-                            }
-                            else
-                            {
-                                newCenterPoint = TimeScreenHelper.TimeToPointMonth(preservedDate.Value, WidthPerRuledLine, TimeTicks);
-                            }
-                        }
-                        catch
-                        {
-                            newCenterPoint = 0;
-                        }
-
-                        double targetOffset = newCenterPoint - _columnHeaderScrollViewer.ViewportWidth / 2.0;
-                        if (targetOffset < 0) targetOffset = 0;
-                        var maxOffset = Math.Max(0, _columnHeaderScrollViewer.ExtentWidth - _columnHeaderScrollViewer.ViewportWidth);
-                        if (targetOffset > maxOffset) targetOffset = maxOffset;
-
-                        _columnHeaderScrollViewer.ScrollToHorizontalOffset(targetOffset);
-                        _chartScrollViewer.ScrollToHorizontalOffset(targetOffset);
-                        return;
-                    }
-
-                    // fallback
-                    _columnHeaderScrollViewer.ScrollToHorizontalOffset(0);
-                    _chartScrollViewer.ScrollToHorizontalOffset(0);
-                }
-                finally
-                {
-                    _isSyncingScroll = false;
-                }
-            }));
-        }
-        //private static void OnNonWorkingTimesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        //{
-        //}
+        public static readonly RoutedEvent PreviewTaskDropEvent =
+        EventManager.RegisterRoutedEvent(
+            nameof(PreviewTaskDrop), RoutingStrategy.Bubble,
+            typeof(EventHandler<DropOnRowEventArgs>), typeof(GridTimeRangeChart));
 
 
-        private void DrawBorder()
-        {
-            //if (TimeTicks == null) { TimeTicks = new ObservableCollection<IRuledLine>(); }
-            var ticks = TimeUnit == TimeUnitType.Normal ?
-                TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement, SubScaleIncrement) :
-                TimeHelper.GenerateTicksMonth(StartTime, EndTime, MonthSpan, SubMonthUnit);
 
-            TimeTicks.Clear();
-            SubTimeTicks.Clear();
-
-            double newWidth = (ticks.mainTicks.Count - 1) * WidthPerRuledLine;
-
-
-            var localTimeTicks = new List<RuledLineData>();
-
-            //var localTimeTickForColumn = new NotifyCollection<IRuledLine>();
-
-            var tf = new Typeface(FontFamily, FontStyle, FontWeight, FontStretch);
-            for (int i = 0; i < ticks.mainTicks.Count; i++) //1こ多いので減らす
-            {
-                var item = ticks.mainTicks[i];
-                string text = item.ToString(HeaderFormat);
-                var brush = HeaderBrushSelector?.Invoke(this,item.Date) ?? Brushes.Black;
-                var ft = new FormattedText(
-                    text,
-                    CultureInfo.CurrentCulture,
-                    FlowDirection.LeftToRight,
-                    tf,
-                    FontSize,
-                    brush,
-                    VisualTreeHelper.GetDpi(this).PixelsPerDip);
-                var tickObject = new RuledLineData(this)
-                {
-                    DateValue = item,
-                    LeftPoint = TimeUnit == TimeUnitType.Normal ? TimeScreenHelper.TimeToPoint(item, StartTime, EndTime, newWidth) : i * WidthPerRuledLine
-                        ,
-                    FormattedText = ft
-
-                };
-                tickObject.Rect = new Rect(tickObject.LeftPoint, 0, WidthPerRuledLine, FontSize);
-                localTimeTicks.Add(tickObject);
-                //    if (i != ticks.Count - 1)
-                //    {
-                //        localTimeTickForColumn.Add(tickObject);
-                //    }
-            }
-
-            // assign new lists so bindings see the change
-            TimeTicks = localTimeTicks.Cast<IRuledLine>().ToList();
-            // ChartWidth should represent the drawable width between first and last tick
-            ChartWidth = newWidth;
-
-            var localSubTimeTicks = TimeRangeChart.GenerateSubScaleTicks(this, ticks.subTicks, this.SubScaleFormat, tf, newWidth);
-            SubTimeTicks = localSubTimeTicks.Cast<IRuledLine>().ToList();
-
-            //TimeTicksForColumnHeader = localTimeTickForColumn;
-
-            columnHeaderLayer?.InvalidateVisual();
-
-        }
-
-        protected override void OnRender(DrawingContext drawingContext)
-        {
-            base.OnRender(drawingContext);
-            //DrawBorder(drawingContext);
-        }
-
+        #endregion
 
 
 
@@ -664,247 +525,340 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             base.OnApplyTemplate();
 
-            var scrollViewer = GetTemplateChild("chartScrollViewer") as ScrollViewer;
-            var columnGrid = GetTemplateChild("PART_ColumnGrid") as ColumnHeaderRenderLayer;
-            var columnHeaderScrollViewer = GetTemplateChild("columnScrollViewer") as ScrollViewer;
-            var chartList = GetTemplateChild("chartItemsControl") as ListBox;
-            var rowList = GetTemplateChild("rowHeaderListBox") as ListBox;
+            _rowHeaderListBox = (ListBox)GetTemplateChild("PART_RowHeaderListBox");
+            _chart = (TimeRangeChart)GetTemplateChild("PART_Chart");
+            _columnHeaderLayer = (ColumnHeaderRenderLayer)GetTemplateChild("PART_ColumnGrid");
 
+            _chartScrollViewer = (ScrollViewer)GetTemplateChild("PART_ChartScrollViewer");
+            var columnHeaderScrollViewer = (ScrollViewer)GetTemplateChild("PART_ColumnScrollViewer");
+            var rowHeaderScrollViewer = (ScrollViewer)GetTemplateChild("PART_RowScrollViewer");
 
+            _columnRightSpacer = (Border)GetTemplateChild("PART_ColumnRightSpacer");
+            _rowBottomSpacer = (Border)GetTemplateChild("PART_RowBottomSpacer");
 
-            columnHeaderLayer = columnGrid;
-
-            if (columnHeaderLayer != null)
+            //必須3大要素がなければ即throw
+            if (_rowHeaderListBox == null || _chart == null || _columnHeaderLayer == null)
             {
-                columnHeaderLayer.ParentChart = this;
+                throw new InvalidOperationException();
             }
 
-            // store references for scroll sync and range change handling
-            _chartScrollViewer = scrollViewer;
-            _columnHeaderScrollViewer = columnHeaderScrollViewer;
+            _columnHeaderLayer.ParentChart = this;
 
-            // setup scroll sync timer for throttling
-            if (_scrollSyncTimer == null)
+
+
+
+            _rowHeaderListBox.ItemContainerGenerator.StatusChanged += (s, e) =>
             {
-                _scrollSyncTimer = new DispatcherTimer(DispatcherPriority.Background)
+                if (_rowHeaderListBox.ItemContainerGenerator.Status == GeneratorStatus.ContainersGenerated)
                 {
-                    Interval = TimeSpan.FromMilliseconds(30)
-                };
-                _scrollSyncTimer.Tick += ScrollSyncTimer_Tick;
-            }
+                    // 画面内に現れたコンテナの高さを再取得して Chart に反映
+                    SyncHeights();
+                }
+            };
 
 
+            // RowHeader自体の幅が変わったときも同期が必要
+            _rowHeaderListBox.SizeChanged += (s, e) =>
+            {
+                if (e.WidthChanged) SyncHeights();
+            };
+
+            _chart.OnTimeAxisChanged += Chart_OnTimeAxisChanged;
 
             this.Loaded += (s, e) =>
             {
-                var rowSv = GeneralHelper.FindVisualChild<ScrollViewer>(rowList);
-                if (rowSv == null || rowList == null) return;
-                var tlBehavior = new ScrollViewerTopLeftItemBehavior();
-                BindingOperations.SetBinding(tlBehavior, ScrollViewerTopLeftItemBehavior.TopVisibleItemProperty,
-                    new Binding(nameof(ScrollTopItem)) { Source = this, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
-                BindingOperations.SetBinding(tlBehavior, ScrollViewerTopLeftItemBehavior.BottomVisibleItemProperty,
-                    new Binding(nameof(ScrollBottomItem)) { Source = this, Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
-                tlBehavior.TargetItemsControl = rowList;
+                _columnHeaderLayer.InvalidateVisual();
+                if (_rowHeaderListBox == null || _chart == null) return;
 
-                GeneralHelper.SetBehavior(rowSv, tlBehavior);
+                RebuildFlatTasks();
+                SyncInternalRows();
 
 
+                var horizontalSyncBehavior = new ScrollSyncBehavior();
+                horizontalSyncBehavior.IsVerticalSync = false;
+                horizontalSyncBehavior.IsHorizontalSync = true;
 
-                this.DrawBorder();
+                var verticalSyncBehavior = new ScrollSyncBehavior();
+                verticalSyncBehavior.IsVerticalSync = true;
+                verticalSyncBehavior.IsHorizontalSync = false;
+                GeneralHelper.SetBehavior(_chart, verticalSyncBehavior, true);
+                GeneralHelper.SetBehavior(_chart, horizontalSyncBehavior, true);
+
+                horizontalSyncBehavior.SyncTarget = columnHeaderScrollViewer;
+
+                verticalSyncBehavior.SyncTarget = _rowHeaderListBox;
+
             };
-            AddHandler(TimeRangeChart.TaskDropEvent, new EventHandler<DropOnRowEventArgs>(OnTaskDrop));
-            AddHandler(TimeRangeChart.PreviewTaskDropEvent, new EventHandler<DropOnRowEventArgs>(OnPreviewTaskDrop));
+            if (_chart != null)
+            {
+                // Chart 自体がテンプレート適用済みかチェック
+                _chart.Loaded += OnChartLoaded;
+            }
 
+            AddHandler(TimeRangeChart.ViewPortChangedEvent, new EventHandler<RoutedEventArgs>(OnViewPortChanged));
+            AddHandler(TimeRangeChart.RowHeightsChangedEvent, new EventHandler<RoutedEventArgs>(OnRowHeightsChanged));
+
+            AddHandler(TimeRangeChart.PreviewTaskDropEvent, new EventHandler<DropOnRowEventArgs>(OnPreviewTaskDrop));
+            AddHandler(TimeRangeChart.TaskDropEvent, new EventHandler<DropOnRowEventArgs>(OnTaskDrop));
+            AddHandler(TimeRangeChart.TaskDragStartEvent, new EventHandler<DragDropRangeEventArgs>(OnTaskDragStart));
+            AddHandler(TimeRangeChart.TaskDragEndEvent, new EventHandler<DragDropRangeEventArgs>(OnTaskDragEnd));
+
+        }
+
+        private void OnChartLoaded(object sender, RoutedEventArgs e)
+        {
+            if (_chart == null) return;
+            _chart.Loaded -= OnChartLoaded; // 二重登録防止
+
+            // TimeRangeChart の中にある ScrollViewer を探す
+            // (PART_ScrollViewer という名前で公開されている、あるいは VisualTreeHelper で探す)
+            var scrollViewer = (ScrollViewer)_chart.Template.FindName("PART_ChartScrollViewer", _chart);
+            _chartScrollViewer = scrollViewer;
             if (scrollViewer != null)
             {
-                scrollViewer.ScrollChanged += ScrollViewer_ScrollChanged;
-                // ensure header follows chart horizontal offset
-                scrollViewer.ScrollChanged += (s, e) =>
-                {
-                    if (_columnHeaderScrollViewer == null) return;
-                    if (_isSyncingScroll) return;
-                    // only sync horizontal offset
-                    if (!DoubleUtil.AreClose(_columnHeaderScrollViewer.HorizontalOffset, e.HorizontalOffset))
-                    {
-                        try
-                        {
-                            _isSyncingScroll = true;
-                            _columnHeaderScrollViewer.ScrollToHorizontalOffset(e.HorizontalOffset);
-                        }
-                        finally
-                        {
-                            _isSyncingScroll = false;
-                        }
-                    }
-                };
+                SetupScrollSync();
             }
 
-            if (columnHeaderScrollViewer != null)
-            {
-                columnHeaderScrollViewer.ScrollChanged += ColumnHeaderScrollViewer_ScrollChanged;
-                // no immediate sync here; ColumnHeaderScrollViewer_ScrollChanged will schedule throttled sync
-            }
+            _columnHeaderLayer.InvalidateMeasure();
+        }
 
-            this.MouseLeftButtonDown += (s, e) =>
-            {
-                ClearSelectRange();
-            };
+        private void Chart_OnTimeAxisChanged(object? sender, EventArgs e)
+        {
+            _columnHeaderLayer.InvalidateMeasure();
+            _columnHeaderLayer.InvalidateVisual();
+
+        }
+
+        private readonly List<INotifyCollectionChanged> _trackedTaskCollections = new();
+
+        private static void OnItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var self = (GridTimeRangeChart)d;
+
+
+            // 前の監視を解除
+            foreach (var coll in self._trackedTaskCollections)
+                coll.CollectionChanged -= self.OnTaskCollectionChanged;
+
+            self._trackedTaskCollections.Clear();
+
+            if (e.OldValue is INotifyCollectionChanged oldRows)
+                oldRows.CollectionChanged -= self.OnRowsCollectionChanged;
+
+
+
+            if (e.NewValue is INotifyCollectionChanged newRows)
+                newRows.CollectionChanged += self.OnRowsCollectionChanged;
+
+            if (self._rowHeaderListBox == null || self._chart == null) return;
+
+            self.RebuildFlatTasks();
+            self.SyncInternalRows();
+        }
+
+        private static void OnTasksSourcePathChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var self = (GridTimeRangeChart)d;
+            if (self._rowHeaderListBox == null || self._chart == null) return;
+            self.RebuildFlatTasks();
+            self.SyncInternalRows();
 
         }
 
 
+        private void SyncInternalRows()
+        {
+            if (_rowHeaderListBox == null || _chart == null) return;
+            _internalRows.Clear();
+            if (ItemsSource != null)
+            {
+                foreach (var item in ItemsSource)
+                {
+                    // ここでRowInternalContainerに包んでRowHeaderのListBoxに流す
+                    _internalRows.Add(new RowInternalContainer(item));
+                }
+            }
+            _rowHeaderListBox.ItemsSource = _internalRows;
+        }
+        // 行リストが変わった（行の追加・削除・入れ替え）
+        private void OnRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (_rowHeaderListBox == null || _chart == null) return;
+            // 行の順序が変わると全タスクの RowIndex がズレるため、全体を再構築
+            RebuildFlatTasks();
+            SyncInternalRows();
+        }
+
+        // 行の中のタスクリストが変わった
+        private void OnTaskCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (_rowHeaderListBox == null || _chart == null) return;
+            // 特定の行だけ更新する最適化も可能ですが、
+            // 整合性を保つため一旦 RebuildFlatTasks を呼ぶのが安全です
+            RebuildFlatTasks();
+        }
+
+        private void RebuildFlatTasks()
+        {
+            if (_rowHeaderListBox == null || _chart == null) return;
+            var flatList = new List<ITimeRangeRowIndex>();
+            var rows = ItemsSource as IList;
+            if (rows == null) return;
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                var tasks = GetTasksFromRow(row);
+
+                if (tasks is INotifyCollectionChanged observableTasks)
+                {
+                    // まだ監視していなければ登録
+                    if (!_trackedTaskCollections.Contains(observableTasks))
+                    {
+                        observableTasks.CollectionChanged += OnTaskCollectionChanged;
+                        _trackedTaskCollections.Add(observableTasks);
+                    }
+                }
+
+                if (tasks != null)
+                {
+                    foreach (var t in tasks)
+                    {
+                        if (t is ITimeRangeRowIndex task)
+                        {
+                            task.RowIndex = i; // ここでインデックスを注入
+                            flatList.Add(task);
+                        }
+                    }
+                }
+            }
+
+            // TimeRangeChart の ItemsSource を更新
+            _chart.ItemsSource = flatList;
+
+            // 前述した「スタック計算とRowHeaderへの高さ反映」もここで呼ぶ
+            SyncHeights();
+
+        }
+
+        private IEnumerable? GetTasksFromRow(object? row)
+        {
+            if (string.IsNullOrEmpty(TasksSourcePath)) return null;
+            return row?.GetType().GetProperty(TasksSourcePath)?.GetValue(row) as IEnumerable;
+        }
+
         protected void OnPreviewTaskDrop(object? sender, DropOnRowEventArgs e)
         {
-            var newArgs = new DropOnRowEventArgs(PreviewTaskDropEvent, e.DropPoint, e.TaskObject!);
+            var newArgs = new DropOnRowEventArgs(PreviewTaskDropEvent, e);
             RaiseEvent(newArgs);
-            if (newArgs.Cancel)
-            {
-                e.Cancel = true;
-            }
+            if (newArgs.Cancel) e.Cancel = true;
         }
 
         protected void OnTaskDrop(object? sender, DropOnRowEventArgs e)
         {
-            var newArgs = new DropOnRowEventArgs(TaskDropEvent, e.DropPoint, e.TaskObject!);
+            var newArgs = new DropOnRowEventArgs(TaskDropEvent, e);
+            RaiseEvent(newArgs);
+            if (newArgs.Cancel) e.Cancel = true;
+
+
+            if (!e.Cancel)
+            {
+                var oldItem = GetTasksFromRow(ItemsSource[e.OldRowIndex]);
+                var newItem = GetTasksFromRow(ItemsSource[e.NewRowIndex]);
+
+                if (oldItem is IList oldRowList && newItem is IList newRowList)
+                {
+                    oldRowList.Remove(e.TaskObject);
+                    newRowList.Add(e.TaskObject);
+                }
+            }
+
+        }
+
+        protected void OnTaskDragStart(object? sender, DragDropRangeEventArgs e)
+        {
+            var newArgs = new DragDropRangeEventArgs(TaskDragStartEvent, e);
+
+            RaiseEvent(newArgs);
+            if (newArgs.Cancel) e.Cancel = true;
+
+        }
+
+        protected void OnTaskDragEnd(object? sender, DragDropRangeEventArgs e)
+        {
+            var newArgs = new DragDropRangeEventArgs(TaskDragEndEvent, e);
+
+            RaiseEvent(newArgs);
+            if (newArgs.Cancel) e.Cancel = true;
+
+        }
+
+
+        protected void OnViewPortChanged(object? sender, RoutedEventArgs e)
+        {
+            if (ItemsSource != null)
+            {
+                CurrentFirstRow = ItemsSource[_chart.CurrentFirstRow];
+                CurrentLastRow = ItemsSource[_chart.CurrentLastRow];
+            }
+
+            CurrentCenterTime = _chart.CurrenCenterTime;
+            CurrentLeftTime = _chart.CurrentFirstTime;
+            CurrentRightTime = _chart.CurrentLastTime;
+
+            var newArgs = new RoutedEventArgs(ViewPortChangedEvent);
             RaiseEvent(newArgs);
         }
 
-
-
-        public bool CanDragTasksBetweenRows
+        protected void OnRowHeightsChanged(object? sender, RoutedEventArgs e)
         {
-            get { return (bool)GetValue(CanDragTasksBetweenRowsProperty); }
-            set { SetValue(CanDragTasksBetweenRowsProperty, value); }
-        }
-        public static DependencyProperty CanDragTasksBetweenRowsProperty = DependencyProperty.Register(nameof(CanDragTasksBetweenRows), typeof(bool), typeof(GridTimeRangeChart), new PropertyMetadata(true));
-
-        public static readonly RoutedEvent TaskDropEvent =
-        EventManager.RegisterRoutedEvent(
-            nameof(TaskDrop), RoutingStrategy.Bubble,
-            typeof(EventHandler<DropOnRowEventArgs>), typeof(GridTimeRangeChart));
-
-        public event EventHandler<DropOnRowEventArgs> TaskDrop
-        {
-            add { AddHandler(TaskDropEvent, value); }
-            remove { RemoveHandler(TaskDropEvent, value); }
-        }
-        public static readonly RoutedEvent PreviewTaskDropEvent =
-        EventManager.RegisterRoutedEvent(
-            nameof(PreviewTaskDrop), RoutingStrategy.Bubble,
-            typeof(EventHandler<DropOnRowEventArgs>), typeof(GridTimeRangeChart));
-
-        public event EventHandler<DropOnRowEventArgs> PreviewTaskDrop
-        {
-            add { AddHandler(PreviewTaskDropEvent, value); }
-            remove { RemoveHandler(PreviewTaskDropEvent, value); }
+            SyncHeights();
         }
 
 
-        private void ClearSelectRange()
+        private void SyncHeights()
         {
-            if (SelectedRanges != null)
-                foreach (var item in SelectedRanges)
-                {
-                    item.IsSelected = false;
-                }
-            SelectedRanges?.Clear();
-            SelectedValues?.Clear();
-
-
-        }
-
-        private void ScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
-        {
-            var vOffset = e.VerticalOffset;
-            var hOffset = e.HorizontalOffset;
-
-
-        }
-
-        private void ColumnHeaderScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
-        {
-            if (sender is not ScrollViewer sc) return;
-
-
-            var LeftItem = TimeTicks.LastOrDefault(x => x.LeftPoint < e.HorizontalOffset);
-            var rightItem = TimeTicks.LastOrDefault(x => x.LeftPoint < e.HorizontalOffset + sc.ActualWidth);
-            var centerItem = TimeTicks.LastOrDefault(x => x.LeftPoint < e.HorizontalOffset + sc.ActualWidth / 2);
-
-            ScrollLeftDate = LeftItem;
-            ScrollRightDate = rightItem ;
-            ScrollCenterDate = centerItem;
-
-            // When header is scrolled (user dragging header), schedule sync to chart
-            if (_chartScrollViewer != null)
+            var heights = _chart.RowHeights;
+            for (int i = 0; i < _internalRows.Count; i++)
             {
-                _pendingHorizontalOffset = e.HorizontalOffset;
-                if (!_scrollSyncTimer.IsEnabled) _scrollSyncTimer.Start();
-            }
-        }
-
-        private void ScrollSyncTimer_Tick(object? sender, EventArgs e)
-        {
-            try
-            {
-                if (!_pendingHorizontalOffset.HasValue) return;
-
-                var offset = _pendingHorizontalOffset.Value;
-                _pendingHorizontalOffset = null;
-
-                if (_isSyncingScroll) return;
-                _isSyncingScroll = true;
-                try
+                if (i < heights.Length)
                 {
-                    if (_columnHeaderScrollViewer != null && !DoubleUtil.AreClose(_columnHeaderScrollViewer.HorizontalOffset, offset))
-                    {
-                        _columnHeaderScrollViewer.ScrollToHorizontalOffset(offset);
-                    }
-                    if (_chartScrollViewer != null && !DoubleUtil.AreClose(_chartScrollViewer.HorizontalOffset, offset))
-                    {
-                        _chartScrollViewer.ScrollToHorizontalOffset(offset);
-                    }
-                }
-                finally
-                {
-                    _isSyncingScroll = false;
+                    // 内部管理オブジェクトのHeightを変えるだけなので、
+                    // 外のデータモデルは一切汚れない！
+                    _internalRows[i].Height = heights[i];
                 }
             }
-            finally
+        }
+        private ObservableCollection<RowInternalContainer> _internalRows = new();
+
+
+        private void SetupScrollSync()
+        {
+            // PART_Chart の中にある ScrollViewer を取得 (GetTemplateChild 等で取得済みとする)
+
+            if (_chartScrollViewer == null) return;
+
+            // スクロールバーの可視性が変わったとき、またはサイズが変わったときに同期
+            _chartScrollViewer.LayoutUpdated += (s, e) =>
             {
-                // stop timer if no pending work
-                if (!_pendingHorizontalOffset.HasValue && _scrollSyncTimer != null && _scrollSyncTimer.IsEnabled)
-                    _scrollSyncTimer.Stop();
-            }
+                // 縦スクロールバーの幅を ColumnHeader の Spacer に適用
+                if (_columnRightSpacer != null)
+                {
+                    // ScrollViewer.ComputedVerticalScrollBarVisibility が Visible の時だけ幅を持つ
+                    _columnRightSpacer.Width = (_chartScrollViewer.ComputedVerticalScrollBarVisibility == Visibility.Visible)
+                        ? SystemParameters.VerticalScrollBarWidth : 0;
+                }
+
+                // 横スクロールバーの高さを RowHeader の Spacer に適用
+                if (_rowBottomSpacer != null)
+                {
+                    _rowBottomSpacer.Height = (_chartScrollViewer.ComputedHorizontalScrollBarVisibility == Visibility.Visible)
+                        ? SystemParameters.HorizontalScrollBarHeight : 0;
+                }
+            };
         }
-
-
-        #region events
-
-        public event EventHandler<DragDropRangeEventArgs>? OnDragStart;
-
-        public event EventHandler<DragDropRangeEventArgs>? OnDragEnd;
-        internal void OnTaskDragStart(TimeRangeControl ctrl, DragDropRangeEventArgs e)
-        {
-            OnDragStart?.Invoke(ctrl, e);
-        }
-
-        internal void OnTaskDragEnd(TimeRangeControl ctrl, DragDropRangeEventArgs e)
-        {
-            OnDragEnd?.Invoke(ctrl, e);
-        }
-
-
-        #endregion
-
-        private static class DoubleUtil
-        {
-            private const double Epsilon = 0.5; // pixels tolerance to avoid oscillation
-            public static bool AreClose(double a, double b)
-            {
-                return Math.Abs(a - b) < Epsilon;
-            }
-        }
-
 
     }
+
+
 }

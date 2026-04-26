@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +11,17 @@ namespace FrostNova.TimeRangeChart
     /// </summary>
     public enum MilestoneStyle
     {
-        None, Circle, Diamond/*, Square, Triangle, Cross, X*/
+        None,
+        Circle,
+        Diamond,
+        Square,
+        Triangle,
+        Cross,
+        X,
+        InvertedTriangle,
+        Star,
+        Hexagon,
+        ArrowUp,
+        ArrowDown
     }
 }

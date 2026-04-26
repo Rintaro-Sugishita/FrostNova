@@ -1,15 +1,16 @@
 using System;
-using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -21,208 +22,125 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using FrostNova.Core.Wpf.Behaviors;
 using FrostNova.Core.Wpf.VisualHelpers;
 using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using FrostNova.TimeRangeChart.Wpf.TimeRangeHelpers;
+using Microsoft.VisualBasic;
+using static FrostNova.TimeRangeChart.Wpf.TimeRangeControl;
 
 namespace FrostNova.TimeRangeChart.Wpf;
 
-/// <summary>
-/// このカスタム コントロールを XAML ファイルで使用するには、手順 1a または 1b の後、手順 2 に従います。
-///
-/// 手順 1a) 現在のプロジェクトに存在する XAML ファイルでこのカスタム コントロールを使用する場合
-/// この XmlNamespace 属性を使用場所であるマークアップ ファイルのルート要素に
-/// 追加します:
-///
-///     xmlns:MyNamespace="clr-namespace:TimeRangeChart"
-///
-///
-/// 手順 1b) 異なるプロジェクトに存在する XAML ファイルでこのカスタム コントロールを使用する場合
-/// この XmlNamespace 属性を使用場所であるマークアップ ファイルのルート要素に
-/// 追加します:
-///
-///     xmlns:MyNamespace="clr-namespace:TimeRangeChart;assembly=TimeRangeChart"
-///
-/// また、XAML ファイルのあるプロジェクトからこのプロジェクトへのプロジェクト参照を追加し、
-/// リビルドして、コンパイル エラーを防ぐ必要があります:
-///
-///     ソリューション エクスプローラーで対象のプロジェクトを右クリックし、
-///     [参照の追加] の [プロジェクト] を選択してから、このプロジェクトを参照し、選択します。
-///
-///
-/// 手順 2)
-/// コントロールを XAML ファイルで使用します。
-///
-///     <MyNamespace:TimeRangeChart/>
-///
-/// </summary>
+
+[TemplatePart(Name = "PART_ChartScrollViewer", Type = typeof(ScrollViewer))]
+[TemplatePart(Name = "PART_ItemsHost", Type = typeof(Canvas))]
 public class TimeRangeChart : Control
 {
+
     static TimeRangeChart()
     {
         DefaultStyleKeyProperty.OverrideMetadata(typeof(TimeRangeChart), new FrameworkPropertyMetadata(typeof(TimeRangeChart)));
     }
 
 
-    public TimeRangeChart()
-    {
-        TimeToPointFunc = TimeToPoint;
-        PointToTimeFunc = PointToTime;
-        GetEndTimeFunc = GetEndTime;
-        GetWorkingSpanFunc = GetWorkingSpan;
-        TaskClickAction = OnTaskClicked;
-        TaskDragStartAction = OnTaskDragStart;
-        TaskDragEndAction = OnTaskDragEnd;
-        if (TimeTicks == null)
-        {
-            //TimeTicks = new ObservableCollection<IRuledLine>();
-            SortedNonWorkingTimes = [];
-
-        }
-        _ruledLinePen = GetRuledLinePen();
-        this.Unloaded += TimeRangeChart_Unloaded;
-    }
-    private bool _isDisposed = false;
-    private void TimeRangeChart_Unloaded(object sender, RoutedEventArgs e)
-    {
-        _isDisposed = true;
-
-        // タイマーの停止
-        if (_stackingRetryTimer != null)
-        {
-            _stackingRetryTimer.Stop();
-            _stackingRetryTimer.Tick -= StackingRetryTimer_Tick;
-            _stackingRetryTimer = null;
-        }
-
-        // ItemsControl のイベント解除
-        DetachItemsControlEvents();
-
-        // ItemsSource のイベント解除
-        if (ItemsSource is INotifyCollectionChanged observable)
-        {
-            observable.CollectionChanged -= itemsSourceChangedHandler;
-        }
-
-        // NonWorkingTimes のイベント解除
-        if (NonWorkingTimes is INotifyCollectionChanged obsNonWorking)
-        {
-            obsNonWorking.CollectionChanged -= _nonworkingTimesCollectionChangedHandler;
-        }
-    }
-    private void DetachItemsControlEvents()
-    {
-        if (_itemsControl != null)
-        {
-            if (_itemContainerStatusHandler != null)
-                _itemsControl.ItemContainerGenerator.StatusChanged -= _itemContainerStatusHandler;
-
-            if (_itemsControlLoadedHandler != null)
-                _itemsControl.Loaded -= _itemsControlLoadedHandler;
-
-            if (_itemsControlLayoutUpdatedHandler != null)
-                _itemsControl.LayoutUpdated -= _itemsControlLayoutUpdatedHandler;
-
-            _itemContainerStatusHandler = null;
-            _itemsControlLoadedHandler = null;
-            _itemsControlLayoutUpdatedHandler = null;
-            _itemsControl = null;
-        }
-    }
-    public Func<DateTime, double> TimeToPointFunc { get; private set; }
-    public Func<double, TimeSpan?, DateTime> PointToTimeFunc { get; private set; }
-
-    public Func<DateTime, TimeSpan, DateTime> GetEndTimeFunc { get; private set; }
-    public Func<DateTime, DateTime, TimeSpan> GetWorkingSpanFunc { get; private set; }
-
-    public Action<TimeRangeControl> TaskClickAction { get; private set; }
-
-    public Action<TimeRangeControl, DragDropRangeEventArgs> TaskDragStartAction { get; private set; }
-    public Action<TimeRangeControl, DragDropRangeEventArgs> TaskDragEndAction { get; private set; }
-
-    public event EventHandler<EventArgs>? TimeRangeNeedRefresh;
-
-
-
-    private Pen _ruledLinePen;
-
+    #region Fields
 
     /// <summary>
-    /// string
+    /// Represents the canvas used as the host for item elements.
     /// </summary>
-    public GridTimeRangeChart ParentGridChart
-    {
-        get { return (GridTimeRangeChart)GetValue(ParentGridChartProperty); }
-        set { SetValue(ParentGridChartProperty, value); }
-    }
-    public static DependencyProperty ParentGridChartProperty = DependencyProperty.Register(nameof(ParentGridChart), typeof(GridTimeRangeChart), typeof(TimeRangeChart));
+    private Canvas? _itemsHost;
+    private ScrollViewer? _scrollViewer;
 
+    private Pen? _ruledLinePen;
+
+    private double _contentWidth;
+
+    /// <summary>
+    /// Get the width of chart.
+    /// </summary>
+    public double ContentWidth => _contentWidth;
+
+
+    // 描画時に高速アクセスするためのキャッシュ
+    private Dictionary<int, List<ITimeRangeRowIndex>> _indexedNonWorkingTimes = new();
+    private Dictionary<int, List<IBackgroundTimeRange>> _indexedBackgroundTimes = new();
+    private Dictionary<int, List<ITimeRangeRowIndex>> _indexedTasks = new();
+
+
+    #region viewport info
+
+    int _currentFirstRow = -1;
+    int _currentLastRow = -1;
+    private int _lastFirstRow = -1;
+    private int _lastLastRow = -1;
+    DateTime _lastFirstTime;
+    DateTime _lastLastTime;
+
+    public int CurrentFirstRow => _currentFirstRow;
+    public int CurrentLastRow => _currentLastRow;
+
+    DateTime _currentFirstTime;
+    DateTime _currenCentertTime;
+    DateTime _currentLastTime;
+
+    public DateTime CurrentFirstTime => _currentFirstTime;
+    public DateTime CurrenCenterTime => _currenCentertTime;
+    public DateTime CurrentLastTime => _currentLastTime;
+
+
+    #endregion
+
+    #region drag info
+
+    private TimeRangeControl? _draggingControl;
+    private TimeRangeControl.HitTestMode _dragMode;
+    private Point _lastMousePosition;
+    private DateTime _originalStartTime;
+    private DateTime _originalEndTime;
+    private TimeSpan _originalActualSpan;
+    private TimeSpan? _originalWorkingSpan;
+    private DateTime _dragStartMouseTime;
+    private TimeSpan _dragStartOffsetFromStart;
+    private bool _dragOccured = false;
+    private bool _dropBetweenRowsOccured = false;
+    private int _originalRowIndex;
+
+    public bool IsDragging => _draggingControl != null;
+
+    #endregion
+
+    internal List<IRuledLine> TimeTicks { get; set; } = [];
+
+    internal List<IRuledLine> SubTimeTicks { get; set; } = [];
+
+    #endregion
+
+
+    #region Properties
+
+    #region time
 
     public DateTime StartTime
     {
         get { return (DateTime)GetValue(StartTimeProperty); }
         set { SetValue(StartTimeProperty, value); }
     }
-    public static readonly DependencyProperty StartTimeProperty = DependencyProperty.Register(nameof(StartTime), typeof(DateTime), typeof(TimeRangeChart), new FrameworkPropertyMetadata(DateTime.Now.AddDays(-3), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnMyPropertyChanged));
+    public static readonly DependencyProperty StartTimeProperty = DependencyProperty.Register(nameof(StartTime), typeof(DateTime), typeof(TimeRangeChart), new FrameworkPropertyMetadata(DateTime.Now.AddDays(-3), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnTimeUnitChanged));
 
     public DateTime EndTime
     {
         get { return (DateTime)GetValue(EndTimeProperty); }
         set { SetValue(EndTimeProperty, value); }
     }
-    public static readonly DependencyProperty EndTimeProperty = DependencyProperty.Register(nameof(EndTime), typeof(DateTime), typeof(TimeRangeChart), new FrameworkPropertyMetadata(DateTime.Now.AddDays(9), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnMyPropertyChanged));
+    public static readonly DependencyProperty EndTimeProperty = DependencyProperty.Register(nameof(EndTime), typeof(DateTime), typeof(TimeRangeChart), new FrameworkPropertyMetadata(DateTime.Now.AddDays(9), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnTimeUnitChanged));
 
 
-    public IList ItemsSource
+    public TimeSpan MinSpan
     {
-        get { return (IList)GetValue(ItemsSourceProperty); }
-        set { SetValue(ItemsSourceProperty, value); }
+        get { return (TimeSpan)GetValue(MinSpanProperty); }
+        set { SetValue(MinSpanProperty, value); }
     }
-    public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register(nameof(ItemsSource), typeof(IList), typeof(TimeRangeChart), new PropertyMetadata(null, OnItemSourceChanged));
-
-    private static void OnItemSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is not TimeRangeChart chart) return;
-        if (e.OldValue != null)
-        {
-            if (e.OldValue is INotifyCollectionChanged observable)
-            {
-                observable.CollectionChanged -= chart.itemsSourceChangedHandler;
-            }
-        }
-        if (e.NewValue != null)
-        {
-            chart.RefreshCall();
-
-            // ObservableCollection<> かどうかを判定
-            if (e.NewValue is INotifyCollectionChanged observable)
-            {
-                chart.itemsSourceChangedHandler = (s, ev) =>
-                {
-                    chart.RefreshCall();
-                    // 直接 ApplyStackingIfNeeded を呼ばず、予約だけ行う
-                    chart.RequestStacking();
-                };
-                observable.CollectionChanged += chart.itemsSourceChangedHandler;
-                // イベントの購読などの処理
-                observable.CollectionChanged += chart.itemsSourceChangedHandler;
-            }
-        }
-    }
-
-    private NotifyCollectionChangedEventHandler? itemsSourceChangedHandler;
-
-    /// <summary>
-    /// Height
-    /// </summary>
-    public double ChartHeight
-    {
-        get { return (double)GetValue(ChartHeightProperty); }
-        set { SetValue(ChartHeightProperty, value); }
-    }
-    public static DependencyProperty ChartHeightProperty = DependencyProperty.Register(nameof(ChartHeight), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(double.NaN));
-
-
+    public static readonly DependencyProperty MinSpanProperty = DependencyProperty.Register(nameof(MinSpan), typeof(TimeSpan), typeof(TimeRangeChart), new PropertyMetadata(TimeSpan.FromMinutes(15)));
     public TimeSpan ScaleIncrement
     {
         get { return (TimeSpan)GetValue(ScaleIncrementProperty); }
@@ -244,24 +162,120 @@ public class TimeRangeChart : Control
     }
     public static DependencyProperty SubScaleIncrementProperty = DependencyProperty.Register(nameof(SubScaleIncrement), typeof(TimeSpan), typeof(TimeRangeChart), new PropertyMetadata(new TimeSpan(1, 0, 0), OnMyPropertyChanged));
 
+    /// <summary>
+    /// width per ruled line
+    /// </summary>
+    public double WidthPerRuledLine
+    {
+        get { return (double)GetValue(WidthPerRuledLineProperty); }
+        set { SetValue(WidthPerRuledLineProperty, value); }
+    }
+    public static DependencyProperty WidthPerRuledLineProperty = DependencyProperty.Register(nameof(WidthPerRuledLine), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(100.0d, OnTimeUnitChanged));
+    public TimeUnitType TimeUnit
+    {
+        get { return (TimeUnitType)GetValue(TimeUnitProperty); }
+        set { SetValue(TimeUnitProperty, value); }
+    }
+    public static DependencyProperty TimeUnitProperty = DependencyProperty.Register(nameof(TimeUnit), typeof(TimeUnitType), typeof(TimeRangeChart), new PropertyMetadata(TimeUnitType.Normal, OnTimeUnitChanged));
+
+    public int MonthSpan
+    {
+        get { return (int)GetValue(MonthSpanProperty); }
+        set { SetValue(MonthSpanProperty, value); }
+    }
+    public static DependencyProperty MonthSpanProperty = DependencyProperty.Register(nameof(MonthSpan), typeof(int), typeof(TimeRangeChart), new PropertyMetadata(1, OnTimeUnitChanged));
+    public string HeaderFormat
+    {
+        get { return (string)GetValue(HeaderFormatProperty); }
+        set { SetValue(HeaderFormatProperty, value); }
+    }
+    public static DependencyProperty HeaderFormatProperty = DependencyProperty.Register(nameof(HeaderFormat), typeof(string), typeof(TimeRangeChart));
+    public Func<TimeRangeChart, DateTime, Brush> HeaderBrushSelector
+    {
+        get { return (Func<TimeRangeChart, DateTime, Brush>)GetValue(HeaderBrushSelectorProperty); }
+        set { SetValue(HeaderBrushSelectorProperty, value); }
+    }
+    public static DependencyProperty HeaderBrushSelectorProperty = DependencyProperty.Register(nameof(HeaderBrushSelector), typeof(Func<TimeRangeChart, DateTime, Brush>), typeof(TimeRangeChart), new PropertyMetadata(new Func<TimeRangeChart, DateTime, Brush>((gridChart, d) => GridTimeRangeChart.DefaultHeaderSelector(gridChart, d))));
+
+
+    #endregion
+
+
+    #region Drag Controls
+
+    public bool CanStackRange
+    {
+        get { return (bool)GetValue(CanStackRangeProperty); }
+        set { SetValue(CanStackRangeProperty, value); }
+    }
+    public static DependencyProperty CanStackRangeProperty = DependencyProperty.Register(nameof(CanStackRange), typeof(bool), typeof(TimeRangeChart), new PropertyMetadata(false));
+
+    public bool CanDragTasksBetweenRows
+    {
+        get { return (bool)GetValue(CanDragTasksBetweenRowsProperty); }
+        set { SetValue(CanDragTasksBetweenRowsProperty, value); }
+    }
+    public static DependencyProperty CanDragTasksBetweenRowsProperty = DependencyProperty.Register(nameof(CanDragTasksBetweenRows), typeof(bool), typeof(TimeRangeChart), new PropertyMetadata(true));
+
 
     /// <summary>
-    /// min span of range
+    /// Get or Set the height of task when stack.
     /// </summary>
-    public TimeSpan MinSpan
+    public double StackHeight
     {
-        get { return (TimeSpan)GetValue(MinSpanProperty); }
-        set { SetValue(MinSpanProperty, value); }
+        get { return (double)GetValue(StackHeightProperty); }
+        set { SetValue(StackHeightProperty, value); }
     }
-    public static readonly DependencyProperty MinSpanProperty = DependencyProperty.Register(nameof(MinSpan), typeof(TimeSpan), typeof(TimeRangeChart), new PropertyMetadata(TimeSpan.FromMinutes(15)));
+    public static DependencyProperty StackHeightProperty = DependencyProperty.Register(nameof(StackHeight), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(24.0));
 
+
+    /// <summary>
+    /// Gets or sets a value indicating whether multiple items can be selected simultaneously.
+    /// </summary>
+    /// <remarks>Set this property to <see langword="true"/> to allow users to select more than one item at a
+    /// time. When set to <see langword="false"/>, only single selection is permitted.</remarks>
+    public bool AllowMultiSelection
+    {
+        get => (bool)GetValue(AllowMultiSelectionProperty);
+        set => SetValue(AllowMultiSelectionProperty, value);
+    }
+    public static readonly DependencyProperty AllowMultiSelectionProperty =
+    DependencyProperty.Register(nameof(AllowMultiSelection), typeof(bool), typeof(TimeRangeChart), new PropertyMetadata(true));
+
+    /// <summary>
+    /// Gets or sets a value indicating whether multiple items can be dragged simultaneously.
+    /// </summary>
+    /// <remarks>Set this property to <see langword="true"/> to enable users to select and drag more than one
+    /// item at a time. When set to <see langword="false"/>, only single-item drag operations are permitted.</remarks>
+    public bool AllowMultiDrag
+    {
+        get => (bool)GetValue(AllowMultiDragProperty);
+        set => SetValue(AllowMultiDragProperty, value);
+    }
+    public static readonly DependencyProperty AllowMultiDragProperty =
+        DependencyProperty.Register(nameof(AllowMultiDrag), typeof(bool), typeof(TimeRangeChart), new PropertyMetadata(true));
+
+
+    #endregion
+
+
+
+    /// <summary>
+    /// Height
+    /// </summary>
+    public double ChartHeight
+    {
+        get { return (double)GetValue(ChartHeightProperty); }
+        set { SetValue(ChartHeightProperty, value); }
+    }
+    public static DependencyProperty ChartHeightProperty = DependencyProperty.Register(nameof(ChartHeight), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(80.0d));
 
     public Brush RuledLineFill
     {
         get { return (Brush)GetValue(RuledLineFillProperty); }
         set { SetValue(RuledLineFillProperty, value); RefreshCall(); }
     }
-    public static DependencyProperty RuledLineFillProperty = DependencyProperty.Register(nameof(RuledLineFill), typeof(Brush), typeof(TimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)), OnRuledLinePropertyChanged));
+    public static DependencyProperty RuledLineFillProperty = DependencyProperty.Register(nameof(RuledLineFill), typeof(Brush), typeof(TimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromArgb(255, 125, 125, 125)), OnRuledLinePropertyChanged));
 
     public double RuledLineThickness
     {
@@ -281,14 +295,7 @@ public class TimeRangeChart : Control
     public static DependencyProperty NonWorkingRangeBackgroundProperty = DependencyProperty.Register(nameof(NonWorkingRangeBackground), typeof(Brush), typeof(TimeRangeChart), new PropertyMetadata(new SolidColorBrush(Color.FromRgb(0xd8, 0xd8, 0xd8))));
 
 
-    private static void OnRuledLinePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is TimeRangeChart chart)
-        {
-            chart._ruledLinePen = chart.GetRuledLinePen();
-            OnMyPropertyChanged(d, e);
-        }
-    }
+
 
     private Pen GetRuledLinePen()
     {
@@ -304,40 +311,157 @@ public class TimeRangeChart : Control
     }
 
 
-    private Rectangle _borderRect = new Rectangle();
 
-    public IList<ITimeRange> NonWorkingTimes
+    /// <summary>
+    /// string
+    /// </summary>
+    public DataTemplate DataTemplate
     {
-        get { return (IList<ITimeRange>)GetValue(NonWorkingTimesProperty); }
+        get { return (DataTemplate)GetValue(DataTemplateProperty); }
+        set { SetValue(DataTemplateProperty, value); }
+    }
+    public static DependencyProperty DataTemplateProperty = DependencyProperty.Register(nameof(DataTemplate), typeof(DataTemplate), typeof(TimeRangeChart));
+
+    /// <summary>
+    /// string
+    /// </summary>
+    public DataTemplateSelector DataTemplateSelector
+    {
+        get { return (DataTemplateSelector)GetValue(DataTemplateSelectorProperty); }
+        set { SetValue(DataTemplateSelectorProperty, value); }
+    }
+    public static DependencyProperty DataTemplateSelectorProperty = DependencyProperty.Register(nameof(DataTemplateSelector), typeof(DataTemplateSelector), typeof(TimeRangeChart));
+
+    public Func<object, int> IndexFunc
+    {
+        get { return (Func<object, int>)GetValue(IndexFuncProperty); }
+        set { SetValue(IndexFuncProperty, value); }
+    }
+    public static DependencyProperty IndexFuncProperty = DependencyProperty.Register(nameof(IndexFunc), typeof(Func<object, int>), typeof(TimeRangeChart));
+
+
+    public IList<ITimeRangeRowIndex> NonWorkingTimes
+    {
+        get { return (IList<ITimeRangeRowIndex>)GetValue(NonWorkingTimesProperty); }
         set { SetValue(NonWorkingTimesProperty, value); }
     }
-    public static DependencyProperty NonWorkingTimesProperty = DependencyProperty.Register(nameof(NonWorkingTimes), typeof(IList<ITimeRange>), typeof(TimeRangeChart), new PropertyMetadata(OnNonWorkingTimesChanged));
+    public static DependencyProperty NonWorkingTimesProperty = DependencyProperty.Register(nameof(NonWorkingTimes), typeof(IList<ITimeRangeRowIndex>), typeof(TimeRangeChart), new PropertyMetadata(OnNonWorkingTimesChanged));
+    public IList<IBackgroundTimeRange> BackgroundTimes
+    {
+        get { return (IList<IBackgroundTimeRange>)GetValue(BackgroundTimesProperty); }
+        set { SetValue(BackgroundTimesProperty, value); }
+    }
+    public static DependencyProperty BackgroundTimesProperty = DependencyProperty.Register(nameof(BackgroundTimes), typeof(IList<IBackgroundTimeRange>), typeof(TimeRangeChart), new PropertyMetadata(OnBackgroundTimesChanged));
+    public string SubScaleFormat
+    {
+        get { return (string)GetValue(SubScaleFormatProperty); }
+        set { SetValue(SubScaleFormatProperty, value); }
+    }
+    public static DependencyProperty SubScaleFormatProperty = DependencyProperty.Register(nameof(SubScaleFormat), typeof(string), typeof(TimeRangeChart));
+
+
+
+    public IEnumerable<ITimeRangeRowIndex> ItemsSource
+    {
+        get { return (IEnumerable<ITimeRangeRowIndex>)GetValue(ItemsSourceProperty); }
+        set { SetValue(ItemsSourceProperty, value); }
+    }
+    public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register(nameof(ItemsSource), typeof(IEnumerable<ITimeRangeRowIndex>), typeof(TimeRangeChart), new PropertyMetadata(null, OnItemSourceChanged));
+
+
+    #region Stack properties
+
+    /// <summary>
+    /// string
+    /// </summary>
+    public double StackMargin
+    {
+        get { return (double)GetValue(StackMarginProperty); }
+        set { SetValue(StackMarginProperty, value); }
+    }
+    public static DependencyProperty StackMarginProperty = DependencyProperty.Register(nameof(StackMargin), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(0.0));
+
+
+
+    #endregion
+
+    #endregion
+
+
+    #region Property changed Events
+
+
+
+    private static void OnTimeUnitChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TimeRangeChart chart)
+        {
+            // 自身の再描画をトリガーする
+            chart.CalclateTimeAxis();
+            chart.RefreshCall();
+            chart.InvokeOnTimeAxisChanged();
+        }
+    }
+
+    private static void OnRuledLinePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TimeRangeChart chart)
+        {
+            chart._ruledLinePen = chart.GetRuledLinePen();
+            OnMyPropertyChanged(d, e);
+        }
+    }
+    private static void OnMyPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        TimeRangeChart customControl = (TimeRangeChart)d;
+        // 自身の再描画をトリガーする
+        customControl.RefreshCall();
+    }
+
+
+    private static void OnItemSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not TimeRangeChart chart) return;
+        if (e.OldValue != null)
+        {
+            if (e.OldValue is INotifyCollectionChanged observable)
+            {
+                observable.CollectionChanged -= chart.OnItemsSourceCollectionChanged;
+            }
+        }
+        if (e.NewValue is IEnumerable<ITimeRangeRowIndex> newSource)
+        {
+            chart.UpdateLayoutMetrics();
+            // 2. 現在のスクロール位置に合わせて表示更新
+            chart.UpdateVisibleRange();
+
+            // 3. 新しいイベント購読
+            if (newSource is INotifyCollectionChanged newObservable)
+            {
+                newObservable.CollectionChanged += chart.OnItemsSourceCollectionChanged;
+            }
+        }
+    }
+
+    private void OnItemsSourceCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // データが変わったらレイアウト（高さ・スタック）を再計算
+        UpdateLayoutMetrics();
+
+        // 配置と描画を更新
+        UpdateVisibleRange();
+    }
+
+    private static void OnBackgroundTimesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not TimeRangeChart chart) return;
+        chart.CalculateIndexedBackgroundTimes();
+    }
 
     private static void OnNonWorkingTimesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is TimeRangeChart chart)
         {
-            // ① 非稼働時間をソート＆マージ
-            //var sorted = chart.NonWorkingTimes
-            //    .OrderBy(r => r.StartTime)
-            //    .ToList();
-
-            //var merged = new List<ITimeRange>();
-            //foreach (var r in sorted)
-            //{
-            //    if (merged.Count == 0 || merged.Last().EndTime < r.StartTime)
-            //    {
-            //        merged.Add(new FixedTimeRange(r.StartTime, r.EndTime));
-            //    }
-            //    else
-            //    {
-            //        var last = merged[merged.Count - 1];
-            //        merged[merged.Count - 1] = new FixedTimeRange(last.StartTime, Max(last.EndTime, r.EndTime));
-            //    }
-            //}
-
-            //chart.SortedNonWorkingTimes = merged;
-
             chart.CalculateSortedNonWorkingTimes();
 
             if (e.OldValue is ObservableCollection<ITimeRange> oldObsTimes)
@@ -359,65 +483,6 @@ public class TimeRangeChart : Control
             }
         }
     }
-
-    private NotifyCollectionChangedEventHandler? _nonworkingTimesCollectionChangedHandler;
-
-    private void CalculateSortedNonWorkingTimes()
-    {
-        // ① 非稼働時間をソート＆マージ
-        var sorted = NonWorkingTimes
-            .OrderBy(r => r.StartTime)
-            .ToList();
-        var merged = new List<ITimeRange>();
-        foreach (var r in sorted)
-        {
-            if (merged.Count == 0 || merged.Last().EndTime < r.StartTime)
-            {
-                merged.Add(new FixedTimeRange(r.StartTime, r.EndTime));
-            }
-            else
-            {
-                var last = merged[merged.Count - 1];
-                merged[merged.Count - 1] = new FixedTimeRange(last.StartTime, Max(last.EndTime, r.EndTime));
-            }
-        }
-        static DateTime Max(DateTime a, DateTime b) => a > b ? a : b;
-        SortedNonWorkingTimes = merged;
-    }
-
-    /// <summary>
-    /// time
-    /// </summary>
-    public IList<ITimeRange> SortedNonWorkingTimes
-    {
-        get { return (IList<ITimeRange>)GetValue(SortedNonWorkingTimesProperty); }
-        internal set { SetValue(SortedNonWorkingTimesProperty, value); }
-    }
-    public static DependencyProperty SortedNonWorkingTimesProperty = DependencyProperty.Register(nameof(SortedNonWorkingTimes), typeof(IList<ITimeRange>), typeof(TimeRangeChart));
-
-
-    /// <summary>
-    /// string
-    /// </summary>
-    public IList<IBackgroundTimeRange> BackgroundTimes
-    {
-        get { return (IList<IBackgroundTimeRange>)GetValue(BackgroundTimesProperty); }
-        set { SetValue(BackgroundTimesProperty, value); }
-    }
-    public static DependencyProperty BackgroundTimesProperty = DependencyProperty.Register(nameof(BackgroundTimes), typeof(IList<IBackgroundTimeRange>), typeof(TimeRangeChart));
-
-
-    /// <summary>
-    /// string
-    /// </summary>
-    public DataTemplate TimeRangeTemplate
-    {
-        get { return (DataTemplate)GetValue(TimeRangeTemplateProperty); }
-        set { SetValue(TimeRangeTemplateProperty, value); }
-    }
-    public static DependencyProperty TimeRangeTemplateProperty = DependencyProperty.Register(nameof(TimeRangeTemplate), typeof(DataTemplate), typeof(TimeRangeChart));
-
-
     public Style TimeRangeStyle
     {
         get { return (Style)GetValue(TimeRangeStyleProperty); }
@@ -425,152 +490,414 @@ public class TimeRangeChart : Control
     }
     public static DependencyProperty TimeRangeStyleProperty = DependencyProperty.Register(nameof(TimeRangeStyle), typeof(Style), typeof(TimeRangeChart), new PropertyMetadata(null));
 
-    /// <summary>
-    /// width per ruled line
-    /// </summary>
-    public double WidthPerRuledLine
-    {
-        get { return (double)GetValue(WidthPerRuledLineProperty); }
-        set { SetValue(WidthPerRuledLineProperty, value); }
-    }
-    public static DependencyProperty WidthPerRuledLineProperty = DependencyProperty.Register(nameof(WidthPerRuledLine), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(double.NaN, OnWidthPerIncrementChanged));
+    private NotifyCollectionChangedEventHandler? _nonworkingTimesCollectionChangedHandler;
 
-    private static void OnWidthPerIncrementChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    private void OnScrollViewerSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (d is TimeRangeChart chart)
+        // スクロール位置が変わったら表示を更新
+        UpdateVisibleRange();
+        InvalidateVisual();
+    }
+
+    private void OnScrollViewerScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        // スクロール位置が変わったら表示を更新
+        UpdateVisibleRange();
+        InvalidateVisual();
+    }
+
+
+    #endregion
+
+    #region Event Definitions
+
+
+
+    public event EventHandler<EventArgs>? OnTimeAxisChanged;
+
+
+
+
+    public event EventHandler<RoutedEventArgs>? ViewPortChanged
+    {
+        add { AddHandler(ViewPortChangedEvent, value); }
+        remove { RemoveHandler(ViewPortChangedEvent, value); }
+    }
+    public static readonly RoutedEvent ViewPortChangedEvent =
+    EventManager.RegisterRoutedEvent(
+        nameof(ViewPortChanged), RoutingStrategy.Bubble,
+        typeof(EventHandler<RoutedEventArgs>), typeof(TimeRangeChart));
+
+
+
+
+    public event EventHandler<RoutedEventArgs>? RowHeightsChanged
+    {
+        add { AddHandler(RowHeightsChangedEvent, value); }
+        remove { RemoveHandler(RowHeightsChangedEvent, value); }
+    }
+    public static readonly RoutedEvent RowHeightsChangedEvent =
+    EventManager.RegisterRoutedEvent(
+        nameof(RowHeightsChanged), RoutingStrategy.Bubble,
+        typeof(EventHandler<RoutedEventArgs>), typeof(TimeRangeChart));
+
+
+
+    public event EventHandler<DragDropRangeEventArgs>? TaskDragStart
+    {
+        add { AddHandler(TaskDragStartEvent, value); }
+        remove { RemoveHandler(TaskDragStartEvent, value); }
+    }
+    public static readonly RoutedEvent TaskDragStartEvent =
+        EventManager.RegisterRoutedEvent(
+            nameof(TaskDragStart), RoutingStrategy.Bubble,
+        typeof(EventHandler<DragDropRangeEventArgs>), typeof(TimeRangeChart));
+
+
+    public event EventHandler<DragDropRangeEventArgs>? TaskDragEnd
+    {
+        add { AddHandler(TaskDragEndEvent, value); }
+        remove { RemoveHandler(TaskDragEndEvent, value); }
+
+    }
+    public static readonly RoutedEvent TaskDragEndEvent =
+        EventManager.RegisterRoutedEvent(
+            nameof(TaskDragEnd), RoutingStrategy.Bubble,
+        typeof(EventHandler<DragDropRangeEventArgs>), typeof(TimeRangeChart));
+
+
+    public event EventHandler<DropOnRowEventArgs>? TaskDrop
+    {
+        add { AddHandler(TaskDropEvent, value); }
+        remove { RemoveHandler(TaskDropEvent, value); }
+    }
+    public static readonly RoutedEvent TaskDropEvent =
+    EventManager.RegisterRoutedEvent(
+        nameof(TaskDrop), RoutingStrategy.Bubble,
+        typeof(EventHandler<DropOnRowEventArgs>), typeof(TimeRangeChart));
+
+
+    public event EventHandler<DropOnRowEventArgs>? PreviewTaskDrop
+    {
+        add { AddHandler(PreviewTaskDropEvent, value); }
+        remove { RemoveHandler(PreviewTaskDropEvent, value); }
+    }
+    public static readonly RoutedEvent PreviewTaskDropEvent =
+    EventManager.RegisterRoutedEvent(
+        nameof(PreviewTaskDrop), RoutingStrategy.Bubble,
+        typeof(EventHandler<DropOnRowEventArgs>), typeof(TimeRangeChart));
+
+
+
+
+
+
+
+    internal void InvokeOnTimeAxisChanged()
+    {
+        OnTimeAxisChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    #endregion
+
+    public override void OnApplyTemplate()
+    {
+        base.OnApplyTemplate();
+        _itemsHost = GetTemplateChild("PART_ItemsHost") as Canvas;
+        _scrollViewer = GetTemplateChild("PART_ChartScrollViewer") as ScrollViewer;
+
+        _ruledLinePen = GetRuledLinePen();
+
+        TimeTicks = new List<IRuledLine>();
+        SubTimeTicks = new List<IRuledLine>();
+
+        CalclateTimeAxis();
+
+        if (_scrollViewer != null)
         {
-            chart.RefreshCall();
+            _scrollViewer.ScrollChanged += OnScrollViewerScrollChanged;
+            _scrollViewer.SizeChanged += OnScrollViewerSizeChanged;
+
+            GeneralHelper.SetBehavior<ScrollGestureBehavior>(_scrollViewer, true);
+        }
+    }
+
+    private void RebuildTasksByRow()
+    {
+        _indexedTasks.Clear();
+        if (ItemsSource is IEnumerable<ITimeRangeRowIndex> allTasks)
+        {
+            foreach (var t in allTasks)
+            {
+                if (!_indexedTasks.ContainsKey(t.RowIndex))
+                    _indexedTasks[t.RowIndex] = new List<ITimeRangeRowIndex>();
+                _indexedTasks[t.RowIndex].Add(t);
+            }
         }
     }
 
 
-    /// <summary>
-    /// Whether to control tick self
-    /// </summary>
-    public bool IsControlTick
+    private void UpdateVisibleRange()
     {
-        get { return (bool)GetValue(IsTickControlProperty); }
-        internal set { SetValue(IsTickControlProperty, value); }
-    }
-    public static DependencyProperty IsTickControlProperty = DependencyProperty.Register(nameof(IsControlTick), typeof(bool), typeof(TimeRangeChart), new PropertyMetadata(true));
-    public string SubScaleFormat
-    {
-        get { return (string)GetValue(SubScaleFormatProperty); }
-        set { SetValue(SubScaleFormatProperty, value); }
-    }
-    public static DependencyProperty SubScaleFormatProperty = DependencyProperty.Register(nameof(SubScaleFormat), typeof(string), typeof(TimeRangeChart));
+        if (_scrollViewer == null || RowOffsets == null || RowOffsets.Length == 0) return;
+
+        double top = _scrollViewer.VerticalOffset;
+        double bottom = top + _scrollViewer.ViewportHeight;
+
+        double left = _scrollViewer.HorizontalOffset;
+        double right = left + _scrollViewer.ViewportWidth;
+
+        // 二分探索で可視範囲の行インデックスを特定
+        int firstRow = FindRowIndexAtOffset(top);
+        int lastRow = FindRowIndexAtOffset(bottom);
 
 
-    public List<IRuledLine> TimeTicks
-    {
-        get { return (List<IRuledLine>)GetValue(TimeTicksProperty); }
-        internal set { SetValue(TimeTicksProperty, value); }
-    }
-    public static DependencyProperty TimeTicksProperty = DependencyProperty.Register(nameof(TimeTicks), typeof(List<IRuledLine>), typeof(TimeRangeChart));
+        DateTime firstDate = FindColumnAtOffset(left);
+        DateTime centerDate = FindColumnAtOffset(left + (right - left) / 2.0);
+        DateTime lastDate = FindColumnAtOffset(right);
+        bool isScopeChanged = firstRow != _lastFirstRow ||
+                          lastRow != _lastLastRow ||
+                          firstDate != _lastFirstTime ||
+                          lastDate != _lastLastTime;
+        // 1. タスクの配置更新 (仮想化)
+        if (isScopeChanged)
+        {
+            _lastFirstRow = firstRow;
+            _lastLastRow = lastRow;
+            _lastFirstTime = firstDate;
+            _lastLastTime = lastDate;
 
-    public List<IRuledLine> SubTimeTicks
-    {
-        get { return (List<IRuledLine>)GetValue(SubTimeTicksProperty); }
-        set { SetValue(SubTimeTicksProperty, value); }
-    }
-    public static DependencyProperty SubTimeTicksProperty = DependencyProperty.Register(nameof(SubTimeTicks), typeof(List<IRuledLine>), typeof(TimeRangeChart));
+            // 見えている行のタスクだけを集める（全件スキャンしない！）
+            var visibleTasks = new List<ITimeRangeRowIndex>();
+            for (int i = firstRow; i <= lastRow; i++)
+            {
+                if (_indexedTasks.TryGetValue(i, out var tasks))
+                {
+                    foreach (var task in tasks)
+                    {
+                        // 横方向の可視判定：
+                        // タスクがドラッグ中、または画面の左右の範囲に重なっているか
+                        bool isDragging = (_draggingControl?.DataContext == task);
+                        bool isVisibleX = task.StartTime <= lastDate && task.EndTime >= firstDate;
 
-    /// <summary>
-    /// Gets or sets a value indicating whether range bars can be stacked in the chart.
-    /// </summary>
-    public bool CanStackRange
-    {
-        get { return (bool)GetValue(CanStackRangeProperty); }
-        set { SetValue(CanStackRangeProperty, value); }
-    }
-    public static DependencyProperty CanStackRangeProperty = DependencyProperty.Register(nameof(CanStackRange), typeof(bool), typeof(TimeRangeChart), new PropertyMetadata(false));
+                        if (isDragging || isVisibleX)
+                        {
+                            visibleTasks.Add(task);
+                        }
+                    }
+                }
+            }
+
+            SyncVisuals(visibleTasks);
+        }
+        // 2. 背景・罫線の再描画を予約 (OnRender -> DrawBorder が呼ばれる)
+        // DrawBorder内で使用するために現在の可視範囲を保持しておく
+        this._currentFirstRow = firstRow;
+        this._currentLastRow = lastRow;
+
+        this._currentFirstTime = firstDate;
+        this._currenCentertTime = centerDate;
+        this._currentLastTime = lastDate;
 
 
 
-    private static void OnMyPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        TimeRangeChart customControl = (TimeRangeChart)d;
-        // 自身の再描画をトリガーする
-        customControl.RefreshCall();
-    }
+        var viewportChangedEventArgs = new RoutedEventArgs(ViewPortChangedEvent);
+        RaiseEvent(viewportChangedEventArgs);
 
-
-    /// <summary>
-    /// string
-    /// </summary>
-    public TimeUnitType TimeUnit
-    {
-        get { return (TimeUnitType)GetValue(TimeUnitProperty); }
-        set { SetValue(TimeUnitProperty, value); }
-    }
-    public static DependencyProperty TimeUnitProperty = DependencyProperty.Register(nameof(TimeUnit), typeof(TimeUnitType), typeof(TimeRangeChart), new PropertyMetadata(TimeUnitType.Normal, OnTimeUnitChanged));
-
-    private static void OnTimeUnitChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        TimeRangeChart customControl = (TimeRangeChart)d;
-        // 自身の再描画をトリガーする
-        customControl.RefreshCall();
-    }
-
-    /// <summary>
-    /// string
-    /// </summary>
-    public int MonthSpan
-    {
-        get { return (int)GetValue(MonthSpanProperty); }
-        set { SetValue(MonthSpanProperty, value); }
-    }
-    public static DependencyProperty MonthSpanProperty = DependencyProperty.Register(nameof(MonthSpan), typeof(int), typeof(TimeRangeChart), new PropertyMetadata(1, OnMonthSpanChanged));
-
-    private static void OnMonthSpanChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        TimeRangeChart customControl = (TimeRangeChart)d;
-        // 自身の再描画をトリガーする
-        customControl.RefreshCall();
+        InvalidateVisual();
     }
 
-    private void CalculateBorder()
+    private int FindRowIndexAtOffset(double y)
+    {
+        if (RowOffsets == null) return 0;
+        int idx = Array.BinarySearch(RowOffsets, y);
+        // 直接一致しない場合は「次の要素の補数」が返るためビット反転して調整
+        if (idx < 0) idx = (~idx) - 1;
+        return Math.Max(0, Math.Min(idx, RowOffsets.Length - 1));
+    }
+
+    private DateTime FindColumnAtOffset(double x)
+    {
+        //var d = TimeTicks.FirstOrDefault(xx => xx.LeftPoint < x);
+
+        //if (d != null)
+        //{
+        //    return d.DateValue;
+        //}
+
+        //return StartTime;
+        if (TimeTicks == null || TimeTicks.Count == 0) return StartTime;
+
+        // TimeTicks の LeftPoint のみを取り出した配列（またはリスト）があると高速
+        // ※ 頻繁に呼ぶ場合は、TimeTicks.Select(t => t.LeftPoint).ToArray() をキャッシュしておくのが理想
+        double[] offsets = TimeTicks.Select(t => t.LeftPoint).ToArray();
+
+        int idx = Array.BinarySearch(offsets, x);
+
+        if (idx < 0)
+        {
+            // 補数を使って「x 未満で最大の要素」を特定
+            idx = (~idx) - 1;
+        }
+
+        // 範囲外チェック
+        if (idx < 0) return StartTime;
+        if (idx >= TimeTicks.Count) return TimeTicks.Last().DateValue;
+
+        return TimeTicks[idx].DateValue;
+    }
+
+
+    protected override void OnRender(DrawingContext dc)
+    {
+        // UpdateVisibleRange で計算済みのインデックスを使用して描画
+        DrawBorder(dc, _currentFirstRow, _currentLastRow);
+        base.OnRender(dc);
+    }
+
+    #region Time Axis and Background
+
+
+
+    public void DrawBorder(DrawingContext dc, int firstRow, int lastRow)
+    {
+        if (RowOffsets == null || RowHeights == null || _scrollViewer == null) return;
+
+        // コンテンツ全体のサイズを取得
+        // _itemsHost.Width がセットされていない場合は ActualWidth で代用
+        double totalWidth = (_itemsHost != null && _itemsHost.Width > 0) ? _itemsHost.Width : ActualWidth;
+        double totalHeight = RowOffsets.Length > 0 ? (RowOffsets.Last() + RowHeights.Last()) : ActualHeight;
+
+        // 座標系をスクロールに合わせてオフセット
+        var clipRect = new Rect(0, 0, ActualWidth, ActualHeight);
+        var clipGeometry = new RectangleGeometry(clipRect);
+
+        // 描画コンテキストにクリップ領域をプッシュ
+        dc.PushClip(clipGeometry); dc.PushTransform(new TranslateTransform(-_scrollViewer.HorizontalOffset, -_scrollViewer.VerticalOffset));
+
+        // 1. 全体背景（コントロールの Background）
+        // Rect の幅を totalWidth にすることで、横スクロールしても背景が途切れない
+        dc.DrawRectangle(Background, new Pen(BorderBrush, BorderThickness.Left), new Rect(0, 0, totalWidth, totalHeight));
+
+        if (firstRow != -1 && lastRow != -1)
+        {
+            for (int i = firstRow; i <= lastRow; i++)
+            {
+                if (i >= RowOffsets.Length) break;
+
+                double y = RowOffsets[i];
+                double height = RowHeights[i];
+
+                // 2. 行ごとの背景色 (BackgroundTimes)
+                if (_indexedBackgroundTimes.TryGetValue(i, out var bgRanges))
+                {
+                    foreach (var item in bgRanges)
+                    {
+                        double x1 = TimeToPoint(item.StartTime);
+                        double x2 = TimeToPoint(item.EndTime);
+                        // 右端が 0 未満、または左端が全幅を超えている場合はスキップ
+                        if (x2 < 0 || x1 > totalWidth) continue;
+                        dc.DrawRectangle(item.Background, null, new Rect(x1, y, Math.Max(0, x2 - x1), height));
+                    }
+                }
+
+                // 3. 非稼働領域 (NonWorkingTimes)
+                if (_indexedNonWorkingTimes.TryGetValue(i, out var nonWorking))
+                {
+                    foreach (var range in nonWorking)
+                    {
+                        double x1 = TimeToPoint(range.StartTime);
+                        double x2 = TimeToPoint(range.EndTime);
+                        if (x2 < 0 || x1 > totalWidth) continue;
+                        dc.DrawRectangle(NonWorkingRangeBackground, null, new Rect(x1, y, Math.Max(0, x2 - x1), height));
+                    }
+                }
+
+                // 4. 横方向の罫線
+                // 終点を ActualWidth ではなく totalWidth にする
+                dc.DrawLine(_ruledLinePen, new Point(0, y), new Point(totalWidth, y));
+
+                if (i == lastRow || i == RowOffsets.Length - 1)
+                {
+                    dc.DrawLine(_ruledLinePen, new Point(0, y + height), new Point(totalWidth, y + height));
+                }
+            }
+        }
+
+        // 5. 縦方向の罫線 (時間軸)
+        if (TimeTicks != null)
+        {
+            foreach (var item in TimeTicks)
+            {
+                // 縦線の長さも totalHeight (全行分) にする
+                dc.DrawLine(_ruledLinePen, new Point(item.LeftPoint, 0), new Point(item.LeftPoint, totalHeight));
+            }
+        }
+
+        dc.Pop(); // Transform を解除
+    }
+
+    public void CalclateTimeAxis()
     {
         if (TimeTicks == null) return;
         var ticks = TimeTicks.ToList();
 
-        if (IsControlTick)
+        var newTicks = TimeUnit == TimeUnitType.Normal ?
+            TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement, SubScaleIncrement) :
+            TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1, MonthSubTickType.None);
+
+        var newWidth = CalculateNewWidth(newTicks.mainTicks.Count);
+        _contentWidth = newWidth; // ここで確定
+        SetWidth(_contentWidth);
+
+        TimeTicks.Clear();
+
+        //foreach (var item in newTicks.mainTicks)
+        //{
+        //    TimeTicks.Add(new RuledLineData(this) { DateValue = item, LeftPoint = TimeToPoint(item) });
+        //}
+
+        var localTimeTicks = new List<RuledLineData>();
+        var tf = new Typeface(FontFamily, FontStyle, FontWeight, FontStretch);
+        for (int i = 0; i < newTicks.mainTicks.Count; i++) //1こ多いので減らす
         {
-            //自身で罫線を管理する場合は再計算する
-            //そうでない場合は親から指定された値を使用する
-            var newTicks = TimeUnit == TimeUnitType.Normal ?
-                TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement, SubScaleIncrement) :
-                TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1, MonthSubTickType.None);
-
-            var newWidth = CalculateNewWidth(newTicks.mainTicks.Count);
-
-            TimeTicks.Clear();
-
-            foreach (var item in newTicks.mainTicks)
+            var item = newTicks.mainTicks[i];
+            string text = item.ToString(HeaderFormat);
+            var brush = HeaderBrushSelector?.Invoke(this, item.Date) ?? Brushes.Black;
+            var ft = new FormattedText(
+                text,
+                CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                tf,
+                FontSize,
+                brush,
+                VisualTreeHelper.GetDpi(this).PixelsPerDip);
+            var tickObject = new RuledLineData(this)
             {
-                TimeTicks.Add(new RuledLineData(this) { DateValue = item, LeftPoint = TimeToPoint(item) });
-            }
+                DateValue = item,
+                LeftPoint = TimeUnit == TimeUnitType.Normal ? TimeScreenHelper.TimeToPoint(item, StartTime, EndTime, newWidth) : i * WidthPerRuledLine
+                    ,
+                FormattedText = ft
 
+            };
+            tickObject.Rect = new Rect(tickObject.LeftPoint, 0, WidthPerRuledLine, FontSize);
+            localTimeTicks.Add(tickObject);
+            //    if (i != ticks.Count - 1)
+            //    {
+            //        localTimeTickForColumn.Add(tickObject);
+            //    }
+        }
+        TimeTicks.AddRange(localTimeTicks);
 
-            SubTimeTicks.Clear();
-            if (newTicks.subTicks.Count > 0)
-            {
-                var tf = new Typeface(FontFamily, FontStyle, FontWeight, FontStretch);
-                var subTicks = TimeRangeChart.GenerateSubScaleTicks(this, newTicks.subTicks, this.SubScaleFormat, tf, newWidth);
-                SubTimeTicks.AddRange(subTicks);
-
-            }
+        SubTimeTicks.Clear();
+        if (newTicks.subTicks.Count > 0)
+        {
+            var subTicks = TimeRangeChart.GenerateSubScaleTicks(this, newTicks.subTicks, this.SubScaleFormat, tf, newWidth);
+            SubTimeTicks.AddRange(subTicks);
 
         }
-        else
-        {
-            var newWidth = CalculateNewWidth(TimeTicks.Count);
-            SetWidth(newWidth);
-
-        }
-
-
     }
+
 
     private double CalculateNewWidth(int tickCount)
     {
@@ -585,16 +912,19 @@ public class TimeRangeChart : Control
         }
 
     }
+
     private void SetWidth(double newWidth)
     {
+        if (_itemsHost == null) return;
+
         if (newWidth == double.NaN || newWidth <= 0)
         {
-            this.ClearValue(WidthProperty);
+            _itemsHost.ClearValue(WidthProperty);
 
         }
         else
         {
-            this.Width = newWidth;
+            _itemsHost.Width = newWidth;
         }
     }
 
@@ -602,23 +932,11 @@ public class TimeRangeChart : Control
     {
         var localSubTimeTicks = new List<IRuledLine>();
 
-        DateTime startTime;
-        DateTime endTime;
-        GridTimeRangeChart? gridChart = null;
-        TimeRangeChart? timeChart = null;
-        if (dp is GridTimeRangeChart gridChart2)
-        {
-            gridChart = gridChart2;
-            startTime = gridChart.StartTime;
-            endTime = gridChart.EndTime;
-        }
-        else if (dp is TimeRangeChart chart)
-        {
-            timeChart = chart;
-            startTime = timeChart.StartTime;
-            endTime = timeChart.EndTime;
-        }
-        else return localSubTimeTicks;
+        if (dp is not TimeRangeChart timeChart) { return []; }
+
+        DateTime startTime = timeChart.StartTime;
+        DateTime endTime = timeChart.EndTime;
+
 
         for (int i = 0; i < ticks.Count; i++)
         {
@@ -633,7 +951,7 @@ public class TimeRangeChart : Control
                 dp.FontSize,
                 brush,
                 VisualTreeHelper.GetDpi(dp).PixelsPerDip);
-            var tickObject = gridChart != null ? new RuledLineData(gridChart) : new RuledLineData(timeChart!);
+            var tickObject = new RuledLineData(timeChart!);
             tickObject.DateValue = item;
 
             var x = 0.0;
@@ -643,10 +961,10 @@ public class TimeRangeChart : Control
             }
             else
             {
-                var timeUnit = gridChart != null ? gridChart.TimeUnit : timeChart!.TimeUnit;
+                var timeUnit = timeChart!.TimeUnit;
                 x = timeUnit == TimeUnitType.Normal ?
                          TimeScreenHelper.TimeToPoint(item, startTime, endTime, newWidth) :
-                         TimeScreenHelper.TimeToPointMonth(item, gridChart?.WidthPerRuledLine ?? timeChart!.WidthPerRuledLine, gridChart?.TimeTicks ?? timeChart!.TimeTicks);
+                         TimeScreenHelper.TimeToPointMonth(item, timeChart!.WidthPerRuledLine, timeChart!.TimeTicks);
             }
             tickObject.LeftPoint = x;
 
@@ -664,520 +982,421 @@ public class TimeRangeChart : Control
             var rectLeft = i > 0 ? localSubTimeTicks[i - 1].LeftPoint : 0;
             var rectRight = i < localSubTimeTicks.Count - 1 ? localSubTimeTicks[i + 1].LeftPoint : newWidth;
 
-            item.Rect = new(new Point(item.LeftPoint - (item.LeftPoint - rectLeft) / 2, 0), new Point(item.LeftPoint + (rectRight - item.LeftPoint) / 2, gridChart?.FontSize ?? timeChart!.FontSize));
+            item.Rect = new(new Point(item.LeftPoint - (item.LeftPoint - rectLeft) / 2, 0), new Point(item.LeftPoint + (rectRight - item.LeftPoint) / 2, timeChart!.FontSize));
         }
 
         return localSubTimeTicks;
 
     }
 
-    private void DrawBorder(DrawingContext dc)
+
+
+    private void CalculateSortedNonWorkingTimes()
     {
-        //if (TimeTicks == null) { TimeTicks = new ObservableCollection<IRuledLine>(); } //これをすると親のDependencyPropertyから外れる
-        //実際に描画する
-
-        //背景の描画
-        dc.DrawRectangle(Background, new Pen(BorderBrush, BorderThickness.Left), new Rect(0, 0, ActualWidth, ActualHeight));
-
-        //非稼働領域の描画
-        if (SortedNonWorkingTimes?.Count > 0)
+        // ① 非稼働時間をソート＆マージ
+        if (NonWorkingTimes == null || NonWorkingTimes.Count == 0)
         {
-            var brush = this.NonWorkingRangeBackground;
-            brush.Freeze();
-            //var pen = new Pen();
-            //pen.Freeze();
-            foreach (var item in SortedNonWorkingTimes)
+            _indexedNonWorkingTimes = [];
+            return;
+        }
+
+        var newDict = new Dictionary<int, List<ITimeRangeRowIndex>>();
+
+        // 1. 行ごとにグループ化
+        foreach (var rowGroup in NonWorkingTimes.GroupBy(r => r.RowIndex))
+        {
+            int rowIndex = rowGroup.Key;
+
+            // 2. その行の中で時間をソート
+            var sorted = rowGroup.OrderBy(r => r.StartTime).ToList();
+            var merged = new List<ITimeRangeRowIndex>();
+
+            // 3. 重なっている非稼働時間をマージ (隙間を埋めて描画負荷を減らす)
+            foreach (var r in sorted)
             {
-                dc.DrawRectangle(brush, null, new Rect(new Point(TimeToPoint(item.StartTime), 0), new Point(TimeToPoint(item.EndTime), this.ActualHeight)));
+                if (merged.Count == 0 || merged.Last().EndTime < r.StartTime)
+                {
+                    // 固定の型（FixedTimeRange等）でマージ結果を保持
+                    merged.Add(new FixedTimeRange(r.StartTime, r.EndTime) { RowIndex = rowIndex });
+                }
+                else
+                {
+                    var last = merged[merged.Count - 1];
+                    if (r.EndTime > last.EndTime)
+                    {
+                        // 重なっている場合は終了時間を更新
+                        merged[merged.Count - 1] = new FixedTimeRange(last.StartTime, r.EndTime) { RowIndex = rowIndex };
+                    }
+                }
+            }
+            newDict[rowIndex] = merged;
+        }
+
+        _indexedNonWorkingTimes = newDict;
+    }
+    private void CalculateIndexedBackgroundTimes()
+    {
+        if (BackgroundTimes == null)
+        {
+            _indexedBackgroundTimes = [];
+            return;
+        }
+
+        _indexedBackgroundTimes = BackgroundTimes
+            .GroupBy(x => x.RowIndex)
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
+
+    #endregion
+
+    #region Height Control
+
+    internal double[] RowHeights = Array.Empty<double>();
+    private double[] RowOffsets = Array.Empty<double>();
+    private Dictionary<int, object> ItemsSourceWithRowIndex = new Dictionary<int, object>();
+    internal Dictionary<object, int> _dataStackLevelMap = new();
+
+    /// <summary>
+    /// 全行を走査し、スタックを考慮した各行の高さとオフセットを再計算します。
+    /// </summary>
+    public void UpdateLayoutMetrics()
+    {
+        if (ItemsSource is not IEnumerable<ITimeRangeRowIndex> allTasks) return;
+
+        RebuildTasksByRow();
+
+        // 1. 全タスクのスタックレベルを計算
+        ComputeStackLevelsFromData(allTasks, clearMap: true);
+
+        // 2. 行ごとの最大レベルを把握
+        // 辞書から RowIndex ごとに最大の Value(Level) を探す
+        var maxLevelByRow = new Dictionary<int, int>();
+        foreach (var kvp in _dataStackLevelMap)
+        {
+            var task = (ITimeRangeRowIndex)kvp.Key;
+            int level = kvp.Value;
+
+            if (!maxLevelByRow.ContainsKey(task.RowIndex) || maxLevelByRow[task.RowIndex] < level)
+            {
+                maxLevelByRow[task.RowIndex] = level;
             }
         }
 
-        //背景領域の描画
-        if (BackgroundTimes?.Count > 0)
+
+        var rowInfoMap = new Dictionary<int, (int MaxLevel, double MaxBaseTop)>();
+        foreach (var kvp in _dataStackLevelMap)
         {
-            foreach (var item in BackgroundTimes)
+            var task = (ITimeRangeRowIndex)kvp.Key;
+            int level = kvp.Value;
+
+            if (!rowInfoMap.TryGetValue(task.RowIndex, out var info))
             {
-                dc.DrawRectangle(item.Background, null, new Rect(new Point(TimeToPoint(item.StartTime), 0), new Point(TimeToPoint(item.EndTime), this.ActualHeight)));
+                rowInfoMap[task.RowIndex] = (level, task.StackBaseTop);
+            }
+            else
+            {
+                rowInfoMap[task.RowIndex] = (
+                    Math.Max(info.MaxLevel, level),
+                    Math.Max(info.MaxBaseTop, task.StackBaseTop)
+                );
             }
         }
 
 
-        //罫線の描画
-        if (TimeTicks.Count > 0)
+        // --- 非稼働時間のインデックス化 ---
+        _indexedNonWorkingTimes = NonWorkingTimes?
+            .GroupBy(x => x.RowIndex)
+            .ToDictionary(g => g.Key, g => g.ToList()) ?? new();
+
+        // --- 背景色のインデックス化 ---
+        _indexedBackgroundTimes = BackgroundTimes?
+            .GroupBy(x => x.RowIndex)
+            .ToDictionary(g => g.Key, g => g.ToList()) ?? new();
+
+        int maxRowFromTasks = ItemsSource?.Any() == true ? ItemsSource.Max(t => t.RowIndex) : -1;
+        int maxRowFromNonWorking = NonWorkingTimes?.Any() == true ? NonWorkingTimes.Max(t => t.RowIndex) : -1;
+        int maxRowFromBackground = BackgroundTimes?.Any() == true ? BackgroundTimes.Max(t => t.RowIndex) : -1;
+        int rowCount = Math.Max(Math.Max(maxRowFromTasks, maxRowFromNonWorking), maxRowFromBackground) + 1;
+        // 画面上に表示すべき最低限の行数がある場合は、大きい方を取る
+        // int rowCount = Math.Max(calculatedRowCount, this.MinimumRowCount); 
+
+        var tempRowHeights = new double[rowCount];
+        var tempRowOffsets = new double[rowCount];
+        double currentOffset = 0;
+
+        for (int i = 0; i < rowCount; i++)
         {
-            foreach (var item in TimeTicks)
+            tempRowOffsets[i] = currentOffset;
+
+
+            double requiredHeight = ChartHeight; // デフォルトの最小高さ
+
+            if (rowInfoMap.TryGetValue(i, out var info))
             {
-                dc.DrawLine(_ruledLinePen, new Point(item.LeftPoint, 0), new Point(item.LeftPoint, this.ActualHeight));
+                // 1. その行のスタック最大段数を取得
+
+                double contentHeight = info.MaxBaseTop + (info.MaxLevel + 1) * (StackHeight + StackMargin);
+                requiredHeight = Math.Max(ChartHeight, contentHeight);
             }
 
-
-            if (SubTimeTicks.Count > 0)
-            {
-                foreach (var item in SubTimeTicks)
-                {
-                    dc.DrawLine(_ruledLinePen, new Point(item.LeftPoint, 0), new Point(item.LeftPoint, this.ActualHeight * 0.08));
-                    dc.DrawLine(_ruledLinePen, new Point(item.LeftPoint, this.ActualHeight * 0.92), new Point(item.LeftPoint, this.ActualHeight));
-                }
-
-            }
-
+            tempRowHeights[i] = requiredHeight;
+            currentOffset += requiredHeight;
         }
 
-
-    }
-
-
-    private DateTime GetEndTime(DateTime startTime, TimeSpan workingSpan)
-    {
-        return TimeHelper.CalcEndTime(startTime, workingSpan, SortedNonWorkingTimes);
-    }
-
-
-    private TimeSpan GetWorkingSpan(DateTime startTime, DateTime endTime)
-    {
-        return TimeHelper.CalcWorkingSpan(startTime, endTime, SortedNonWorkingTimes);
-    }
-
-
-
-
-    public IList<TimeRangeControl> SelectedRanges
-    {
-        get { return (IList<TimeRangeControl>)GetValue(SelectedRangesProperty); }
-        set { SetValue(SelectedRangesProperty, value); }
-    }
-    public static DependencyProperty SelectedRangesProperty = DependencyProperty.Register(nameof(SelectedRanges), typeof(IList<TimeRangeControl>), typeof(TimeRangeChart));
-
-    public IList SelectedValues
-    {
-        get { return (IList)GetValue(SelectedValuesProperty); }
-        set { SetValue(SelectedValuesProperty, value); }
-    }
-    public static DependencyProperty SelectedValuesProperty = DependencyProperty.Register(nameof(SelectedValues), typeof(IList), typeof(TimeRangeChart));
-
-    #region Stack Control
-
-    private const double _defaultStackVerticalMargin = 2.0;
-    private const double _heightEpsilon = 0.5; // 小さな差は無視する
-
-    private bool _isApplyingHeight = false;
-    private bool _stackingRetryScheduled = false;
-    private bool _stackingRenderScheduled = false;
-    private ItemsControl? _itemsControl = null;
-    private EventHandler? _itemContainerStatusHandler = null;
-    private RoutedEventHandler? _itemsControlLoadedHandler = null;
-    private EventHandler? _itemsControlLayoutUpdatedHandler = null;
-    private HashSet<TimeRangeControl> _registeredLoadedHandlers = new();
-    private Dictionary<object, int> _dataStackLevelMap = new();
-    private DispatcherTimer? _stackingRetryTimer = null;
-    private int _stackingRetryCount = 0;
-    private const int _stackingRetryMax = 8;
-    private bool _heightAdjustmentPending = false;
-    private double? _lastComputedRequiredHeight = null;
-    private int _consecutiveMatches = 0;
-    internal void ApplyStackingIfNeeded()
-    {
-        if (_isDisposed || !CanStackRange || _isApplyingHeight) return;
-        try
+        // 4. TimeRangeChart へ通知
+        if (_itemsHost != null)
         {
+            RowOffsets = tempRowOffsets;
+            RowHeights = tempRowHeights;
+            _itemsHost.Height = currentOffset;
 
 
-            // Try to collect TimeRangeControl from the ItemsControl item containers if available
-            List<TimeRangeControl> controls = new();
-            if (_itemsControl != null && _itemsControl.Items.Count > 0)
+            var eventArgs = new RoutedEventArgs(RowHeightsChangedEvent, this);
+            RaiseEvent(eventArgs);
+        }
+    }
+    /// <summary>
+    /// 特定の行のスタック状況から、チャート全体のメトリクスを部分更新します。
+    /// </summary>
+    public void UpdateMetricsForRows(params int[] targetRowIndices)
+    {
+        if (ItemsSource is not IEnumerable<ITimeRangeRowIndex> allTasks || RowOffsets == null) return;
+
+        var draggingTask = _draggingControl?.DataContext as ITimeRangeRowIndex;
+        var dragTargets = new HashSet<ITimeRangeRowIndex>();
+
+        bool isActuallyDragging = _dragOccured && draggingTask != null;
+        if (isActuallyDragging)
+        {
+            if (AllowMultiDrag && draggingTask!.IsSelected)
             {
-                for (int i = 0; i < _itemsControl.Items.Count; i++)
-                {
-                    var container = _itemsControl.ItemContainerGenerator.ContainerFromIndex(i) as FrameworkElement;
-                    if (container == null)
-                    {
-                        // container not yet generated for this item
-                        continue;
-                    }
-                    // find TimeRangeControl within container
-                    var tr = GeneralHelper.FindVisualChild<TimeRangeControl>(container);
-                    if (tr != null && tr.CanStack) controls.Add(tr);
-                }
+                foreach (var t in ItemsSource.Cast<ITimeRangeRowIndex>().Where(x => x.IsSelected))
+                    dragTargets.Add(t);
+            }
+            else
+            {
+                dragTargets.Add(draggingTask!);
+            }
+        }
+        // 1. 指定された行に属するタスクのみスタックレベルを再計算
+        bool isHeightChanged = false;
+        foreach (var rowIndex in targetRowIndices)
+        {
+            var rowTasks = allTasks.Where(t => t.RowIndex == rowIndex);
+
+            var otherTasks = rowTasks.Where(t => !dragTargets.Contains(t)).ToList();
+            ComputeStackLevelsFromData(otherTasks, clearMap: false); // 部分的に更新
+
+            //// 他のタスクの中での最大スタックレベルを取得
+
+            // ドラッグ中のタスクを最下部に配置
+            int finalMaxLevelInRow = -1;
+            if (otherTasks.Any())
+            {
+                finalMaxLevelInRow = otherTasks.Max(t => _dataStackLevelMap.TryGetValue(t, out int l) ? l : 0);
+            }
+            // 3. この行に属するドラッグ対象タスクを、それぞれの位置での最下部に配置
+            var dragTargetsInRow = dragTargets.Where(t => t.RowIndex == rowIndex);
+            foreach (var t in dragTargetsInRow)
+            {
+                // 各タスクの「今の位置」で、計算済みの otherTasks と重なりを判定
+                var overlappedTasks = otherTasks.Where(ot =>
+                    ot.StartTime < t.EndTime && ot.EndTime > t.StartTime);
+
+                int maxLevelAtPos = overlappedTasks.Any()
+                    ? overlappedTasks.Max(ot => _dataStackLevelMap.TryGetValue(ot, out int l) ? l : 0)
+                    : -1;
+
+                // その場所での最下部 + 1
+                int myLevel = maxLevelAtPos + 1;
+                _dataStackLevelMap[t] = myLevel;
+
+                // 行全体の高さに影響させる
+                finalMaxLevelInRow = Math.Max(finalMaxLevelInRow, myLevel);
             }
 
-            // fallback to searching whole visual tree
-            if (controls.Count == 0)
-            {
-                controls.AddRange(GeneralHelper.FindVisualChildren<TimeRangeControl>(this).Where(x => x.CanStack));
-            }
-
-            // Ensure we recompute stacking when any control finishes loading
-            foreach (var tr in controls.ToList())
-            {
-                // Ensure ParentChart is assigned so TimeRangeControl can calculate positions
-                try
-                {
-                    if (!ReferenceEquals(tr.ParentChart, this))
-                    {
-                        tr.ParentChart = this;
-                    }
-                }
-                catch { }
-                if (!_registeredLoadedHandlers.Contains(tr))
-                {
-                    RoutedEventHandler? handler = null;
-                    handler = (s, e) =>
-                    {
-                        try
-                        {
-                            ApplyStackingIfNeeded();
-                        }
-                        finally
-                        {
-                            tr.Loaded -= handler;
-                            _registeredLoadedHandlers.Remove(tr);
-                        }
-                    };
-                    tr.Loaded += handler;
-                    _registeredLoadedHandlers.Add(tr);
-                }
-            }
-            // ask for a layout pass to make sure Canvas positions are updated
-            this.InvalidateArrange();
-            // If there are no visual children yet but the items source contains items,
-            // visuals may not have been generated at this time. Schedule a retry after
-            // the layout/load pass so stacking can run when controls are available.
-            if (controls.Count == 0)
-            {
-                // compute stack levels from data model so we have deterministic positions
-                try
-                {
-                    ComputeStackLevelsFromData();
-                }
-                catch { }
-                // If there are no visuals and no items, ensure any forced Height is cleared so chart can shrink back.
-                if (ItemsSource == null || ItemsSource.Count == 0)
-                {
-                    if (!double.IsNaN(this.Height))
-                    {
-                        _isApplyingHeight = true;
-                        this.ClearValue(HeightProperty);
-                        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => _isApplyingHeight = false));
-                    }
-                    return;
-                }
-
-                if (ItemsSource != null && ItemsSource.Count > 0 && !_stackingRetryScheduled)
-                {
-                    _stackingRetryScheduled = true;
-                    // Schedule ApplyStackingIfNeeded to run after the layout/render pass.
-                    // Use Loaded priority so it runs once visuals are created.
-                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
-                    {
-                        _stackingRetryScheduled = false;
-                        ApplyStackingIfNeeded();
-                    }));
-                }
-                return;
-            }
-
-            // itemHeight: 各コントロールの Height を優先して使用（未設定時は ActualHeight、さらに未設定なら ParentGridChart.RowHeight）
-            double itemHeight = 0;
-            foreach (var c in controls)
-            {
-                double h = c.Height;
-                if (double.IsNaN(h) || h <= 0) h = c.ActualHeight;
-                if (double.IsNaN(h) || h <= 0) h = ParentGridChart?.RowHeight ?? 30.0;
-                itemHeight = Math.Max(itemHeight, h);
-            }
-            if (itemHeight <= 0) itemHeight = ParentGridChart?.RowHeight ?? 30.0;
-
+            //その行の新しい高さを算出
             double maxBaseTop = 0;
-            foreach (var c in controls)
+            int maxLevel = 0;
+
+            var tasksInRow = allTasks.Where(t => t.RowIndex == rowIndex).ToList();
+            if (tasksInRow.Any())
             {
-                double h = c.StackBaseTop;
-                if (double.IsNaN(h) || h <= 0) h = 0;
-                maxBaseTop = Math.Max(maxBaseTop, h);
+                maxLevel = tasksInRow.Max(t => _dataStackLevelMap.TryGetValue(t, out int l) ? l : 0);
+                maxBaseTop = tasksInRow.Max(t => t.StackBaseTop);
             }
-            if (maxBaseTop <= 0) maxBaseTop = 0.0;
 
+            double contentHeight = maxBaseTop + (maxLevel + 1) * (StackHeight + StackMargin);
+            double newHeight = Math.Max(ChartHeight, contentHeight);
 
-
-            // If we have a mapping calculated from data, apply it first so positions are deterministic
-            if (_dataStackLevelMap != null && _dataStackLevelMap.Count > 0)
+            // 3. 高さが変わった場合、それ以降の行の Offset を全てずらす
+            double diff = newHeight - RowHeights[rowIndex];
+            if (Math.Abs(diff) > 0.001)
             {
-                foreach (var ctrl in controls)
+                isHeightChanged = true;
+                RowHeights[rowIndex] = newHeight;
+                for (int i = rowIndex + 1; i < RowOffsets.Length; i++)
                 {
-                    if (ctrl.DataContext != null && _dataStackLevelMap.TryGetValue(ctrl.DataContext, out var lev))
+                    RowOffsets[i] += diff;
+                }
+                if (_itemsHost != null) _itemsHost.Height += diff;
+            }
+        }
+
+        if (isHeightChanged)
+        {
+
+            // 4. 可視範囲のコントロールのみ位置を同期
+
+            // 5. 罫線(Border)の再描画
+            InvalidateVisual();
+        }
+        foreach (var kvp in _activeControls)
+        {
+            UpdateControlPosition(kvp.Value, (ITimeRangeRowIndex)kvp.Key);
+        }
+    }
+
+    private void ComputeStackLevelsFromData(IEnumerable<ITimeRangeRowIndex>? allTasks, bool clearMap)
+    {
+        if (clearMap) _dataStackLevelMap.Clear();
+        if (allTasks == null) return;
+
+        var groupedByRow = allTasks.GroupBy(x => x.RowIndex);
+
+        foreach (var rowGroup in groupedByRow)
+        {
+            // その行に属するタスクを時間順にソート
+            var orderedTasks = rowGroup.OrderBy(x => x.StartTime).ThenByDescending(x => x.EndTime).ToList();
+            var levelEnds = new List<DateTime>();
+
+            foreach (var task in orderedTasks)
+            {
+                if (!CanStackRange)
+                {
+                    _dataStackLevelMap[task] = 0;
+                    continue;
+                }
+                int assignedLevel = -1;
+                for (int i = 0; i < levelEnds.Count; i++)
+                {
+                    if (task.StartTime >= levelEnds[i])
                     {
-                        ctrl.StackLevel = lev;
-                        var extraOffset = ctrl.StackBaseTop;
-                        ctrl.Top = lev * (itemHeight + _defaultStackVerticalMargin) + extraOffset;
+                        assignedLevel = i;
+                        levelEnds[i] = task.EndTime;
+                        break;
                     }
                 }
-            }
-            else
-            {
-                RecalculateStackLevels(controls, itemHeight, _defaultStackVerticalMargin, maxBaseTop);
-            }
-
-
-            // 必要高さを確保（見切れ防止）
-            int maxLevel = controls.Select(c => c.StackLevel).DefaultIfEmpty(0).Max();
-            double requiredHeight = maxBaseTop + (maxLevel + 1) * (itemHeight + _defaultStackVerticalMargin);
-
-            // ループ抑止用: 自分で Height を設定中は反応しない
-            if (_isApplyingHeight) return;
-
-            double baseHeight = ChartHeight > 0 ? ChartHeight : (ParentGridChart?.RowHeight ?? 30.0);
-
-            // 判定基準を「コンテナのActualHeight」から「本来のベース高さ」に変える
-            // Coalesce height adjustments: schedule a single recalculation after layout and avoid transient spikes.
-            if (_heightAdjustmentPending)
-            {
-                // already scheduled; do not schedule another
-                return;
-            }
-
-
-            //Set Chart Height
-            if (requiredHeight > baseHeight + _heightEpsilon)
-            {
-                if (double.IsNaN(this.Height) || Math.Abs(this.Height - requiredHeight) > _heightEpsilon)
+                if (assignedLevel == -1)
                 {
-                    _isApplyingHeight = true;
-                    this.Height = requiredHeight; // 拡張が必要
-                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => _isApplyingHeight = false));
+                    assignedLevel = levelEnds.Count;
+                    levelEnds.Add(task.EndTime);
                 }
+                _dataStackLevelMap[task] = assignedLevel;
+
             }
-            else
-            {
-                // 算出した必要高がベース以下なら、Height指定を解除してベース（＝初期値）に戻れるようにする
-                if (!double.IsNaN(this.Height))
-                {
-                    _isApplyingHeight = true;
-                    this.ClearValue(HeightProperty); // 解除
-                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => _isApplyingHeight = false));
-                }
-            }
-        }
-        finally
-        {
-            _isApplyingHeight = false;
-        }
-    }
-
-    private void ComputeStackLevelsFromData()
-    {
-        _dataStackLevelMap.Clear();
-        if (ItemsSource == null) return;
-
-        // Build list of tuples (dataObject, start, end)
-        var list = new List<(object data, DateTime start, DateTime end)>();
-        foreach (var item in ItemsSource)
-        {
-            if (item is ITimeRange tr)
-            {
-                list.Add((item, tr.StartTime, tr.EndTime));
-            }
-        }
-        if (list.Count == 0) return;
-
-        var ordered = list.OrderBy(x => x.start).ToList();
-        var levelEnds = new List<DateTime>();
-        foreach (var it in ordered)
-        {
-            int assigned = -1;
-            for (int i = 0; i < levelEnds.Count; i++)
-            {
-                if (it.start >= levelEnds[i])
-                {
-                    assigned = i;
-                    levelEnds[i] = it.end;
-                    break;
-                }
-            }
-            if (assigned == -1)
-            {
-                assigned = levelEnds.Count;
-                levelEnds.Add(it.end);
-            }
-            _dataStackLevelMap[it.data] = assigned;
-        }
-    }
-
-    public static void RecalculateStackLevels(IEnumerable<TimeRangeControl> ranges, double itemHeight, double verticalMargin, double baseTop = 0)
-    {
-        // 開始時刻でソート（StartTime を使用）
-        var list = ranges
-            .Where(r => r != null)
-            .OrderBy(r => r.StartTime)
-            .ToList();
-
-        // 各レベルにおける直近終了時刻を保持
-        var levelEnds = new List<DateTime>();
-
-        foreach (var ctrl in list)
-        {
-            // find lowest level whose end <= ctrl.StartTime
-            int assignedLevel = -1;
-            for (int i = 0; i < levelEnds.Count; i++)
-            {
-                if (ctrl.StartTime >= levelEnds[i])
-                {
-                    assignedLevel = i;
-                    levelEnds[i] = ctrl.EndTime; // 更新
-                    break;
-                }
-            }
-            if (assignedLevel == -1)
-            {
-                assignedLevel = levelEnds.Count;
-                levelEnds.Add(ctrl.EndTime);
-            }
-
-            // 割り当て
-            ctrl.StackLevel = assignedLevel;
-
-            // Canvas 上の Top を設定（行基準の baseTop を足す）
-            var extraOffset = ctrl.StackBaseTop;
-            var newTop = assignedLevel * (itemHeight + verticalMargin) + extraOffset;
-            ctrl.Top = newTop; // TimeRangeControl.Top に反映
         }
     }
 
 
     #endregion
 
-    internal static void OnTaskClicked(TimeRangeChart chart, TimeRangeControl ctrl)
-    {
+    #region Items Management
 
-        if (chart.IsControlTick)
+    // 画面外に去ったコントロールを保管しておくスタック
+    private readonly Stack<TimeRangeControl> _controlPool = new();
+
+    // 現在画面に表示されているコントロールとデータの紐付け管理
+    private readonly Dictionary<object, TimeRangeControl> _activeControls = new();
+
+    /// <summary>
+    /// 表示すべきTimeRangeControlを生成/再利用し、キャンバスに配置します。
+    /// </summary>
+    /// <param name="visibleTasks">可視範囲にあるタスクデータのリスト</param>
+    public void SyncVisuals(IEnumerable<ITimeRangeRowIndex> visibleTasks)
+    {
+        if (_itemsHost == null || RowOffsets == null) return;
+        var draggingTask = _draggingControl?.DataContext;
+        // 1. 今回表示すべきデータの集合
+        var visibleTaskSet = new HashSet<object>(visibleTasks);
+        if (draggingTask != null)
         {
-            if (chart.SelectedRanges == null)
+            visibleTaskSet.Add(draggingTask);
+        }
+        // 2. 画面外に去った（＝今回不要な）コントロールを回収
+        var activeKeys = _activeControls.Keys.ToList(); // 走査用にコピー
+        foreach (var key in activeKeys)
+        {
+            //ドラッグ中のものは回収しない
+            if (key == draggingTask) continue;
+
+            if (!visibleTaskSet.Contains(key))
             {
-                chart.SelectedRanges = new ObservableCollection<TimeRangeControl>();
-                chart.SelectedValues = new ObservableCollection<object>();
+                var ctrl = _activeControls[key];
+
+                //マウスキャプチャのあるものは回収しない
+                if (ctrl.IsMouseCaptured) continue;
+
+                _itemsHost.Children.Remove(ctrl);
+                _controlPool.Push(ctrl);
+                _activeControls.Remove(key);
             }
         }
 
-
-        if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        // 3. 新しく画面に入るデータを描画
+        foreach (var task in visibleTasks)
         {
-            ClearSelectRange(chart);
-        }
-
-        if (ctrl.IsSelected)
-        {
-            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) || Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            bool isNew = false;
+            // ドラッグ中のタスクは、既に _activeControls にあるはずなので
+            // TryGetValue で見つかり、下の新規作成ロジックはスルーされる
+            if (!_activeControls.TryGetValue(task, out var ctrl))
             {
-                ctrl.IsSelected = false;
-                chart.SelectedRanges?.Remove(ctrl);
-                chart.SelectedValues?.Remove(ctrl.DataContext);
+                // プールに在庫があれば使い、なければ新しく作る
+                ctrl = _controlPool.Count > 0 ? _controlPool.Pop() : CreateTimeRangeControl();
+                isNew = true;
+
+                // データの紐付け（DataContextの更新）
+                ctrl.Content = task;
+                ctrl.DataContext = task;
+                ctrl.ContentTemplate = this.DataTemplate;
+                ctrl.ContentTemplateSelector = this.DataTemplateSelector;
+
+                TryBindDefaultProperties(ctrl);
+
+                _itemsHost.Children.Add(ctrl);
+                _activeControls[task] = ctrl;
+            }
+
+            // 4. 配置の更新（ここは共通処理）
+            UpdateControlPosition(ctrl, task);
+            if (isNew)
+            {
+                ctrl.InvalidateArrange();
             }
         }
-        else
+    }
+
+    private TimeRangeControl CreateTimeRangeControl()
+    {
+        var ctrl = new TimeRangeControl();
+        ctrl.MouseLeftButtonDown += OnControlMouseDown;
+
+
+        if (this.TimeRangeStyle != null)
         {
-            ctrl.IsSelected = true;
-            chart.SelectedRanges?.Add(ctrl);
-            chart.SelectedValues?.Add(ctrl.DataContext);
+            ctrl.Style = this.TimeRangeStyle;
         }
-
+        return ctrl;
     }
 
-    internal void OnTaskClicked(TimeRangeControl ctrl)
-    {
-        OnTaskClicked(this, ctrl);
-    }
-
-
-    private static void ClearSelectRange(TimeRangeChart chart)
-    {
-
-        if (chart.SelectedRanges != null)
-            foreach (var item in chart.SelectedRanges)
-            {
-                item.IsSelected = false;
-            }
-        chart.SelectedRanges?.Clear();
-        chart.SelectedValues?.Clear();
-    }
-
-    private void ClearSelectRange()
-    {
-        ClearSelectRange(this);
-    }
-
-    private void Refresh()
-    {
-        CalculateBorder();
-        InvalidateVisual();
-
-        // スタック再計算（表示用 Top / Chart 高さの調整）
-        RequestStacking();
-
-  
-    }
-
-
-    private bool _isStackingPending = false;
-    private void RequestStacking()
-    {
-        if (_isDisposed) return;
-
-        _isStackingPending = true;
-
-        if (_stackingRetryTimer == null)
-        {
-            _stackingRetryTimer = new DispatcherTimer(DispatcherPriority.Background)
-            {
-                Interval = TimeSpan.FromMilliseconds(100) // 少し長めに待機して入力をまとめる
-            };
-            _stackingRetryTimer.Tick += StackingRetryTimer_Tick;
-        }
-
-        _stackingRetryTimer.Stop();
-        _stackingRetryTimer.Start();
-    }
-    private void StackingRetryTimer_Tick(object? sender, EventArgs e)
-    {
-        if (_isDisposed)
-        {
-            _stackingRetryTimer?.Stop();
-            return;
-        }
-        int expectedCount = ItemsSource?.Count ?? 0;
-        var currentControls = GeneralHelper.FindVisualChildren<TimeRangeControl>(this).ToList();
-
-        // まだコントロールが生成途中の場合は、次回のタイマーTickに譲る
-        if (currentControls.Count < expectedCount)
-        {
-            // 最大リトライ回数を超えていなければ継続
-            if (_stackingRetryCount++ < _stackingRetryMax) return;
-        }
-
-        // 条件が整ったので実行
-        _stackingRetryTimer!.Stop();
-        _stackingRetryCount = 0;
-        _isStackingPending = false;
-
-        ApplyStackingIfNeeded();
-    }
-
-    private void RefreshCall()
-    {
-        Dispatcher.BeginInvoke(Refresh);
-
-    }
-    protected override void OnRender(DrawingContext dc)
-    {
-        base.OnRender(dc);
-        dc.PushClip(new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight)));
-        DrawBorder(dc);
-        dc.Pop();
-    }
 
     private double TimeToPoint(DateTime time)
     {
         switch (TimeUnit)
         {
             case TimeUnitType.Normal:
-                return TimeScreenHelper.TimeToPoint(time, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth);
+                return TimeScreenHelper.TimeToPoint(time, StartTime, EndTime, _contentWidth);
             case TimeUnitType.Month:
                 //return TimeScreenHelper.TimeToPointMonth(time, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, TimeTicks);
                 return TimeScreenHelper.TimeToPointMonth(time, WidthPerRuledLine, TimeTicks);
@@ -1192,320 +1411,561 @@ public class TimeRangeChart : Control
         switch (TimeUnit)
         {
             case TimeUnitType.Normal:
-                return TimeScreenHelper.PointToTime(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, minSpan ?? MinSpan);
+                return TimeScreenHelper.PointToTime(point, StartTime, EndTime, _contentWidth, minSpan ?? TimeSpan.Zero);
             case TimeUnitType.Month:
                 //return TimeScreenHelper.PointToTimeMonth(point, StartTime, EndTime, ActualWidth == 0 && Width != double.NaN ? Width : ActualWidth, minSpan ?? MinSpan, TimeTicks);
-                return TimeScreenHelper.PointToTimeMonth(point, WidthPerRuledLine, minSpan ?? MinSpan, TimeTicks);
+                return TimeScreenHelper.PointToTimeMonth(point, WidthPerRuledLine, minSpan ?? TimeSpan.Zero, TimeTicks);
             default:
                 break;
         }
         return StartTime;
     }
-
-
-    public override void OnApplyTemplate()
+    private static void TryBindDefaultProperties(TimeRangeControl range)
     {
-        DetachItemsControlEvents();
-        base.OnApplyTemplate();
-
-        if (TimeTicks == null && IsControlTick)
+        if (range.DataContext is ITimeRange timeRange)
         {
-            TimeTicks = new List<IRuledLine>();
-            SubTimeTicks = new List<IRuledLine>();
-        }
 
-        //Capture ItemsControl from template so we can query generated item containers
-        var newItems = GetTemplateChild("ganttCanvas") as ItemsControl;
-        if (!ReferenceEquals(_itemsControl, newItems))
-        {
-            // detach previous handlers
-            if (_itemsControl != null)
+            if (BindingOperations.GetBindingExpression(range, TimeRangeControl.StartTimeProperty) == null)
             {
-                if (_itemContainerStatusHandler != null)
+                var startBinding = new Binding(nameof(ITimeRange.StartTime))
                 {
-                    _itemsControl.ItemContainerGenerator.StatusChanged -= _itemContainerStatusHandler;
-                    _itemContainerStatusHandler = null;
-                }
-                if (_itemsControlLoadedHandler != null)
-                {
-                    _itemsControl.Loaded -= _itemsControlLoadedHandler;
-                    _itemsControlLoadedHandler = null;
-                }
-                if (_itemsControlLayoutUpdatedHandler != null)
-                {
-                    _itemsControl.LayoutUpdated -= _itemsControlLayoutUpdatedHandler;
-                    _itemsControlLayoutUpdatedHandler = null;
-                }
-            }
-
-            _itemsControl = newItems;
-            if (_itemsControl != null)
-            {
-                _itemContainerStatusHandler = (s, ev) =>
-                {
-                    // When containers are generated, try stacking
-                    if (_itemsControl.ItemContainerGenerator.Status == System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated)
-                    {
-                        RequestStacking();
-                    }
+                    Source = timeRange,
+                    Mode = BindingMode.TwoWay
                 };
-                _itemsControl.ItemContainerGenerator.StatusChanged += _itemContainerStatusHandler;
-
-                // attach Loaded and LayoutUpdated to catch timing cases
-                _itemsControlLoadedHandler = (s, e) => ApplyStackingIfNeeded();
-                _itemsControl.Loaded += _itemsControlLoadedHandler;
+                BindingOperations.SetBinding(range, TimeRangeControl.StartTimeProperty, startBinding);
             }
+
+            if (BindingOperations.GetBindingExpression(range, TimeRangeControl.EndTimeProperty) == null)
+            {
+                var endBinding = new Binding(nameof(ITimeRange.EndTime))
+                {
+                    Source = timeRange,
+                    Mode = BindingMode.TwoWay
+                };
+                BindingOperations.SetBinding(range, EndTimeProperty, endBinding);
+            }
+
+            if (BindingOperations.GetBindingExpression(range, TimeRangeControl.WorkingSpanProperty) == null)
+            {
+                var workingTimeBinding = new Binding(nameof(ITimeRange.WorkingSpan))
+                {
+                    Source = timeRange,
+                    Mode = BindingMode.TwoWay
+                };
+                BindingOperations.SetBinding(range, TimeRangeControl.WorkingSpanProperty, workingTimeBinding);
+            }
+
+            if (BindingOperations.GetBindingExpression(range, TimeRangeControl.ActualSpanProperty) == null)
+            {
+                var actualTimeBinding = new Binding(nameof(ITimeRange.ActualSpan))
+                {
+                    Source = timeRange,
+                    Mode = BindingMode.OneWayToSource
+                };
+                BindingOperations.SetBinding(range, TimeRangeControl.ActualSpanProperty, actualTimeBinding);
+            }
+
         }
 
-        //Refresh();
-        this.SizeChanged += (s, e) =>
-        {
-            // サイズ変更時に再描画
-            Refresh();
-        };
 
-        this.Loaded += (s, e) =>
-        {
-            if (_popup.Parent == null)
-            {
-                AddLogicalChild(_popup);
-            }
-        };
-
-        this.MouseLeftButtonDown += (s, e) =>
-        {
-            ClearSelectRange();
-        };
-
-        // Ensure initial layout/stacking runs after template applied
-        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => Refresh()));
     }
 
-    #region Popup
+    public void RefreshCall()
+    {
+        Refresh();
+    }
+
+    public void Refresh()
+    {
+        this.InvalidateVisual();
+    }
+
+    private void UpdateControlPosition(TimeRangeControl ctrl, ITimeRangeRowIndex task)
+    {
+        SetTimeAxisPosition(this, ctrl, task);
+
+        if (task.RowIndex >= 0 && task.RowIndex < RowOffsets.Length)
+        {
+            double rowTop = RowOffsets[task.RowIndex];
+            int stackLevel = _dataStackLevelMap.TryGetValue(task, out int level) ? level : 0;
+
+            double stackOffset = stackLevel * (StackHeight + StackMargin);
+            ctrl.Top = rowTop + task.StackBaseTop + stackOffset;
+            if (!ctrl.IsMilestone)
+            {
+                ctrl.Height = StackHeight;
+            }
+            if (ctrl.IsMilestone)
+            {
+                // マイルストーンの場合、Left位置を「中心」にするための補正が必要な場合があります
+                // ここでは XAML の RenderTransform や Margin で補正する前提で、計算上の Left をそのままセット
+                Canvas.SetLeft(ctrl, ctrl.Left);
+
+                // 重要：マイルストーンは Width/Height を明示的に double.NaN (Auto) に戻す
+                // これにより、Style で設定された Width/Height が有効になります
+                ctrl.Width = double.NaN;
+            }
+            else
+            {
+                Canvas.SetLeft(ctrl, ctrl.Left);
+            }
+            Canvas.SetTop(ctrl, ctrl.Top);
+        }
+    }
+
+    private static void SetTimeAxisPosition(TimeRangeChart chart, TimeRangeControl range, ITimeRangeRowIndex task)
+    {
+        if (task == null || range == null) return;
+
+        SetLeft(chart, range, task);
+
+        if ((range.EndTime == DateTime.MinValue || range.EndTime == DateTime.MaxValue))
+        {
+            if (range.WorkingSpan != null)
+            {
+                range.EndTime = TimeHelper.CalcEndTime(range.StartTime, range.WorkingSpan.Value, chart._indexedNonWorkingTimes[task.RowIndex]);
+            }
+            else
+            {
+                range.EndTime = TimeHelper.CalcEndTime<ITimeRange>(range.StartTime, range.ActualSpan);
+            }
+
+        }
+
+        SetRight(chart, range, task);
+
+        SetTaskWidth(range);
+    }
+
+    private static void SetLeft(TimeRangeChart chart, TimeRangeControl range, ITimeRange task)
+    {
+        if (chart != null)
+        {
+            range.Left = chart.TimeToPoint(task.StartTime);
+        }
+
+    }
+
+    private static void SetRight(TimeRangeChart chart, TimeRangeControl range, ITimeRange task)
+    {
+        if (chart != null)
+        {
+
+            if (range.IsMilestone)
+            {
+                //range.Right = chart.TimeToPoint(task.EndTime);
+            }
+            else
+            {
+                range.Right = chart.TimeToPoint(task.EndTime);
+            }
+        }
+    }
+    private static void SetTaskWidth(TimeRangeControl range)
+    {
+
+        //if (!range.IsMilestone)
+        //{
+        //    var width = range.Right - range.Left;
+        //    if (width != range.Width && width >= 0 && !range.IsMilestone) range.TaskWidth = width;
+        //    range.Width = width;
+
+        //}
+        if (range.IsMilestone) return;
+
+        var width = range.Right - range.Left;
+        if (width >= 0)
+        {
+            // 以前の Width と異なる場合のみ更新
+            if (width != range.TaskWidth) range.TaskWidth = width;
+            range.Width = width;
+        }
+
+    }
+
+
+    #endregion
+
+
+    #region Dragging
+
+    private void OnControlMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not TimeRangeControl ctrl || ctrl.DataContext is not ITimeRangeRowIndex task) return;
+
+
+
+        _draggingControl = ctrl;
+        _dragMode = GetHitMode(ctrl, e.GetPosition(ctrl)); // 前述の判定ロジック
+
+        var mousePos = e.GetPosition(this);
+        double absoluteX = mousePos.X + (_scrollViewer?.HorizontalOffset ?? 0);
+        _lastMousePosition = e.GetPosition(this); // Chart基準の座標
+
+
+        _dragStartMouseTime = PointToTime(absoluteX, null);
+        _originalRowIndex = task.RowIndex;
+        _dragStartOffsetFromStart = _dragStartMouseTime - task.StartTime;
+
+        _originalStartTime = task.StartTime;
+        _originalEndTime = task.EndTime;
+        _originalActualSpan = task.ActualSpan;
+        _originalWorkingSpan = task.WorkingSpan;
+        _originalRowIndex = task.RowIndex;
+
+
+        ctrl.CaptureMouse();
+
+        var dragEventArgs = new DragDropRangeEventArgs(TaskDragStartEvent);
+        dragEventArgs.DragData = task;
+        dragEventArgs.DragStartTime = task.StartTime;
+        dragEventArgs.DragEndTime = task.EndTime;
+        dragEventArgs.DragWorkingSpan = task.WorkingSpan ?? TimeSpan.Zero;
+        dragEventArgs.DragActualSpan = task.ActualSpan;
+        dragEventArgs.Cancel = false;
+
+        RaiseEvent(dragEventArgs);
+        if (dragEventArgs.Cancel)
+        {
+            //Cancel drag
+            CancelDrag();
+        }
+
+
+        e.Handled = true;
+
+
+    }
+
+    protected void MoveAnotherRow(ITimeRangeRowIndex task, int newRowIndex)
+    {
+        var oldIndex = task.RowIndex;
+        _indexedTasks[oldIndex].Remove(task);
+
+        // 1. モデルの行インデックスを更新
+        task.RowIndex = newRowIndex;
+
+        _indexedTasks[task.RowIndex].Add(task);
+
+        // 2. スタック（重なり）の再計算を要求
+        // ここでチャート全体のスタック計算ロジック（以前作ったもの）を呼び出す
+        RefreshStackLayout(oldIndex);
+
+    }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
-        base.OnMouseMove(e);
-
-        if (BackgroundTimes?.Count > 0)
+        if (_draggingControl == null || _draggingControl.DataContext is not ITimeRangeRowIndex task)
         {
-            var p = e.GetPosition(this);
-            var dropPoint = this?.PointToTimeFunc(e.GetPosition(this).X, null);
-
-            var hit = BackgroundTimes.FirstOrDefault(x => x.StartTime <= dropPoint && dropPoint <= x.EndTime);
-            if (!ReferenceEquals(hit, _currentHover))
-            {
-                _currentHover = hit;
-
-                if (hit != null)
-                    ShowPopup(hit, p);
-                else
-                    HidePopup();
-            }
-            else if (hit != null)
-            {
-                MovePopup(p);
-            }
-        }
-    }
-    protected override void OnMouseLeave(MouseEventArgs e)
-    {
-        base.OnMouseLeave(e);
-        HidePopup();
-    }
-
-    private readonly Popup _popup = new()
-    {
-        Placement = PlacementMode.Relative,
-        StaysOpen = true,
-        AllowsTransparency = true,
-        IsHitTestVisible = false
-    };
-
-    private IBackgroundTimeRange? _currentHover;
-
-    public DataTemplate BackgroundRangeToolTipTemplate
-    {
-        get { return (DataTemplate)GetValue(BackgroundRangeToolTipTemplateProperty); }
-        set { SetValue(BackgroundRangeToolTipTemplateProperty, value); }
-    }
-    public static DependencyProperty BackgroundRangeToolTipTemplateProperty = DependencyProperty.Register(nameof(BackgroundRangeToolTipTemplate), typeof(DataTemplate), typeof(TimeRangeChart));
-
-
-    UIElement? CreateToolTipContent(IBackgroundTimeRange r)
-    {
-        var template = BackgroundRangeToolTipTemplate;
-        if (template == null)
-            return null;
-
-        var content = template.LoadContent();
-
-        if (content is FrameworkElement fe)
-        {
-            fe.DataContext = r;
-            return fe;
-        }
-
-        // 想定外だが UI を壊さない
-        return null;
-    }
-
-    void ShowPopup(IBackgroundTimeRange range, Point p)
-    {
-        _popup.PlacementTarget = this;
-        var content = CreateToolTipContent(range);
-        if (content == null)
+            base.OnMouseMove(e);
             return;
+        }
 
-        if (content is FrameworkElement fe)
+        // 1. 現在のマウス位置を「時間」に変換
+        var currentMousePos = e.GetPosition(this);
+        double absoluteX = currentMousePos.X + (_scrollViewer?.HorizontalOffset ?? 0);
+        var currentMousePointTime = PointToTime(absoluteX, null);
+        var currentMouseTime = PointToTime(absoluteX, _draggingControl.MinSpan ?? MinSpan);
+
+        var nonWorkingTimes = _indexedNonWorkingTimes.TryGetValue(task.RowIndex, out var nw) ? nw : null;
+        HandleAutoScroll(currentMousePos);
+
+
+
+        var dragTargets = new List<ITimeRangeRowIndex>();
+        if (AllowMultiDrag && task.IsSelected)
         {
-            fe.Loaded += (s, e) =>
+            // 選択されている全タスクを対象にする
+            dragTargets.AddRange(ItemsSource.Cast<ITimeRangeRowIndex>().Where(t => t.IsSelected));
+        }
+        else
+        {
+            // 単体、あるいは選択されていないものを掴んだ場合はそれのみ
+            dragTargets.Add(task);
+        }
+
+        switch (_dragMode)
+        {
+            case TimeRangeControl.HitTestMode.Move:
+                // 開始時のStartTimeに、マウスの移動時間分を足して移動
+               
+                DateTime moveNewStart = TimeHelper.RoundToNearestIncrement(currentMousePointTime - _dragStartOffsetFromStart, _draggingControl.MinSpan ?? MinSpan);
+                TimeSpan moveDiff = moveNewStart - task.StartTime;
+
+                if (moveDiff != TimeSpan.Zero)
+                {
+                    foreach (var t in dragTargets)
+                    {
+                        // 全員の時間をズラす
+                        var nwMove = _indexedNonWorkingTimes.TryGetValue(t.RowIndex, out var n) ? n : null;
+                        t.MoveTo(t.StartTime + moveDiff, _draggingControl.IgnoreNonWorkingTimes ? null : nwMove);
+                    }
+                    _dragOccured = true;
+                }
+
+                // --- 縦方向の移動---
+                if (CanDragTasksBetweenRows && task.CanDragTasksBetweenRows)
+                {
+                    double absoluteY = currentMousePos.Y + (_scrollViewer?.VerticalOffset ?? 0);
+                    int newRowIndex = GetRowIndexFromMouse(absoluteY);
+
+                    // 行が変わった場合のみ処理
+                    if (newRowIndex != -1 && newRowIndex != task.RowIndex)
+                    {
+                        var previewTaskDropArgs = new DropOnRowEventArgs(PreviewTaskDropEvent,currentMouseTime , task);
+                        previewTaskDropArgs.OldRowIndex = _originalRowIndex;
+                        previewTaskDropArgs.NewRowIndex = newRowIndex;
+
+                        RaiseEvent(previewTaskDropArgs);
+
+                        if (!previewTaskDropArgs.Cancel)
+                        {
+
+                            MoveAnotherRow(task, newRowIndex);
+                            if (!_dropBetweenRowsOccured) _dropBetweenRowsOccured = true;
+                        }
+
+                    }
+                }
+
+                break;
+
+            case TimeRangeControl.HitTestMode.ResizeLeft:
+                var newStart = currentMouseTime;
+                TimeSpan resizeDiffLeft = newStart - task.StartTime;
+                if (resizeDiffLeft != TimeSpan.Zero)
+                {
+                    foreach (var t in dragTargets)
+                    {
+                        var nwExpandLeft = _indexedNonWorkingTimes.TryGetValue(t.RowIndex, out var n) ? n : null;
+                        // 全員の開始時間をリーダーと同じ変化量だけ増減させる
+                        t.ExpandStartTime(t.StartTime + resizeDiffLeft, _draggingControl.IgnoreNonWorkingTimes ? null : nwExpandLeft);
+                    }
+                    _dragOccured = true;
+                }
+
+
+                break;
+
+            case TimeRangeControl.HitTestMode.ResizeRight:
+
+                var newEnd = currentMouseTime;
+                TimeSpan resizeDiff = newEnd - task.EndTime;
+
+                if (resizeDiff != TimeSpan.Zero)
+                {
+                    foreach (var t in dragTargets)
+                    {
+                        var nwExpandRight = _indexedNonWorkingTimes.TryGetValue(t.RowIndex, out var n) ? n : null;
+                        // 全員の終了時間をリーダーと同じ変化量だけ増減させる
+                        t.ExpandEndTime(t.EndTime + resizeDiff, _draggingControl.IgnoreNonWorkingTimes ? null : nwExpandRight);
+                    }
+                    _dragOccured = true;
+                }
+
+
+                break;
+        }
+
+        _draggingControl.StartTime = task.StartTime;
+        _draggingControl.EndTime = task.EndTime;
+        _draggingControl.ActualSpan = task.ActualSpan;
+        _draggingControl.WorkingSpan = task.WorkingSpan;
+
+        // 3. コントロールの見た目を更新
+        // task.StartTime/EndTime は既存関数によって整合性が保たれた状態になっている
+        if (_dragOccured || _dropBetweenRowsOccured)
+        {
+            if (!task.IsSelected) task.IsSelected = true;
+
+            var affectedRowIndices = dragTargets.Select(t => t.RowIndex).Distinct();
+            foreach (var rowIndex in affectedRowIndices)
             {
-                content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                content.Arrange(new Rect(0, 0,
-                    content.DesiredSize.Width,
-                    content.DesiredSize.Height));
-            };
+                UpdateMetricsForRows(rowIndex);
+            }
+
+            // 画面に表示されているコントロールすべての座標を再同期
+            // (選択中のタスクが別の行に影響を与えている可能性があるため)
+            foreach (var kvp in _activeControls)
+            {
+                UpdateControlPosition(kvp.Value, (ITimeRangeRowIndex)kvp.Key);
+            }
+        
+            var eventArgs = new RoutedEventArgs(RowHeightsChangedEvent, this);
+            RaiseEvent(eventArgs);
         }
 
 
-        content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        content.Arrange(new Rect(0, 0, content.DesiredSize.Width, content.DesiredSize.Height));
-
-        _popup.Child = content;
-        _popup.Placement = PlacementMode.Relative;
-
-        _popup.PlacementRectangle =
-            new Rect(0, 0, content.DesiredSize.Width, content.DesiredSize.Height);
-
-        MovePopup(p);
-
-        _popup.IsOpen = true;
-        Dispatcher.BeginInvoke(
-            DispatcherPriority.Loaded,
-            new Action(() =>
-            {
-                if (content is FrameworkElement fe)
-                {
-                    fe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    fe.Arrange(new Rect(0, 0, fe.DesiredSize.Width, fe.DesiredSize.Height));
-                }
-            }));
-
+    }
+    private void RefreshStackLayout(int newRowIndex)
+    {
+        //// 1. 全タスクの重なり順（StackLevel）を計算し直す既存のメソッドを呼ぶ
+        UpdateMetricsForRows(newRowIndex);
     }
 
-    void MovePopup(Point p)
+    private void HandleAutoScroll(Point mousePos)
     {
+        if (_scrollViewer == null) return;
+        double scrollMargin = 20; // 画面端から何pxでスクロール開始するか
+        double scrollSpeed = 10;  // 1フレームあたりのスクロール量
 
-        _popup.HorizontalOffset = p.X + 14;
-        _popup.VerticalOffset = p.Y + 14;
+        // 横方向
+        if (mousePos.X > _scrollViewer.ViewportWidth - scrollMargin)
+            _scrollViewer.ScrollToHorizontalOffset(_scrollViewer.HorizontalOffset + scrollSpeed);
+        else if (mousePos.X < scrollMargin)
+            _scrollViewer.ScrollToHorizontalOffset(_scrollViewer.HorizontalOffset - scrollSpeed);
 
+        // 縦方向
+        if (mousePos.Y > _scrollViewer.ViewportHeight - scrollMargin)
+            _scrollViewer.ScrollToVerticalOffset(_scrollViewer.VerticalOffset + scrollSpeed);
+        else if (mousePos.Y < scrollMargin)
+            _scrollViewer.ScrollToVerticalOffset(_scrollViewer.VerticalOffset - scrollSpeed);
     }
-    void HidePopup()
+
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
-        _popup.IsOpen = false;
-        _popup.Child = null;
-        _currentHover = null;
-    }
-
-    #endregion
-
-    public bool CanDragTasksBetweenRows
-    {
-        get { return (bool)GetValue(CanDragTasksBetweenRowsProperty); }
-        set { SetValue(CanDragTasksBetweenRowsProperty, value); }
-    }
-    public static DependencyProperty CanDragTasksBetweenRowsProperty = DependencyProperty.Register(nameof(CanDragTasksBetweenRows), typeof(bool), typeof(TimeRangeChart), new PropertyMetadata(false));
-
-
-
-
-    protected override void OnPreviewDrop(DragEventArgs e)
-    {
-        base.OnPreviewDrop(e);
-
-        if (CanDragTasksBetweenRows == false) { return; }
-
-        var formats = e.Data.GetFormats();
-        if (formats != null && formats.Length > 0)
+        if (_draggingControl == null || _draggingControl.DataContext is not ITimeRangeRowIndex task)
         {
-            var data = e.Data.GetData(formats[0]);
-            if (data is DragTaskData data2)
+            ClearAllSelection();
+            return;
+        }
+        var currentMousePos = e.GetPosition(this);
+        double absoluteX = currentMousePos.X + (_scrollViewer?.HorizontalOffset ?? 0);
+        var currentMouseTime = PointToTime(absoluteX, _draggingControl.MinSpan ?? MinSpan);
+
+        if (_draggingControl != null)
+        {
+            if (_dragOccured || _dropBetweenRowsOccured)
             {
-                var param = new DragTaskData();
-
-
-                var dropPoint = this.PointToTimeFunc(e.GetPosition(this).X, null);
-
-                var args = new DropOnRowEventArgs(PreviewTaskDropEvent, dropPoint, data2.TimeRange!);
-                args.SourceList = data2.SourceRow;
-                args.DestList = this.ItemsSource;
-                RaiseEvent(args);
-                if (args.Cancel) { return; }
-
-                args.SourceList?.Remove(args.TaskObject);
-
-
-                //開始時間を書き換える
-                if (args.TaskObject is ITimeRange range)
+                if (_dropBetweenRowsOccured)
                 {
-                    range.Move(dropPoint - range.StartTime, NonWorkingTimes);
+                    var dragEventArgs = new DropOnRowEventArgs(TaskDropEvent, currentMouseTime, task);
+                    dragEventArgs.DragStartPoint = _dragStartMouseTime;
+                    dragEventArgs.OldRowIndex = _originalRowIndex;
+                    dragEventArgs.NewRowIndex = task.RowIndex;
+
+                    RaiseEvent(dragEventArgs);
+                    if (dragEventArgs.Cancel)
+                    {
+                        MoveAnotherRow(task, _originalRowIndex);
+                    }
+                }
+                else if (_dragOccured)
+                {
+                    var dragEventArgs = new DragDropRangeEventArgs(TaskDragEndEvent);
+                    dragEventArgs.DragStartTime = _originalStartTime;
+                    dragEventArgs.DragEndTime = _originalEndTime;
+                    dragEventArgs.DragWorkingSpan = _originalWorkingSpan ?? TimeSpan.Zero;
+                    dragEventArgs.DragActualSpan = _originalActualSpan;
+
+                    dragEventArgs.DragData = task;
+                    dragEventArgs.DropStartTime = task.StartTime;
+                    dragEventArgs.DropWorkingSpan = task.WorkingSpan;
+                    dragEventArgs.DropActualSpan = task.ActualSpan;
+                    dragEventArgs.Cancel = false;
+
+                    RaiseEvent(dragEventArgs);
+
+                    if (dragEventArgs.Cancel)
+                    {
+                        task.StartTime = _originalStartTime;
+                        task.EndTime = _originalEndTime;
+                        if (_originalWorkingSpan.HasValue) task.WorkingSpan = _originalWorkingSpan.Value;
+                        task.ActualSpan = _originalActualSpan;
+                    }
                 }
 
-                args.DestList.Add(args.TaskObject);
+            }
+            else
+            {
+                // Shiftキーが押されているか確認
+                bool isShiftDown = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
 
-                var args2 = new DropOnRowEventArgs(TaskDropEvent, dropPoint, data2.TimeRange!);
-                RaiseEvent(args2);
+                if (!isShiftDown || !AllowMultiSelection)
+                {
+                    // 他のすべての項目の選択を解除する
+                    // ItemsSource が ITimeRangeRowIndex のコレクションであることを想定
+                    foreach (var item in ItemsSource)
+                    {
+                        if (item != task)
+                        {
+                            item.IsSelected = false;
+                        }
+                    }
+                }
+                task.IsSelected = true;
 
-                if (CanStackRange) RefreshCall();
+            }
+
+            _draggingControl.ReleaseMouseCapture();
+            _draggingControl = null;
+            _dragOccured = false;
+            _dropBetweenRowsOccured = false;
+        }
+    }
+
+    private void ClearAllSelection()
+    {
+        if (ItemsSource is not IEnumerable<ITimeRangeRowIndex> allTasks) return;
+
+        foreach (var task in allTasks)
+        {
+            if (task.IsSelected)
+            {
+                task.IsSelected = false;
             }
         }
     }
-
-
-    public static readonly RoutedEvent TaskDropEvent =
-    EventManager.RegisterRoutedEvent(
-        nameof(TaskDrop), RoutingStrategy.Bubble,
-        typeof(EventHandler<DropOnRowEventArgs>), typeof(TimeRangeChart));
-
-    public event EventHandler<DropOnRowEventArgs> TaskDrop
+    private HitTestMode GetHitMode(TimeRangeControl ctrl, Point relativePos)
     {
-        add { AddHandler(TaskDropEvent, value); }
-        remove { RemoveHandler(TaskDropEvent, value); }
+        return ctrl._currentMode;
     }
-    public static readonly RoutedEvent PreviewTaskDropEvent =
-    EventManager.RegisterRoutedEvent(
-        nameof(PreviewTaskDrop), RoutingStrategy.Bubble,
-        typeof(EventHandler<DropOnRowEventArgs>), typeof(TimeRangeChart));
-
-    public event EventHandler<DropOnRowEventArgs> PreviewTaskDrop
+    private int GetRowIndexFromMouse(double y)
     {
-        add { AddHandler(PreviewTaskDropEvent, value); }
-        remove { RemoveHandler(PreviewTaskDropEvent, value); }
-    }
+        if (RowOffsets == null || RowOffsets.Length == 0) return -1;
 
-    #region events
+        // Y座標がスクロールの影響を受けている場合は、HorizontalOffset/VerticalOffsetを考慮
+        // OnMouseMoveで e.GetPosition(this) を使っているなら、そのままでOK
+        int idx = Array.BinarySearch(RowOffsets, y);
 
-    public event EventHandler<DragDropRangeEventArgs>? OnDragStart;
+        if (idx < 0)
+        {
+            // 直接一致しない場合、(~idx) - 1 がその座標が含まれる行のインデックスになる
+            idx = (~idx) - 1;
+        }
 
-    public event EventHandler<DragDropRangeEventArgs>? OnDragEnd;
+        // 最後に、見つけた行の高さの範囲内（Bottomを超えていないか）をチェック
+        if (idx >= 0 && idx < RowOffsets.Length)
+        {
+            double top = RowOffsets[idx];
+            double bottom = top + RowHeights[idx];
+            if (y >= top && y <= bottom)
+            {
+                return idx;
+            }
+        }
 
-    internal void OnTaskDragStart(TimeRangeControl ctrl, DragDropRangeEventArgs e)
-    {
-        OnDragStart?.Invoke(ctrl, e);
-        ParentGridChart?.OnTaskDragStart(ctrl, e);
+        return -1;
     }
 
-    internal void OnTaskDragEnd(TimeRangeControl ctrl, DragDropRangeEventArgs e)
+    protected void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        OnDragEnd?.Invoke(ctrl, e);
-        ParentGridChart?.OnTaskDragEnd(ctrl, e);
+        // ドラッグ中に背後のデータが入れ替わったら、即座にキャプチャを離す
+        if (IsDragging)
+        {
+            CancelDrag();
+        }
+    }
 
-        if (CanStackRange) RefreshCall();
+    private void CancelDrag()
+    {
+        if (_draggingControl == null) return;
 
+        _draggingControl.ReleaseMouseCapture();
+        _draggingControl = null;
+        _dragOccured = false;
+        // 必要に応じてViewModelの値を元の位置にロールバック
     }
 
     #endregion
-
-
 }

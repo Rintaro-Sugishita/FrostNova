@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +12,7 @@ namespace FrostNova.TimeRangeChart
     /// <summary>
     /// Task model class for TimeRangeChart.
     /// </summary>
-    public partial class TimeRange : ObservableObject, ITimeRange
+    public partial class TimeRange : ObservableObject, ITimeRangeRowIndex
     {
         [ObservableProperty]
         internal DateTime _startTime;
@@ -25,6 +25,16 @@ namespace FrostNova.TimeRangeChart
         [ObservableProperty]
         protected bool _ignoreNonWorkingTimes = false;
 
+        [ObservableProperty]
+        internal int _rowIndex;
+
+        [ObservableProperty]
+        private double _stackBaseTop = 0;
+
+        [ObservableProperty]
+        private bool _IsSelected = false;
+
+        public bool CanDragTasksBetweenRows { get; set; } = true;
 
         public TimeRange(DateTime startTime, DateTime endTime, IEnumerable<ITimeRange>? nonWorkingTimes = null)
         {

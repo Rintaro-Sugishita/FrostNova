@@ -1,4 +1,4 @@
-﻿using FrostNova.TimeRangeChart.TimeRangeHelpers;
+using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +8,7 @@ using System.Windows.Media;
 
 namespace FrostNova.TimeRangeChart.Wpf.TimeRangeHelpers
 {
-    public interface IBackgroundTimeRange : ITimeRange
+    public interface IBackgroundTimeRange : ITimeRangeRowIndex
     {
         Brush Background { get; }
     }

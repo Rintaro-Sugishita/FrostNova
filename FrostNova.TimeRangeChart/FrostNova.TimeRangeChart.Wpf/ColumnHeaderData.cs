@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,20 +7,20 @@ using System.Threading.Tasks;
 
 namespace FrostNova.TimeRangeChart.Wpf
 {
-
+    [Obsolete]
     public partial class ColumnHeaderData : ObservableObject
     {
         [ObservableProperty]
         private DateTime _dateValue;
 
 
-        [ObservableProperty]
-        private GridTimeRangeChart _parentGridChart;
+        //[ObservableProperty]
+        //private GridTimeRangeChart _parentGridChart;
 
-        internal ColumnHeaderData(GridTimeRangeChart gridChart)
-        {
-            ParentGridChart = gridChart;
-        }
+        //internal ColumnHeaderData(GridTimeRangeChart gridChart)
+        //{
+        //    ParentGridChart = gridChart;
+        //}
 
 
 

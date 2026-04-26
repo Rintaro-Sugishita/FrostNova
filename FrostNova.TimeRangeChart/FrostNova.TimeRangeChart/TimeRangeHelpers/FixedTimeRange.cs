@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,7 +13,7 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
     /// fixed range task model class for 'TimeRangeChart'.
     /// </summary>
     [DebuggerDisplay($"{nameof(FixedTimeRange)}: {nameof(StartTime)}:{{StartTime}}, {nameof(EndTime)}:{{EndTime}} ")]
-    public partial class FixedTimeRange : ObservableObject, ITimeRange
+    public partial class FixedTimeRange : ObservableObject, ITimeRangeRowIndex
     {
         [ObservableProperty]
         private DateTime _startTime;
@@ -21,11 +21,21 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
         [ObservableProperty]
         private DateTime _endTime;
 
+        [ObservableProperty]
+        private int _rowIndex;
+
+        [ObservableProperty]
+        private double _stackBaseTop = 0.0;
+
         public TimeSpan? WorkingSpan { get => ActualSpan; set => ActualSpan = value.HasValue ? value.Value : TimeSpan.Zero; }
 
         [ObservableProperty]
         TimeSpan _actualSpan;
         public bool IgnoreNonWorkingTimes { get; } = true;
+
+        public bool IsSelected { get; set; }
+
+        public bool CanDragTasksBetweenRows => false;
 
         public FixedTimeRange(DateTime startTime, DateTime endTime)
         {

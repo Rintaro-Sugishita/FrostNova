@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -7,9 +7,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Media;
-using FrostNova. TimeRangeChart.TimeRangeHelpers;
+using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using Microsoft.Xaml.Behaviors.Core;
 using CommunityToolkit.Mvvm.Input;
+using FrostNova.Core.Wpf.ViewServices;
+using System.Windows;
 
 namespace FrostNova.TimeRangeChart.Wpf.Sample
 {
@@ -50,7 +52,8 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         [ObservableProperty]
         HolidayViewModel _holidayVM = new HolidayViewModel();
 
-
+        [ObservableProperty]
+        MilestoneViewModel _milestoneVM = new MilestoneViewModel();
 
         protected override void InitializeOnDesign()
         {
@@ -66,8 +69,17 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         {
             OneDayGridVm.SetData();
             GridVm.SetData();
+            MilestoneVM.SetData();
         }
 
 
+        [RelayCommand]
+        private void ShowWindow2()
+        {
+
+            //var window = AbstractWindowService.ShowWindow(new GridViewModel(), typeof(Window2), null);
+            //if (window != null) _windows.Add(window);
+        }
+        private List<Window> _windows = new List<Window>();
     }
 }
