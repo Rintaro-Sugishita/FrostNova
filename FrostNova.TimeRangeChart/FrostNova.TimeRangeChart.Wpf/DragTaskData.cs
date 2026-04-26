@@ -1,4 +1,4 @@
-﻿using FrostNova.TimeRangeChart.TimeRangeHelpers;
+using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace FrostNova.TimeRangeChart.Wpf
 {
+    [Obsolete]
     class DragTaskData
     {
         public object? TimeRange { get; set; }

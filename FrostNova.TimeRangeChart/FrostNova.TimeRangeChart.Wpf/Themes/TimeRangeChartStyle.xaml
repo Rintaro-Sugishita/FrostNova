@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                      xmlns:sys="clr-namespace:System;assembly=mscorlib"
                      xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
@@ -10,58 +10,20 @@
         <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/TimeRangeControlStyle.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
-
-
-
-
     <Style TargetType="{x:Type local:TimeRangeChart}" x:Key="defaultTimeRangeChartStyle">
-
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:TimeRangeChart}">
-                    <ItemsControl x:Name="ganttCanvas" ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=ItemsSource}"   
-                                      BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                                          Background="Transparent"
-                                      AllowDrop="{TemplateBinding AllowDrop}"
+                        <ScrollViewer x:Name="PART_ChartScrollViewer" 
+                                  HorizontalScrollBarVisibility="Auto" 
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalContentAlignment="Left"
+                                  VerticalContentAlignment="Top"
                                       >
-                        <ItemsControl.Resources>
-                            <bProxy:BindingProxy Data="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}" x:Key="bindingProxy"/>
-
-                            <DataTemplate x:Key="defaultRangeTemplate">
-                                <local:TimeRangeControl
-                                            ParentChart="{Binding Source={StaticResource bindingProxy},Path=Data,Mode=OneTime}"
-                                            Style="{Binding Source={StaticResource bindingProxy},Path=Data.TimeRangeStyle, FallbackValue={StaticResource timeRangeControlStyle}}"
-                                            >
-                                    <i:Interaction.Behaviors>
-                                        <behaviors:CanvasHelperBehavior BindLeft="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}} , Path=Left}"
-                                                                            CanvasVerticalAlignment="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TimeRangeControl}}, Path=VerticalAlignment}"
-                                                        />
-                                    </i:Interaction.Behaviors>
-                                </local:TimeRangeControl>
-                            </DataTemplate>
-
-                        </ItemsControl.Resources>
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <Canvas AllowDrop="{TemplateBinding AllowDrop}" Background="Transparent" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-
-
-                        <ItemsControl.Style>
-
-                            <Style TargetType="{x:Type ItemsControl}">
-                                <Setter Property="ItemTemplate" Value="{Binding Source={StaticResource bindingProxy},Path=Data.TimeRangeTemplate,Mode=OneTime, FallbackValue={StaticResource defaultRangeTemplate}}" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Source={StaticResource bindingProxy},Path=Data.TimeRangeTemplate}" Value="{x:Null}">
-                                        <Setter Property="ItemTemplate" Value="{StaticResource defaultRangeTemplate}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-
-                            </Style>
-                        </ItemsControl.Style>
-
-                    </ItemsControl>
+                        <Canvas x:Name="PART_ItemsHost" Background="Transparent" ClipToBounds="True"
+                                VerticalAlignment="Top" HorizontalAlignment="Left"
+                                />
+                        </ScrollViewer>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

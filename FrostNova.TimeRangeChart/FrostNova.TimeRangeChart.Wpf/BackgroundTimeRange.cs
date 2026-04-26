@@ -1,4 +1,4 @@
-﻿using FrostNova.TimeRangeChart.TimeRangeHelpers;
+using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using FrostNova.TimeRangeChart.Wpf.TimeRangeHelpers;
 using System;
 using System.Collections.Generic;
@@ -17,6 +17,15 @@ namespace FrostNova.TimeRangeChart.Wpf
         public DateTime EndTime { get; set; }
         public TimeSpan? WorkingSpan { get => ActualSpan; set => ActualSpan = value ?? TimeSpan.Zero; }
         public TimeSpan ActualSpan { get; set; }
+
+        public int RowIndex { get; set; }
+
+        public double StackBaseTop => 0.0;
+
+        public bool IsSelected { get; set; }
+
+        public bool CanDragTasksBetweenRows => false;
+
 
         public bool IgnoreNonWorkingTimes => true;
 

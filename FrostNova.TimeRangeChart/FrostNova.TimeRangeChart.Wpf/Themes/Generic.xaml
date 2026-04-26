@@ -8,9 +8,15 @@
         <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/GridTimeRangeChartStyle.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
-    <Style TargetType="{x:Type local:GridTimeRangeChart}" BasedOn="{StaticResource defaultGridTimeRangeChartStyle}" />
     <Style TargetType="{x:Type local:TimeRangeControl}" BasedOn="{StaticResource timeRangeControlStyle}" />
-
     <Style TargetType="{x:Type local:TimeRangeChart}" BasedOn="{StaticResource defaultTimeRangeChartStyle}" />
+
+    <Style TargetType="{x:Type local:GridTimeRangeChart}" BasedOn="{StaticResource defaultGridTimeRangeChartStyle}" />
+
+    <!--<Style TargetType="{x:Type local:TimeRangeControl}" BasedOn="{DynamicResource timeRangeControlStyle}" />
+    <Style TargetType="{x:Type local:TimeRangeChart}" BasedOn="{DynamicResource defaultTimeRangeChartStyle}" />
+    <Style TargetType="{x:Type local:GridTimeRangeChart}" BasedOn="{DynamicResource defaultGridTimeRangeChartStyle}" />-->
+
+
 
 </ResourceDictionary>

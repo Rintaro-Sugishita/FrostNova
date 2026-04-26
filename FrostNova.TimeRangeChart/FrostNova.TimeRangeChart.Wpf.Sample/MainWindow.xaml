@@ -29,7 +29,7 @@
 
 
 
-                <Style
+                <!--<Style
                     x:Key="rangeStyle"
                     BasedOn="{StaticResource timeRangeControlStyle}"
                     TargetType="chart:TimeRangeControl">
@@ -43,7 +43,6 @@
                     <Setter Property="CanExpandSpan" Value="True" />
                     <Setter Property="Height" Value="40" />
                     <Setter Property="VerticalAlignment" Value="Center" />
-                    <!--<Setter Property="IsExpandThumbAnyTimeVisible" Value="True" />-->
                     <Setter Property="Background">
                         <Setter.Value>
                             <SolidColorBrush Color="{Binding Color}" />
@@ -72,7 +71,7 @@
                     </Setter>
 
 
-                </Style>
+                </Style>-->
 
 
 
@@ -105,8 +104,205 @@
         </Grid.RowDefinitions>
         <StackPanel Orientation="Horizontal">
             <Button Command="{Binding SetDataCommand}" Content="データセット" />
+            <Button Command="{Binding ShowWindow2Command}" Content="子画面呼び出し" />
         </StackPanel>
         <TabControl Grid.Row="1">
+            <TabItem Header="Grid">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="200" />
+                    </Grid.ColumnDefinitions>
+
+                    <chart:GridTimeRangeChart
+                                      x:Name="gridChart"
+
+                                      WidthPerRuledLine="100"
+                                      RuledLineThickness="0.5"
+                                      StartTime="{Binding GridVm.ChartStart}"
+                                      EndTime="{Binding GridVm.ChartEnd}"
+                                      MinSpan="{StaticResource minSpan}"
+                        
+                                      ScaleIncrement="{StaticResource minSpan}"
+                                      ItemsSource="{Binding GridVm.ModelList}"
+                                      HeaderFormat="MM/dd"
+                                      TasksSourcePath="Tasks"
+                                      BackgroundTimes="{Binding GridVm.BackgroundList}"
+                                      NonWorkingTimes="{Binding GridVm.NonWorkingTimes}"
+                                      CanStackRange="True"
+                        StackHeight="40"
+                       
+                                      MinRowWidth="200"
+                                      >
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="TaskDragStart">
+                                <i:InvokeCommandAction Command="{Binding GridVm.TaskDragStartCommand}" PassEventArgsToCommand="True" />
+                            </i:EventTrigger>
+                            <i:EventTrigger EventName="TaskDragEnd">
+                                <i:InvokeCommandAction Command="{Binding GridVm.TaskDragEndCommand}" PassEventArgsToCommand="True" />
+                            </i:EventTrigger>
+                            <i:EventTrigger EventName="PreviewTaskDrop">
+                                <i:InvokeCommandAction Command="{Binding GridVm.PreviewTaskDropCommand}" PassEventArgsToCommand="True" />
+                            </i:EventTrigger>
+                            <i:EventTrigger EventName="TaskDrop">
+                                <i:InvokeCommandAction Command="{Binding GridVm.TaskDropCommand}" PassEventArgsToCommand="True" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                        <chart:GridTimeRangeChart.RowHeaderTemplate>
+                            <DataTemplate DataType="local:GridSampleData">
+                                <TextBlock Text="{Binding Name}" />
+                            </DataTemplate>
+                        </chart:GridTimeRangeChart.RowHeaderTemplate>
+                        <chart:GridTimeRangeChart.ItemTemplate>
+                            <DataTemplate DataType="{x:Type local:SampleModel }">
+                                <StackPanel>
+
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="(" />
+                                        <TextBlock Text="{Binding RowIndex}" />
+                                        <TextBlock Text=")" />
+                                        <TextBlock Text="{Binding StartTime, StringFormat='MM/dd HH:mm'}" />
+                                        <TextBlock Text="(" />
+                                        <TextBlock Text="{Binding WorkingSpan.TotalDays}" />
+                                        <TextBlock Text=")" />
+                                        <TextBlock Text="{Binding ActualSpan.TotalDays}" />
+
+                                    </StackPanel>
+                                    <!--<TextBlock Text="{Binding InstanceId}" />
+                                    <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type chart:TimeRangeControl}},Path=ControlId}" />-->
+                                </StackPanel>
+                            </DataTemplate>
+                        </chart:GridTimeRangeChart.ItemTemplate>
+                    </chart:GridTimeRangeChart>
+
+                    <GridSplitter Grid.Column="1" Width="4" ResizeDirection="Columns" HorizontalAlignment="Stretch" />
+
+                    <StackPanel Grid.Column="2">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock >FirstRow:</TextBlock>
+                            <TextBlock Text="{Binding ElementName=gridChart, Path=CurrentFirstRow.Name}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock >LastRow:</TextBlock>
+                            <TextBlock Text="{Binding ElementName=gridChart, Path=CurrentLastRow.Name}" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock >Left:</TextBlock>
+                            <TextBlock Text="{Binding ElementName=gridChart, Path=CurrentLeftTime}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock >Center:</TextBlock>
+                            <TextBlock Text="{Binding ElementName=gridChart, Path=CurrentCenterTime}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock >Right:</TextBlock>
+                            <TextBlock Text="{Binding ElementName=gridChart, Path=CurrentRightTime}" />
+                        </StackPanel>
+
+                    </StackPanel>
+
+                </Grid>
+
+            </TabItem>
+            <TabItem Header="Milestone">
+                <chart:GridTimeRangeChart WidthPerRuledLine="100"
+                                      RuledLineThickness="0.5"
+                                      StartTime="{Binding MilestoneVM.ChartStart}"
+                                      EndTime="{Binding MilestoneVM.ChartEnd}"
+                                      MinSpan="{StaticResource minSpan}"
+                                      ScaleIncrement="{StaticResource minSpan}"
+                                      ItemsSource="{Binding MilestoneVM.ModelList}"
+                                      HeaderFormat="MM/dd"
+                                      TasksSourcePath="Tasks"
+                                      BackgroundTimes="{Binding MilestoneVM.BackgroundList}"
+                                      NonWorkingTimes="{Binding MilestoneVM.NonWorkingTimes}"
+                                      CanStackRange="True"
+                                      MinRowWidth="200"
+                                      >
+                    <chart:GridTimeRangeChart.RowHeaderTemplate>
+                        <DataTemplate DataType="local:GridSampleData">
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </chart:GridTimeRangeChart.RowHeaderTemplate>
+                    <chart:GridTimeRangeChart.ItemTemplate>
+                        <DataTemplate >
+                            <StackPanel Orientation="Horizontal" >
+                                <TextBlock Text="(" />
+                                <TextBlock Text="{Binding RowIndex}" />
+                                <TextBlock Text=")" />
+                                <TextBlock Text="{Binding StartTime, StringFormat='MM/dd HH:mm'}" />
+
+                            </StackPanel>
+                        </DataTemplate>
+                    </chart:GridTimeRangeChart.ItemTemplate>
+                    <chart:GridTimeRangeChart.TimeRangeStyle>
+                        <Style TargetType="{x:Type chart:TimeRangeControl}" BasedOn="{StaticResource {x:Type chart:TimeRangeControl}}">
+                            <Setter Property="IsMilestone" Value="True" />
+                            <Setter Property="MilestoneType" Value="Circle" />
+                            <Setter Property="Height" Value="40" />
+                            <Setter Property="SymbolSize" Value="20" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding RowIndex}" Value="1">
+                                    <Setter Property="MilestoneType" Value="Diamond" />
+                                    <Setter Property="LabelPosition" Value="Bottom" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding RowIndex}" Value="2">
+                                    <Setter Property="MilestoneType" Value="Triangle" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding RowIndex}" Value="3">
+                                    <Setter Property="MilestoneType" Value="Cross" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding RowIndex}" Value="4">
+                                    <Setter Property="MilestoneType" Value="InvertedTriangle" />
+                                    <Setter Property="LabelPosition" Value="Top" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding RowIndex}" Value="5">
+                                    <Setter Property="MilestoneType" Value="Star" />
+                                    <Setter Property="LabelPosition" Value="Left" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding RowIndex}" Value="6">
+                                    <Setter Property="MilestoneType" Value="Hexagon" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding RowIndex}" Value="7">
+                                    <Setter Property="MilestoneType" Value="X" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding RowIndex}" Value="8">
+                                    <Setter Property="MilestoneType" Value="ArrowDown" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding RowIndex}" Value="9">
+                                    <Setter Property="MilestoneType" Value="ArrowUp" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </chart:GridTimeRangeChart.TimeRangeStyle>
+                </chart:GridTimeRangeChart>
+            </TabItem>
+            <!--<TabItem Header="One">
+                <chart:TimeRangeChart WidthPerRuledLine="100"
+                                      RuledLineThickness="0.5"
+                                      StartTime="{Binding GridVm.ChartStart}"
+                                      EndTime="{Binding GridVm.ChartEnd}"
+                                      ScaleIncrement="{StaticResource minSpan}"
+                                      ItemsSource="{Binding GridVm.RangeList}"
+                                      BackgroundTimes="{Binding GridVm.BackgroundList}"
+                                    NonWorkingTimes="{Binding GridVm.NonWorkingTimes}"
+                                      >
+                    <chart:TimeRangeChart.DataTemplate>
+                        <DataTemplate >
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding StartTime, StringFormat='MM/dd HH:mm'}" />
+                                <TextBlock Text=" - " />
+                                <TextBlock Text="{Binding EndTime, StringFormat='MM/dd HH:mm'}" />
+
+                            </StackPanel>
+                        </DataTemplate>
+                    </chart:TimeRangeChart.DataTemplate>
+                </chart:TimeRangeChart>
+            </TabItem>-->
+        </TabControl>
+        <!--<TabControl Grid.Row="1">
             <TabItem Header="oneday" >
                 <TabItem.Resources>
                     <sys:TimeSpan x:Key="subScale">00:05:00</sys:TimeSpan>
@@ -467,7 +663,7 @@ SnapsToDevicePixels="True"
                     </chart:GridTimeRangeChart.TimeRangeStyle>
                 </chart:GridTimeRangeChart>
             </TabItem>
-        </TabControl>
+        </TabControl>-->
 
 
     </Grid>

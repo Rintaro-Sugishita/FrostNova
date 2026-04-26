@@ -207,12 +207,12 @@ namespace FrostNova.Core.Wpf.VisualHelpers
             SetBehavior(d, behavior);
         }
 
-        public static void SetBehavior(DependencyObject d, Behavior behavior)
+        public static void SetBehavior(DependencyObject d, Behavior behavior, bool allowDuplicateBehaviorType = false)
         {
-            SetBehaviors(d, [behavior]);
+            SetBehaviors(d, [behavior], allowDuplicateBehaviorType);
         }
 
-        public static void SetBehaviors(DependencyObject d, IEnumerable<Behavior> behaviors)
+        public static void SetBehaviors(DependencyObject d, IEnumerable<Behavior> behaviors, bool allowDuplicateBehaviorType = false)
         {
             if (d is UIElement element)
             {
@@ -221,11 +221,14 @@ namespace FrostNova.Core.Wpf.VisualHelpers
                 behaviors.ToList().ForEach(behavior =>
                     {
                         // 既にアタッチ済みか確認
-                        var existing = attachingBehaviors.OfType<Behavior>().FirstOrDefault(b => b.GetType() == behavior.GetType());
-                        if (existing != null)
+                        if (!allowDuplicateBehaviorType)
                         {
-                            //存在してたら削除
-                            attachingBehaviors.Remove(existing);
+                            var existing = attachingBehaviors.OfType<Behavior>().FirstOrDefault(b => b.GetType() == behavior.GetType());
+                            if (existing != null)
+                            {
+                                //存在してたら削除
+                                attachingBehaviors.Remove(existing);
+                            }
                         }
                         attachingBehaviors.Add(behavior); // 任意の Behavior
                     });

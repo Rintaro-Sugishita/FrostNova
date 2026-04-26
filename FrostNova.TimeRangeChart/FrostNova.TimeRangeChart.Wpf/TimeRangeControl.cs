@@ -17,794 +17,375 @@ using System.Windows.Media;
 using FrostNova.Core.Wpf.DragHelpers;
 using FrostNova.TimeRangeChart.TimeRangeHelpers;
 
-namespace FrostNova.TimeRangeChart.Wpf
+namespace FrostNova.TimeRangeChart.Wpf;
+
+/// <summary>
+/// Represents a control that displays and manages a time range or milestone within a chart, supporting drag, resize,
+/// and customizable appearance.
+/// </summary>
+/// <remarks>TimeRangeControl is typically used in scheduling or Gantt chart scenarios to visually represent a
+/// time span or milestone. The control supports customization through data templates, symbol size, label positioning,
+/// and milestone styles. It provides properties for binding to start and end times, as well as for configuring user
+/// interactions such as dragging and resizing. The control is designed to be used within a charting or timeline context
+/// and exposes dependency properties for integration with WPF data binding and styling systems.</remarks>
+public class TimeRangeControl : Control
 {
-    [ContentProperty(nameof(Content))]
-    public class TimeRangeControl : Control
+
+    internal enum HitTestMode
     {
+        None,
+        Move,
+        ResizeLeft,
+        ResizeRight
+    }
 
-        #region properties
+    internal HitTestMode _currentMode;
+    static TimeRangeControl()
+    {
+        DefaultStyleKeyProperty.OverrideMetadata(typeof(TimeRangeControl),
+            new FrameworkPropertyMetadata(typeof(TimeRangeControl)));
+    }
 
-        /// <summary>
-        /// parent chart
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        public TimeRangeChart? ParentChart
+    public TimeRangeControl()
+    {
+    }
+    public string ControlId => $"View_{this.GetHashCode():X8}";
+
+    #region Dependency Properties
+
+    /// <summary>Get or Set the content. (Model data)</summary>
+    public object Content { get => GetValue(ContentProperty); set => SetValue(ContentProperty, value); }
+    public static readonly DependencyProperty ContentProperty =
+        DependencyProperty.Register(nameof(Content), typeof(object), typeof(TimeRangeControl), new PropertyMetadata(null));
+
+    /// <summary>Get or set the template of control.</summary>
+    public DataTemplate ContentTemplate { get => (DataTemplate)GetValue(ContentTemplateProperty); set => SetValue(ContentTemplateProperty, value); }
+
+    public static readonly DependencyProperty ContentTemplateProperty =
+        DependencyProperty.Register(nameof(ContentTemplate), typeof(DataTemplate), typeof(TimeRangeControl), new PropertyMetadata(null));
+
+    /// <summary>
+    /// Get or set then template selector of control.
+    /// </summary>
+    public DataTemplateSelector ContentTemplateSelector
+    {
+        get { return (DataTemplateSelector)GetValue(ContentTemplateSelectorProperty); }
+        set { SetValue(ContentTemplateSelectorProperty, value); }
+    }
+    public static DependencyProperty ContentTemplateSelectorProperty = DependencyProperty.Register(nameof(ContentTemplateSelector), typeof(DataTemplateSelector), typeof(TimeRangeControl), new PropertyMetadata(null));
+
+
+
+
+    /// <summary>
+    /// MilestoneType
+    /// </summary>
+    public MilestoneStyle MilestoneType
+    {
+        get { return (MilestoneStyle)GetValue(MilestoneTypeProperty); }
+        set { SetValue(MilestoneTypeProperty, value); }
+    }
+    public static DependencyProperty MilestoneTypeProperty = DependencyProperty.Register(nameof(MilestoneType), typeof(MilestoneStyle), typeof(TimeRangeControl), new PropertyMetadata(MilestoneStyle.Circle));
+
+
+
+    /// <summary>
+    /// CanDrag
+    /// </summary>
+    public bool CanDrag
+    {
+        get { return (bool)GetValue(CanDragProperty); }
+        set { SetValue(CanDragProperty, value); }
+    }
+    public static DependencyProperty CanDragProperty = DependencyProperty.Register(nameof(CanDrag), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(true));
+
+    /// <summary>
+    /// CanExpandSpan
+    /// </summary>
+    public bool CanExpandSpan
+    {
+        get { return (bool)GetValue(CanExpandSpanProperty); }
+        set { SetValue(CanExpandSpanProperty, value); }
+    }
+    public static DependencyProperty CanExpandSpanProperty = DependencyProperty.Register(nameof(CanExpandSpan), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(true));
+
+
+    /// <summary>
+    /// IgnoreNonWorkingTimes
+    /// </summary>
+    public bool IgnoreNonWorkingTimes
+    {
+        get { return (bool)GetValue(IgnoreNonWorkingTimesProperty); }
+        set { SetValue(IgnoreNonWorkingTimesProperty, value); }
+    }
+    public static DependencyProperty IgnoreNonWorkingTimesProperty = DependencyProperty.Register(nameof(IgnoreNonWorkingTimes), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(false));
+
+
+    /// <summary>
+    /// min span of range
+    /// </summary>
+    public TimeSpan? MinSpan
+    {
+        get { return (TimeSpan?)GetValue(MinSpanProperty); }
+        set { SetValue(MinSpanProperty, value); }
+    }
+    public static readonly DependencyProperty MinSpanProperty = DependencyProperty.Register(nameof(MinSpan), typeof(TimeSpan?), typeof(TimeRangeControl), new PropertyMetadata(null));
+
+
+
+    /// <summary>
+    /// Gets the actual Left position of the control within the chart.
+    /// This value is internally calculated based on the StartTime.
+    /// </summary>
+    public double Left { get => (double)GetValue(LeftProperty); internal set => SetValue(LeftProperty, value); }
+    public static readonly DependencyProperty LeftProperty = DependencyProperty.Register(nameof(Left), typeof(double), typeof(TimeRangeControl), new PropertyMetadata(0.0, OnPositionChanged));
+
+    /// <summary>
+    /// Gets the actual Top position of the control within the chart.
+    /// This value is internally calculated based on the StackBaseTop.
+    /// </summary>
+    public double Top { get => (double)GetValue(TopProperty); internal set => SetValue(TopProperty, value); }
+    public static readonly DependencyProperty TopProperty = DependencyProperty.Register(nameof(Top), typeof(double), typeof(TimeRangeControl), new PropertyMetadata(0.0, OnPositionChanged));
+
+
+    /// <summary>
+    /// Gets the actual Right position of the control.
+    /// </summary>
+    public double Right
+    {
+        get { return (double)GetValue(RightProperty); }
+        internal set { SetValue(RightProperty, value); }
+    }
+    public static readonly DependencyProperty RightProperty = DependencyProperty.Register(nameof(Right), typeof(double), typeof(TimeRangeControl));
+
+    /// <summary>
+    /// Gets the current width of the task element, in device-independent units (DIPs).
+    /// </summary>
+    public double TaskWidth
+    {
+        get { return (double)GetValue(TaskWidthProperty); }
+        internal set { SetValue(TaskWidthProperty, value); }
+    }
+    public static DependencyProperty TaskWidthProperty = DependencyProperty.Register(nameof(TaskWidth), typeof(double), typeof(TimeRangeControl));
+
+    /// <summary>
+    /// Gets or sets the size of the symbol displayed by the control.
+    /// </summary>
+    /// <remarks>The symbol size is typically specified in device-independent units (1/96th inch per
+    /// unit). Adjust this property to change the visual appearance of the symbol. The default value may vary
+    /// depending on the control's style or template.</remarks>
+    public double SymbolSize
+    {
+        get => (double)GetValue(SymbolSizeProperty);
+        set => SetValue(SymbolSizeProperty, value);
+    }
+    public static readonly DependencyProperty SymbolSizeProperty =
+        DependencyProperty.Register(nameof(SymbolSize), typeof(double), typeof(TimeRangeControl), new PropertyMetadata(20.0));
+
+    /// <summary>
+    /// Gets or sets the position of milestone label contents
+    /// </summary>
+    public LabelPosition LabelPosition
+    {
+        get { return (LabelPosition)GetValue(LabelPositionProperty); }
+        set { SetValue(LabelPositionProperty, value); }
+    }
+    public static DependencyProperty LabelPositionProperty = DependencyProperty.Register(nameof(LabelPosition), typeof(LabelPosition), typeof(TimeRangeControl));
+
+    /// <summary>
+    /// Gets or sets the spacing between the symbol and the label.
+    /// </summary>
+    public double LabelSpacing
+    {
+        get { return (double)GetValue(LabelSpacingProperty); }
+        set { SetValue(LabelSpacingProperty, value); }
+    }
+    public static readonly DependencyProperty LabelSpacingProperty = DependencyProperty.Register(nameof(LabelSpacing), typeof(double), typeof(TimeRangeControl), new PropertyMetadata(4.0));
+
+    /// <summary>
+    /// IsMilestone
+    /// </summary>
+    public bool IsMilestone
+    {
+        get { return (bool)GetValue(IsMilestoneProperty); }
+        set { SetValue(IsMilestoneProperty, value); }
+    }
+    public static DependencyProperty IsMilestoneProperty = DependencyProperty.Register(nameof(IsMilestone), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(false));
+
+
+    public DateTime StartTime
+    {
+        get { return (DateTime)GetValue(StartTimeProperty); }
+        set { SetValue(StartTimeProperty, value); }
+    }
+    public static DependencyProperty StartTimeProperty = DependencyProperty.Register(nameof(StartTime), typeof(DateTime), typeof(TimeRangeControl), new FrameworkPropertyMetadata(DateTime.MinValue, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnStartTimeChanged));
+
+
+
+
+    /// <summary> 
+    /// end time of task range
+    /// </summary>
+    public DateTime EndTime
+    {
+        get { return (DateTime)GetValue(EndTimeProperty); }
+        set { SetValue(EndTimeProperty, value); }
+    }
+    public static DependencyProperty EndTimeProperty = DependencyProperty.Register(nameof(EndTime), typeof(DateTime), typeof(TimeRangeControl), new FrameworkPropertyMetadata(DateTime.MaxValue, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnEndTimeChanged));
+
+
+    /// <summary>
+    /// working time span
+    /// </summary>
+    public TimeSpan? WorkingSpan
+    {
+        get { return (TimeSpan?)GetValue(WorkingSpanProperty); }
+        set { SetValue(WorkingSpanProperty, value); }
+    }
+    public static DependencyProperty WorkingSpanProperty = DependencyProperty.Register(nameof(WorkingSpan), typeof(TimeSpan?), typeof(TimeRangeControl), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnWorkingSpanChanged));
+
+
+    /// <summary>
+    /// actual time span
+    /// </summary>
+    public TimeSpan ActualSpan
+    {
+        get { return (TimeSpan)GetValue(ActualSpanProperty); }
+        set { SetValue(ActualSpanProperty, value); }
+    }
+    public static DependencyProperty ActualSpanProperty = DependencyProperty.Register(nameof(ActualSpan), typeof(TimeSpan), typeof(TimeRangeControl), new FrameworkPropertyMetadata(TimeSpan.Zero, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnActualSpanChanged));
+
+
+
+    /// <summary>
+    ///Get or set border thickness at selected. 
+    /// </summary>
+    public Thickness SelectedBorderThickness
+    {
+        get { return (Thickness)GetValue(SelectedBorderThicknessProperty); }
+        set { SetValue(SelectedBorderThicknessProperty, value); }
+    }
+    public static DependencyProperty SelectedBorderThicknessProperty = DependencyProperty.Register(nameof(SelectedBorderThickness), typeof(Thickness), typeof(TimeRangeControl), new PropertyMetadata(new Thickness(1.0)));
+
+
+    /// <summary>
+    /// Get or set border brush at selected.
+    /// </summary>
+    public Brush SelectedBorderBrush
+    {
+        get { return (Brush)GetValue(SelectedBorderBrushProperty); }
+        set { SetValue(SelectedBorderBrushProperty, value); }
+    }
+    public static DependencyProperty SelectedBorderBrushProperty = DependencyProperty.Register(nameof(SelectedBorderBrush), typeof(Brush), typeof(TimeRangeControl), new PropertyMetadata(Brushes.Red));
+
+
+
+    private static void OnPositionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TimeRangeControl ctrl)
         {
-            get { return (TimeRangeChart)GetValue(ParentChartProperty); }
-            set { SetValue(ParentChartProperty, value); }
+            Canvas.SetLeft(ctrl, ctrl.Left);
+            Canvas.SetTop(ctrl, ctrl.Top);
         }
-        public static DependencyProperty ParentChartProperty = DependencyProperty.Register(nameof(ParentChart), typeof(TimeRangeChart), typeof(TimeRangeControl), new PropertyMetadata(null, OnParentChartChanged));
+    }
 
-        private static void OnParentChartChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    private static void OnStartTimeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TimeRangeControl range)
         {
-            if (d is TimeRangeControl range)
+            if (range.IsMilestone && range.EndTime != range.StartTime)
             {
-                if (e.NewValue != null)
-                {
-                    range.ParentChart!.TimeRangeNeedRefresh += (s, e) =>
-                    {
-                        if (range.CanCalculate)
-                        {
-                            SetLeft(range);
-                            SetRight(range);
-                            SetTaskWidth(range);
-                        }
-                    };
-                    if (range.CanCalculate)
-                    {
-                        SetLeft(range);
-                        SetRight(range);
-                        SetTaskWidth(range);
-                    }
-                }
+                range.EndTime = range.StartTime;
             }
+            //SetLeft(range);
         }
-
-
-        /// <summary>
-        /// content
-        /// </summary>
-        /// <remarks>do not set</remarks>
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        public ContentControl Content
+    }
+    private static void OnEndTimeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TimeRangeControl range)
         {
-            get { return (ContentControl)GetValue(ContentProperty); }
-            internal set { SetValue(ContentProperty, value); }
-        }
-        public static DependencyProperty ContentProperty = DependencyProperty.Register(nameof(Content), typeof(ContentControl), typeof(TimeRangeControl));
 
-        /// <summary>
-        /// content template
-        /// </summary>
-        public DataTemplate ContentTemplate
-        {
-            get => (DataTemplate)GetValue(ContentTemplateProperty);
-            set => SetValue(ContentTemplateProperty, value);
-        }
-        public static readonly DependencyProperty ContentTemplateProperty =
-            DependencyProperty.Register(nameof(ContentTemplate), typeof(DataTemplate), typeof(TimeRangeControl), new PropertyMetadata(null));
-
-        /// <summary>
-        /// start time of task range
-        /// </summary>
-        public DateTime StartTime
-        {
-            get { return (DateTime)GetValue(StartTimeProperty); }
-            set { SetValue(StartTimeProperty, value); }
-        }
-        public static DependencyProperty StartTimeProperty = DependencyProperty.Register(nameof(StartTime), typeof(DateTime), typeof(TimeRangeControl), new FrameworkPropertyMetadata(DateTime.MinValue, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnStartTimeChanged));
-
-        private static void OnStartTimeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            if (d is TimeRangeControl range)
+            if (range.IsMilestone && range.EndTime != range.StartTime)
             {
-                if (range.IsMilestone && range.EndTime != range.StartTime)
-                {
-                    range.EndTime = range.StartTime;
-                }
-                SetLeft(range);
+                range.StartTime = range.EndTime;
+                return;
             }
+            //SetRight(range);
         }
-
-        /// <summary> 
-        /// end time of task range
-        /// </summary>
-        public DateTime EndTime
-        {
-            get { return (DateTime)GetValue(EndTimeProperty); }
-            set { SetValue(EndTimeProperty, value); }
-        }
-        public static DependencyProperty EndTimeProperty = DependencyProperty.Register(nameof(EndTime), typeof(DateTime), typeof(TimeRangeControl), new FrameworkPropertyMetadata(DateTime.MaxValue, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnEndTimeChanged));
-
-        private static void OnEndTimeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            if (d is TimeRangeControl range)
-            {
-
-                if (range.IsMilestone && range.EndTime != range.StartTime)
-                {
-                    range.StartTime = range.EndTime;
-                    return;
-                }
-                SetRight(range);
-            }
-        }
-
-        /// <summary>
-        /// working time span
-        /// </summary>
-        public TimeSpan? WorkingSpan
-        {
-            get { return (TimeSpan?)GetValue(WorkingSpanProperty); }
-            set { SetValue(WorkingSpanProperty, value); }
-        }
-        public static DependencyProperty WorkingSpanProperty = DependencyProperty.Register(nameof(WorkingSpan), typeof(TimeSpan?), typeof(TimeRangeControl), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnWorkingSpanChanged));
+    }
 
 
-        /// <summary>
-        /// actual time span
-        /// </summary>
-        public TimeSpan ActualSpan
-        {
-            get { return (TimeSpan)GetValue(ActualSpanProperty); }
-            set { SetValue(ActualSpanProperty, value); }
-        }
-        public static DependencyProperty ActualSpanProperty = DependencyProperty.Register(nameof(ActualSpan), typeof(TimeSpan), typeof(TimeRangeControl), new FrameworkPropertyMetadata(TimeSpan.Zero, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnActualSpanChanged));
-
-        private static void OnActualSpanChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            if (d is TimeRangeControl range)
-            {
-                var width = range.Right - range.Left;
-                if (width != range.Width && width >= 0 && !range.IsMilestone) range.TaskWidth = width;
-            }
-        }
-
-        private static void OnWorkingSpanChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            if (d is TimeRangeControl range)
-            {
-                if ((range.IsMilestone == false) && e.OldValue != e.NewValue)
-                {
-                    SetTaskWidth(range);
-                }
-            }
-        }
-
-        /// <summary>
-        /// width when this is task range
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        public double TaskWidth
-        {
-            get { return (double)GetValue(TaskWidthProperty); }
-            private set { SetValue(TaskWidthProperty, value); }
-        }
-        public static DependencyProperty TaskWidthProperty = DependencyProperty.Register(nameof(TaskWidth), typeof(double), typeof(TimeRangeControl));
-
-        /// <summary>
-        /// Gets or sets a value indicating whether items can be stacked together.
-        /// </summary>
-        public bool CanStack
-        {
-            get { return (bool)GetValue(CanStackProperty); }
-            set { SetValue(CanStackProperty, value); }
-        }
-        public static DependencyProperty CanStackProperty = DependencyProperty.Register(nameof(CanStack), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(true));
-
-        /// <summary>
-        /// Gets or sets the Y-coordinate of the top edge of the stack base, in device-independent units (DIU).
-        /// </summary>
-        public double StackBaseTop
-        {
-            get { return (double)GetValue(StackBaseTopProperty); }
-            set { SetValue(StackBaseTopProperty, value); }
-        }
-        public static readonly DependencyProperty StackBaseTopProperty =
-            DependencyProperty.Register(nameof(StackBaseTop), typeof(double), typeof(TimeRangeControl), new PropertyMetadata(0.0));
-
-        /// <summary>
-        /// Gets or sets the current stack level.
-        /// </summary>
-        public int StackLevel
-        {
-            get { return (int)GetValue(StackLevelProperty); }
-            internal set { SetValue(StackLevelProperty, value); }
-        }
-        public static DependencyProperty StackLevelProperty = DependencyProperty.Register(nameof(StackLevel), typeof(int), typeof(TimeRangeControl), new PropertyMetadata(0));
-
-
-        private static void SetLeft(TimeRangeControl range)
-        {
-            if (range.CanCalculate)
-            {
-                if (range.ParentChart != null)
-                {
-                    range.Left = range.ParentChart.TimeToPointFunc?.Invoke(range.StartTime) ?? 0;
-                }
-            }
-
-
-        }
-
-        private static void SetRight(TimeRangeControl range)
-        {
-            if (range.CanCalculate)
-            {
-                if (range.ParentChart != null)
-                {
-                    range.Right = range.ParentChart.TimeToPointFunc?.Invoke(range.EndTime) ?? 0;
-                }
-            }
-        }
-        private static void SetTaskWidth(TimeRangeControl range)
+    private static void OnActualSpanChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TimeRangeControl range)
         {
             var width = range.Right - range.Left;
-            if (width != range.Width && width >= 0 && !range.IsMilestone) range.TaskWidth = width;
-
+            //if (width != range.Width && width >= 0 && !range.IsMilestone) range.TaskWidth = width;
         }
-
-
-        /// <summary>
-        /// IsMilestone
-        /// </summary>
-        public bool IsMilestone
-        {
-            get { return (bool)GetValue(IsMilestoneProperty); }
-            set { SetValue(IsMilestoneProperty, value); }
-        }
-        public static DependencyProperty IsMilestoneProperty = DependencyProperty.Register(nameof(IsMilestone), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(false));
-
-        /// <summary>
-        /// MilestoneType
-        /// </summary>
-        public MilestoneStyle MilestoneType
-        {
-            get { return (MilestoneStyle)GetValue(MilestoneTypeProperty); }
-            set { SetValue(MilestoneTypeProperty, value); }
-        }
-        public static DependencyProperty MilestoneTypeProperty = DependencyProperty.Register(nameof(MilestoneType), typeof(MilestoneStyle), typeof(TimeRangeControl), new PropertyMetadata(MilestoneStyle.Circle));
-
-
-
-        /// <summary>
-        /// CanDrag
-        /// </summary>
-        public bool CanDrag
-        {
-            get { return (bool)GetValue(CanDragProperty); }
-            set { SetValue(CanDragProperty, value); }
-        }
-        public static DependencyProperty CanDragProperty = DependencyProperty.Register(nameof(CanDrag), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(true));
-
-        /// <summary>
-        /// CanExpandSpan
-        /// </summary>
-        public bool CanExpandSpan
-        {
-            get { return (bool)GetValue(CanExpandSpanProperty); }
-            set { SetValue(CanExpandSpanProperty, value); }
-        }
-        public static DependencyProperty CanExpandSpanProperty = DependencyProperty.Register(nameof(CanExpandSpan), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(true));
-
-
-        /// <summary>
-        /// IgnoreNonWorkingTimes
-        /// </summary>
-        public bool IgnoreNonWorkingTimes
-        {
-            get { return (bool)GetValue(IgnoreNonWorkingTimesProperty); }
-            set { SetValue(IgnoreNonWorkingTimesProperty, value); }
-        }
-        public static DependencyProperty IgnoreNonWorkingTimesProperty = DependencyProperty.Register(nameof(IgnoreNonWorkingTimes), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(false));
-
-
-        /// <summary>
-        /// min span of range
-        /// </summary>
-        public TimeSpan? MinSpan
-        {
-            get { return (TimeSpan?)GetValue(MinSpanProperty); }
-            set { SetValue(MinSpanProperty, value); }
-        }
-        public static readonly DependencyProperty MinSpanProperty = DependencyProperty.Register(nameof(MinSpan), typeof(TimeSpan?), typeof(TimeRangeControl), new PropertyMetadata(null));
-
-
-
-
-
-        /// <summary>
-        /// Left
-        /// </summary>
-        public double Left
-        {
-            get { return (double)GetValue(LeftProperty); }
-            private set { SetValue(LeftProperty, value); }
-        }
-        public static DependencyProperty LeftProperty = DependencyProperty.Register(nameof(Left), typeof(double), typeof(TimeRangeControl));
-
-        /// <summary>
-        /// Top
-        /// </summary>
-        public double Top
-        {
-            get { return (double)GetValue(TopProperty); }
-            set { SetValue(TopProperty, value); }
-        }
-        public static DependencyProperty TopProperty = DependencyProperty.Register(nameof(Top), typeof(double), typeof(TimeRangeControl));
-
-
-        /// <summary>
-        /// Right
-        /// </summary>
-        public double Right
-        {
-            get { return (double)GetValue(RightProperty); }
-            private set { SetValue(RightProperty, value); }
-        }
-        public static DependencyProperty RightProperty = DependencyProperty.Register(nameof(Right), typeof(double), typeof(TimeRangeControl));
-
-
-        public bool CanCalculate => ParentChart != null && ParentChart.TimeToPointFunc != null && ParentChart.PointToTimeFunc != null && StartTime != DateTime.MinValue && EndTime != DateTime.MaxValue;
-
-        ///// <summary>
-        ///// VerticalAlignment
-        ///// </summary>
-        //public new VerticalAlignment VerticalAlignment
-        //{ 
-        //    get { return (VerticalAlignment)GetValue(VerticalAlignmentProperty); }
-        //    set { SetValue(VerticalAlignmentProperty, value); }
-        //}
-        //public static DependencyProperty VerticalAlignmentProperty = DependencyProperty.Register(nameof(VerticalAlignment), typeof(VerticalAlignment), typeof(TimeRangeControl));
-
-        /// <summary>
-        /// string
-        /// </summary>
-        public bool IsExpandThumbAnyTimeVisible
-        {
-            get { return (bool)GetValue(IsExpandThumbAnyTimeVisibleProperty); }
-            set { SetValue(IsExpandThumbAnyTimeVisibleProperty, value); }
-        }
-        public static DependencyProperty IsExpandThumbAnyTimeVisibleProperty = DependencyProperty.Register(nameof(IsExpandThumbAnyTimeVisible), typeof(bool), typeof(TimeRangeControl), new PropertyMetadata(false));
-
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public Brush SelectedBorderBrush
-        {
-            get { return (Brush)GetValue(SelectedBorderBrushProperty); }
-            set { SetValue(SelectedBorderBrushProperty, value); }
-        }
-        public static DependencyProperty SelectedBorderBrushProperty = DependencyProperty.Register(nameof(SelectedBorderBrush), typeof(Brush), typeof(TimeRangeControl), new PropertyMetadata(Brushes.Red));
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public Thickness SelectedBorderThickness
-        {
-            get { return (Thickness)GetValue(SelectedBorderThicknessProperty); }
-            set { SetValue(SelectedBorderThicknessProperty, value); }
-        }
-        public static DependencyProperty SelectedBorderThicknessProperty = DependencyProperty.Register(nameof(SelectedBorderThickness), typeof(Thickness), typeof(TimeRangeControl), new PropertyMetadata(new Thickness(2)));
-
-        /// <summary>
-        /// is select range
-        /// </summary>
-        public bool IsSelected
-        {
-            get { return (bool)GetValue(IsSelectedProperty); }
-            set { SetValue(IsSelectedProperty, value); }
-        }
-        public static DependencyProperty IsSelectedProperty = DependencyProperty.Register(nameof(IsSelected), typeof(bool), typeof(TimeRangeControl));
-
-
-        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
-        {
-            base.OnMouseLeftButtonDown(e);
-
-            //ParentChart?.OnTaskClicked(this);           
-        }
-
-        private void PART_DragThumb_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is Thumb thumb && thumb.TemplatedParent is TimeRangeControl parent)
-            {
-                //parent.Focus(); // 親（本体）にフォーカスを与える
-                e.Handled = false; // Thumb のドラッグ処理も有効に残すなら false
-            }
-            ParentChart?.OnTaskClicked(this);
-        }
-
-
-        public ICommand MoveCommand
-        {
-            get { return (ICommand)GetValue(MoveCommandProperty); }
-            set { SetValue(MoveCommandProperty, value); }
-        }
-        public static DependencyProperty MoveCommandProperty = DependencyProperty.Register(nameof(MoveCommand), typeof(ICommand), typeof(TimeRangeControl));
-
-        public ICommand ExpandStartTimeCommand
-        {
-            get { return (ICommand)GetValue(ExpandStartTimeCommandProperty); }
-            set { SetValue(ExpandStartTimeCommandProperty, value); }
-        }
-        public static DependencyProperty ExpandStartTimeCommandProperty = DependencyProperty.Register(nameof(ExpandStartTimeCommand), typeof(ICommand), typeof(TimeRangeControl));
-
-        public ICommand ExpandEndTimeCommand
-        {
-            get { return (ICommand)GetValue(ExpandEndTimeCommandProperty); }
-            set { SetValue(ExpandEndTimeCommandProperty, value); }
-        }
-        public static DependencyProperty ExpandEndTimeCommandProperty = DependencyProperty.Register(nameof(ExpandEndTimeCommand), typeof(ICommand), typeof(TimeRangeControl));
-
-        #endregion
-
-        public override void OnApplyTemplate()
-        {
-            base.OnApplyTemplate();
-
-            var moveThumb = GetTemplateChild("PART_MoveThumb") as Thumb;
-            var leftThumb = GetTemplateChild("PART_LeftThumb") as Thumb;
-            var rightThumb = GetTemplateChild("PART_RightThumb") as Thumb;
-
-            if (moveThumb != null)
-            {
-                bool isMoving = false;
-                moveThumb.DragDelta += (s, e) =>
-                {
-
-                    if (!CanDrag) return;
-                    if (!CanCalculate) return;
-                    if (ParentChart == null) return;
-                    var beforeSpan = WorkingSpan;
-
-                    var deltaX = e.HorizontalChange;
-
-                    var startPoint = ParentChart.TimeToPointFunc(StartTime);
-                    var movedStartTime = ParentChart.PointToTimeFunc(deltaX + startPoint, MinSpan);
-
-                    var deltaTime = movedStartTime - StartTime;
-
-                    if (deltaTime == TimeSpan.Zero) return;
-
-                    if (isMoving) return;
-                    try
-                    {
-                        isMoving = true;
-                        var args = new MoveEventParameter(DataContext, deltaTime);
-
-                        if (MoveCommand != null)
-                        {
-                            if (MoveCommand?.CanExecute(args) == true)
-                                MoveCommand.Execute(args);
-                        }
-                        else if (this.DataContext is ITimeRange timeRange)
-                        {
-                            timeRange.Move(deltaTime, ParentChart.SortedNonWorkingTimes);
-                        }
-
-                    }
-                    finally
-                    {
-                        isMoving = false;
-                    }
-                };
-
-                if (this.IsSelected == false)
-                    moveThumb.PreviewMouseLeftButtonDown += PART_DragThumb_PreviewMouseDown;
-            }
-
-            if (leftThumb != null)
-            {
-                leftThumb.DragDelta += (s, e) =>
-                {
-                    if (!CanExpandSpan) { return; }
-                    if (!CanCalculate) return;
-                    // 左側を動かす（StartTimeを変更、Spanを再計算）
-                    if (ParentChart == null) return;
-
-                    var oldStartTime = StartTime;
-
-                    var deltaX = e.HorizontalChange;
-                    var newStart = ParentChart.PointToTimeFunc(ParentChart.TimeToPointFunc(StartTime) + deltaX, MinSpan);
-
-                    if (oldStartTime == newStart) return; // 変更なし
-
-                    if (newStart < EndTime)
-                    {
-                        var args = new ExpandEventParameter(DataContext, newStart);
-
-                        if (ExpandStartTimeCommand != null)
-                        {
-                            if (ExpandStartTimeCommand?.CanExecute(args) == true)
-                                ExpandStartTimeCommand.Execute(args);
-                        }
-                        else if (this.DataContext is ITimeRange timeRange)
-                        {
-                            timeRange.ExpandStartTime(newStart, ParentChart.SortedNonWorkingTimes);
-                        }
-
-                    }
-
-
-
-
-                };
-            }
-
-            if (rightThumb != null)
-            {
-                rightThumb.DragDelta += (s, e) =>
-                {
-                    if (!CanExpandSpan) { return; }
-                    if (ParentChart == null) return;
-                    if (!CanCalculate) return;
-
-                    // 右側を動かす（EndTimeまたはSpanを変更）
-
-                    var oldEndTime = EndTime;
-                    var deltaX = e.HorizontalChange;
-                    var newEnd = ParentChart.PointToTimeFunc(ParentChart.TimeToPointFunc(EndTime) + deltaX, MinSpan);
-
-                    if (oldEndTime == newEnd) return; // 変更なし
-
-                    if (newEnd > StartTime)
-                    {
-                        var args = new ExpandEventParameter(DataContext, newEnd);
-
-                        if (ExpandEndTimeCommand != null)
-                        {
-                            if (ExpandEndTimeCommand?.CanExecute(args) == true)
-                                ExpandEndTimeCommand.Execute(args);
-                        }
-                        else if (this.DataContext is ITimeRange timeRange)
-                        {
-                            timeRange.ExpandEndTime(newEnd, ParentChart.SortedNonWorkingTimes);
-                        }
-
-                    }
-
-
-                };
-            }
-            TryBindDefaultProperties();
-
-            if (CanCalculate)
-            {
-
-                SetLeft(this);
-                SetRight(this);
-                SetTaskWidth(this);
-            }
-
-            this.Loaded += (s, e) =>
-            {
-
-                if (this.DataContext is not ITimeRange)
-                {
-                    Debug.Assert(false, $"DataContext of TimeRangeControl should be a {typeof(ITimeRange).FullName} type.");
-                }
-                SetLeft(this);
-                SetRight(this);
-                SetTaskWidth(this);
-
-            };
-
-
-        }
-
-        private void TryBindDefaultProperties()
-        {
-            if (this.DataContext is ITimeRange timeRange)
-            {
-
-                if (BindingOperations.GetBindingExpression(this, StartTimeProperty) == null)
-                {
-                    var startBinding = new Binding(nameof(ITimeRange.StartTime))
-                    {
-                        Source = timeRange,
-                        Mode = BindingMode.TwoWay
-                    };
-                    BindingOperations.SetBinding(this, StartTimeProperty, startBinding);
-                }
-
-                if (BindingOperations.GetBindingExpression(this, EndTimeProperty) == null)
-                {
-                    var endBinding = new Binding(nameof(ITimeRange.EndTime))
-                    {
-                        Source = timeRange,
-                        Mode = BindingMode.TwoWay
-                    };
-                    BindingOperations.SetBinding(this, EndTimeProperty, endBinding);
-                }
-
-                if (BindingOperations.GetBindingExpression(this, WorkingSpanProperty) == null)
-                {
-                    var workingTimeBinding = new Binding(nameof(ITimeRange.WorkingSpan))
-                    {
-                        Source = timeRange,
-                        Mode = BindingMode.TwoWay
-                    };
-                    BindingOperations.SetBinding(this, WorkingSpanProperty, workingTimeBinding);
-                }
-
-                if (BindingOperations.GetBindingExpression(this, ActualSpanProperty) == null)
-                {
-                    var actualTimeBinding = new Binding(nameof(ITimeRange.ActualSpan))
-                    {
-                        Source = timeRange,
-                        Mode = BindingMode.OneWayToSource
-                    };
-                    BindingOperations.SetBinding(this, ActualSpanProperty, actualTimeBinding);
-                }
-
-            }
-
-
-        }
-
-
-
-
-
-        private DragAdorner? _dragAdorner;
-        private AdornerLayer? _adornerLayer;
-        private Point _dragStartPoint;
-
-        //start time when start drag
-        private DateTime? _dragStartTime = null;
-        private TimeSpan? _dragActualSpan = null;
-        private TimeSpan? _dragWorkingSpan = null;
-        private DateTime? _dragEndTime = null;
-
-        protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
-        {
-            base.OnPreviewMouseLeftButtonDown(e);
-            _dragStartPoint = e.GetPosition(this);
-            _dragStartTime = StartTime;
-            _dragActualSpan = ActualSpan;
-            _dragWorkingSpan = WorkingSpan;
-            _dragEndTime = EndTime;
-            //var startTime = ParentChart?.PointToTimeFunc(_dragStartPoint.X, MinSpan);
-            var e2 = new DragDropRangeEventArgs();
-            e2.DragStartTime = _dragStartTime;
-            e2.DragActualSpan = _dragActualSpan.Value;
-            if (_dragWorkingSpan != null) e2.DragWorkingSpan = _dragWorkingSpan.Value;
-
-            OnDragStart?.Invoke(this, e2);
-            ParentChart?.TaskDragStartAction.Invoke(this, e2);
-
-        }
-
-        protected override void OnPreviewMouseMove(MouseEventArgs e)
-        {
-            base.OnPreviewMouseMove(e);
-
-            if (ParentChart?.CanDragTasksBetweenRows != true) { return; }
-
-            //ParentChart .ParentGridChart.MouseMove+=
-
-
-
-            if (e.LeftButton == MouseButtonState.Pressed && _dragAdorner == null)
-            {
-                var currentPos = e.GetPosition(this);
-                if (Math.Abs(currentPos.Y - _dragStartPoint.Y) > this?.ActualHeight)
-                {
-                    // AdornerLayer取得
-                    _adornerLayer = AdornerLayer.GetAdornerLayer(this);
-                    if (_adornerLayer != null)
-                    {
-                        _dragAdorner = new DragAdorner(this, this, 0.5);
-                        _adornerLayer.Add(_dragAdorner);
-                    }
-
-                    var newE = new DragTaskData();
-                    newE.ChartStartTime = ParentChart?.PointToTimeFunc(_dragStartPoint.X, MinSpan);
-                    newE.SourceRow = ParentChart?.ItemsSource;
-                    newE.TimeRange = this.DataContext;
-
-                    // DragDrop開始
-                    DragDrop.DoDragDrop(this, newE, DragDropEffects.Move);
-
-                    // 終了時にAdornerを削除
-                    if (_adornerLayer != null && _dragAdorner != null)
-                    {
-                        _adornerLayer.Remove(_dragAdorner);
-                        _dragAdorner = null;
-                    }
-                }
-            }
-
-
-
-
-            // Adornerの位置を更新
-            if (_dragAdorner != null)
-            {
-                var pos = e.GetPosition(_adornerLayer);
-                _dragAdorner.SetOffset(new Point(pos.X - _dragStartPoint.X, pos.Y - _dragStartPoint.Y));
-            }
-
-        }
-
-        protected override void OnPreviewMouseLeftButtonUp(MouseButtonEventArgs e)
-        {
-            base.OnPreviewMouseLeftButtonUp(e);
-
-            if (_dragStartTime == null) return;
-
-            var dragEndPosition = e.GetPosition(this);
-            var e2 = new DragDropRangeEventArgs();
-            e2.DragData = this.DataContext;
-            e2.DragStartTime = _dragStartTime;
-            e2.DragEndTime = _dragEndTime;
-            if (_dragActualSpan != null) e2.DragActualSpan = _dragActualSpan.Value;
-            if (_dragWorkingSpan != null) e2.DragWorkingSpan = _dragWorkingSpan.Value;
-
-            e2.DropStartTime = StartTime;
-            e2.DropWorkingSpan = WorkingSpan;
-            e2.DropActualSpan = ActualSpan;
-
-            var minSpan = MinSpan ?? ParentChart?.MinSpan;
-
-            if (minSpan != null && (ActualSpan < minSpan.Value || (IgnoreNonWorkingTimes ==false && WorkingSpan != null && WorkingSpan.Value < minSpan.Value))) e2.Cancel = true;
-
-            OnDragEnd?.Invoke(this, e2);
-            ParentChart?.TaskDragEndAction.Invoke(this, e2);
-
-            if (e2.Cancel)
-            {
-                if (_dragStartTime == null || _dragActualSpan == null) return;
-
-                //StartTime = _dragStartTime.Value;
-                //ActualSpan = _dragActualSpan.Value;
-                //if (_dragWorkingSpan != null) WorkingSpan = _dragWorkingSpan.Value;
-
-                if (this.DataContext is ITimeRange timeRange)
-                {
-                    //開始と終了が変わっていたらMoveで戻す
-                    //どっちかだけ変わってたらExpandで戻す
-                    if (WorkingSpan == _dragWorkingSpan)
-                    {
-                        //移動しているので元の場所に戻す
-                        timeRange.MoveTo(_dragStartTime.Value, ParentChart?.SortedNonWorkingTimes);
-                    }
-                    else
-                    {
-                        if (_dragStartTime.Value != StartTime)
-                        {
-                            timeRange.ExpandStartTime(_dragStartTime.Value, ParentChart?.SortedNonWorkingTimes);
-                        }
-                        else if(_dragEndTime.Value != EndTime)
-                        {
-                            timeRange.ExpandEndTime(_dragEndTime.Value, ParentChart?.SortedNonWorkingTimes);
-                        }
-                    }
-                }
-            }
-
-            _dragStartTime = null;
-            _dragActualSpan = null;
-            _dragWorkingSpan = null;
-            _dragEndTime = null;
-
-
-        }
-
-        #region events
-
-        public event EventHandler<DragDropRangeEventArgs>? OnDragStart;
-
-        public event EventHandler<DragDropRangeEventArgs>? OnDragEnd;
-
-
-
-
-        #endregion
-
-
     }
+
+    private static void OnWorkingSpanChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TimeRangeControl range)
+        {
+            if ((range.IsMilestone == false) && e.OldValue != e.NewValue)
+            {
+                //SetTaskWidth(range);
+            }
+        }
+    }
+
+
+
+
+    #endregion
+
+
+    #region Interaction (ドラッグ対応への布石)
+
+    protected override void OnMouseLeftButtonDown(System.Windows.Input.MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonDown(e);
+        // ここで ParentChart へのドラッグ開始通知などを行う
+        this.CaptureMouse();
+        Mouse.OverrideCursor = (_currentMode == HitTestMode.Move) ? Cursors.Hand : Cursors.SizeWE;
+    }
+
+    protected override void OnMouseLeftButtonUp(System.Windows.Input.MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonUp(e);
+        if (this.IsMouseCaptured) this.ReleaseMouseCapture();
+        Mouse.OverrideCursor = null;
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        if (e.LeftButton == MouseButtonState.Pressed) return; // ドラッグ中は判定不要
+
+        var pos = e.GetPosition(this);
+
+        var hitElement = InputHitTest(e.GetPosition(this)) as FrameworkElement;
+        if (hitElement == null) return;
+        if (hitElement.Name == "LeftHandle" && CanExpandSpan)
+        {
+            _currentMode = HitTestMode.ResizeLeft;
+        }
+        else if (hitElement.Name == "RightHandle" && CanExpandSpan)
+        {
+            _currentMode = HitTestMode.ResizeRight;
+        }
+        else if (CanDrag)
+        {
+            // PART_MainBorder や内部の ContentPresenter などの場合
+            _currentMode = HitTestMode.Move;
+        }
+        else
+        {
+            _currentMode = HitTestMode.None;
+        }
+    }
+
+
+    #endregion
 }
