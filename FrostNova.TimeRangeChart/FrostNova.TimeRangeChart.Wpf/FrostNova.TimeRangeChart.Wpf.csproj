@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
       <UseSharedCompilation>false</UseSharedCompilation>
-      <Version>0.0.15</Version>
+      <Version>1.1.0</Version>
   </PropertyGroup>
   
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
@@ -15,8 +15,8 @@
     <ProjectReference Include="..\FrostNova.TimeRangeChart\FrostNova.TimeRangeChart.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="FrostNova.Core.Wpf" Version="0.0.15" />
-    <PackageReference Include="FrostNova.TimeRangeChart" Version="0.0.9" />
+    <PackageReference Include="FrostNova.Core.Wpf" Version="1.2.0" />
+    <PackageReference Include="FrostNova.TimeRangeChart" Version="1.1.0" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Behaviors\" />
