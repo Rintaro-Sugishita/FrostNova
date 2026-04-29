@@ -189,7 +189,7 @@ public class TimeRangeChart : Control
         get { return (string)GetValue(HeaderFormatProperty); }
         set { SetValue(HeaderFormatProperty, value); }
     }
-    public static DependencyProperty HeaderFormatProperty = DependencyProperty.Register(nameof(HeaderFormat), typeof(string), typeof(TimeRangeChart));
+    public static DependencyProperty HeaderFormatProperty = DependencyProperty.Register(nameof(HeaderFormat), typeof(string), typeof(TimeRangeChart), new PropertyMetadata("", OnTimeUnitChanged));
     public Func<TimeRangeChart, DateTime, Brush> HeaderBrushSelector
     {
         get { return (Func<TimeRangeChart, DateTime, Brush>)GetValue(HeaderBrushSelectorProperty); }
@@ -368,6 +368,7 @@ public class TimeRangeChart : Control
     }
     public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register(nameof(ItemsSource), typeof(IEnumerable<ITimeRangeRowIndex>), typeof(TimeRangeChart), new PropertyMetadata(null, OnItemSourceChanged));
 
+    public int RowCount { get; internal set; } = 0;
 
     #region Stack properties
 
@@ -455,8 +456,28 @@ public class TimeRangeChart : Control
     private static void OnBackgroundTimesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not TimeRangeChart chart) return;
+        if (e.OldValue is ObservableCollection<ITimeRange> oldObsTimes)
+        {
+            if (chart._backgroundTimesCollectionChangedHandler != null)
+            {
+                oldObsTimes.CollectionChanged -= chart._backgroundTimesCollectionChangedHandler;
+            }
+        }
+
+        if (e.NewValue is ObservableCollection<ITimeRange> obsTimes)
+        {
+            chart._backgroundTimesCollectionChangedHandler = (s, ev) =>
+            {
+                chart.CalculateIndexedBackgroundTimes();
+                chart.RefreshCall();
+            };
+            obsTimes.CollectionChanged += chart._backgroundTimesCollectionChangedHandler;
+        }
+
         chart.CalculateIndexedBackgroundTimes();
     }
+
+
 
     private static void OnNonWorkingTimesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -491,6 +512,7 @@ public class TimeRangeChart : Control
     public static DependencyProperty TimeRangeStyleProperty = DependencyProperty.Register(nameof(TimeRangeStyle), typeof(Style), typeof(TimeRangeChart), new PropertyMetadata(null));
 
     private NotifyCollectionChangedEventHandler? _nonworkingTimesCollectionChangedHandler;
+    private NotifyCollectionChangedEventHandler? _backgroundTimesCollectionChangedHandler;
 
     private void OnScrollViewerSizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -625,13 +647,28 @@ public class TimeRangeChart : Control
     private void RebuildTasksByRow()
     {
         _indexedTasks.Clear();
+
+        for (int i = 0; i < RowCount; i++)
+        {
+            _indexedTasks[i] = new List<ITimeRangeRowIndex>();
+        }
+
+        // 2. 既存のタスクをそれぞれの行に振り分ける
         if (ItemsSource is IEnumerable<ITimeRangeRowIndex> allTasks)
         {
             foreach (var t in allTasks)
             {
-                if (!_indexedTasks.ContainsKey(t.RowIndex))
-                    _indexedTasks[t.RowIndex] = new List<ITimeRangeRowIndex>();
-                _indexedTasks[t.RowIndex].Add(t);
+                // 上で全行初期化していれば、ここでの ContainsKey チェックは不要になります
+                if (_indexedTasks.TryGetValue(t.RowIndex, out var list))
+                {
+                    list.Add(t);
+                }
+                else
+                {
+                    // 万が一、RowOffsetsの範囲外のRowIndexを持つタスクがいた場合の安全策
+                    var newList = new List<ITimeRangeRowIndex> { t };
+                    _indexedTasks[t.RowIndex] = newList;
+                }
             }
         }
     }
@@ -1523,7 +1560,9 @@ public class TimeRangeChart : Control
         {
             if (range.WorkingSpan != null)
             {
-                range.EndTime = TimeHelper.CalcEndTime(range.StartTime, range.WorkingSpan.Value, chart._indexedNonWorkingTimes[task.RowIndex]);
+                var nw = chart._indexedNonWorkingTimes.TryGetValue(task.RowIndex, out var n) ? n : null;
+
+                range.EndTime = TimeHelper.CalcEndTime(range.StartTime, range.WorkingSpan.Value, nw);
             }
             else
             {
@@ -1688,7 +1727,7 @@ public class TimeRangeChart : Control
         {
             case TimeRangeControl.HitTestMode.Move:
                 // 開始時のStartTimeに、マウスの移動時間分を足して移動
-               
+
                 DateTime moveNewStart = TimeHelper.RoundToNearestIncrement(currentMousePointTime - _dragStartOffsetFromStart, _draggingControl.MinSpan ?? MinSpan);
                 TimeSpan moveDiff = moveNewStart - task.StartTime;
 
@@ -1712,7 +1751,7 @@ public class TimeRangeChart : Control
                     // 行が変わった場合のみ処理
                     if (newRowIndex != -1 && newRowIndex != task.RowIndex)
                     {
-                        var previewTaskDropArgs = new DropOnRowEventArgs(PreviewTaskDropEvent,currentMouseTime , task);
+                        var previewTaskDropArgs = new DropOnRowEventArgs(PreviewTaskDropEvent, currentMouseTime, task);
                         previewTaskDropArgs.OldRowIndex = _originalRowIndex;
                         previewTaskDropArgs.NewRowIndex = newRowIndex;
 
@@ -1790,7 +1829,7 @@ public class TimeRangeChart : Control
             {
                 UpdateControlPosition(kvp.Value, (ITimeRangeRowIndex)kvp.Key);
             }
-        
+
             var eventArgs = new RoutedEventArgs(RowHeightsChangedEvent, this);
             RaiseEvent(eventArgs);
         }

@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using System;
 using System.Collections.Generic;
@@ -80,6 +80,8 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
                 var span = new TimeSpan(0, 0, nextMinute, 0);
 
                 var task =  new SampleModel(current, span);
+                task.RowIndex = c2;
+                task.MinSpan = TimeSpan.FromMinutes(15);
                 current += span;
                 ModelList[c2].Tasks.Add(task);
             }
