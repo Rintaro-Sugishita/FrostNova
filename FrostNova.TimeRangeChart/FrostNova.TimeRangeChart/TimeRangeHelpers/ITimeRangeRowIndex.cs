@@ -14,4 +14,6 @@ public interface ITimeRangeRowIndex : ITimeRange
     bool IsSelected {  get; set; }
 
     bool CanDragTasksBetweenRows { get;}
+
+    bool CanStack { get; }
 }

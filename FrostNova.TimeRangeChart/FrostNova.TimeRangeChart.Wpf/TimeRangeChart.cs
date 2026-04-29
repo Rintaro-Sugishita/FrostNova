@@ -1310,7 +1310,7 @@ public class TimeRangeChart : Control
 
             foreach (var task in orderedTasks)
             {
-                if (!CanStackRange)
+                if (!CanStackRange || !task.CanStack)
                 {
                     _dataStackLevelMap[task] = 0;
                     continue;
