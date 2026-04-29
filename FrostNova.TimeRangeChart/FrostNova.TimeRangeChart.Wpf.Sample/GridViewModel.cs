@@ -129,40 +129,26 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
                     }
 
                     //backgroundを追加
-                    //for (int j = 0; j < c; j++)
-                    //{
-                    //    var d1 = DateTimeRandomGenerator.GetRandomDateTime(ChartStart, ChartEnd);
-                    //    var span = new TimeSpan(random.Next(4) + 1, 0, 0, 0);
+                    for (int j = 0; j < c; j++)
+                    {
+                        var d1 = DateTimeRandomGenerator.GetRandomDateTime(ChartStart, ChartEnd);
+                        var span = new TimeSpan(random.Next(4) + 1, 0, 0, 0);
 
-                    //    var d = new BackgroundTimeRange();
-                    //    d.RowIndex = i;
-                    //    d.StartTime = d1.Date;
-                    //    d.EndTime = d1.Date + span;
-                    //    d.WorkingSpan = span;
-                    //    var color = new SolidColorBrush(Color.FromArgb(255, (byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255)));
-                    //    color.Freeze();
-                    //    d.Background = color;
-                    //    d.WorkingSpan = span;
+                        var d = new BackgroundTimeRange();
+                        d.RowIndex = i;
+                        d.StartTime = d1.Date;
+                        d.EndTime = d1.Date + span;
+                        d.WorkingSpan = span;
+                        var color = new SolidColorBrush(Color.FromArgb(125, (byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255)));
+                        color.Freeze();
+                        d.Background = color;
+                        d.WorkingSpan = span;
 
-                    //    BackgroundList.Add(d);
+                        BackgroundList.Add(d);
 
-                    //    a.BackgroundTimeRanges.Add(d);
-                    //}
-
-
-
-
-                    //var d3 = new BackgroundTimeRange();
-                    //d3.StartTime = ChartStart;
-                    //d3.EndTime = ChartEnd;
-                    //d3.WorkingSpan = ChartEnd - ChartStart;
-                    //var color = new SolidColorBrush(Color.FromArgb(255, (byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255)));
-                    //color.Freeze();
-                    //d3.Background = color;
-
-                    //a.BackgroundTimeRanges.Add(d3);
-
-
+                        a.BackgroundTimeRanges.Add(d);
+                    }
+                 
                     ModelList.Add(a);
 
 

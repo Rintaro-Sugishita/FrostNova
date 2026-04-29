@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -48,6 +48,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
 
         private void SetData(int months, int r, int c)
         {
+            ModelList.Clear();
             var nowDay = DateTime.Now.Date;
             ChartStart = new DateTime(nowDay.Year, nowDay.Month, 1).AddMonths(-2);
             ChartEnd = ChartStart.AddMonths(months);
@@ -79,7 +80,9 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
                     var d = new SampleModel(d1.Date, span);
                     d.Color = Color.FromArgb(130, (byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255));
                     d.WorkingSpan = span;
-
+                    d.MinSpan = TimeSpan.FromDays(1);
+                    d.RowIndex = i;
+                   
                     a.Tasks.Add(d);
 
                 }

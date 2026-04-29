@@ -734,6 +734,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             }
 
             // TimeRangeChart の ItemsSource を更新
+            _chart.RowCount = rows.Count;
             _chart.ItemsSource = flatList;
 
             // 前述した「スタック計算とRowHeaderへの高さ反映」もここで呼ぶ
