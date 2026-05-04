@@ -37,6 +37,8 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
 
         public bool CanDragTasksBetweenRows => false;
 
+        public bool CanStack { get; set; }
+
         public FixedTimeRange(DateTime startTime, DateTime endTime)
         {
             StartTime = startTime;

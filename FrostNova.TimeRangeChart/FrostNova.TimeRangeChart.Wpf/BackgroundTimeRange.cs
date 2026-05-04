@@ -26,6 +26,7 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         public bool CanDragTasksBetweenRows => false;
 
+        public bool CanStack => false;
 
         public bool IgnoreNonWorkingTimes => true;
 

@@ -13,7 +13,7 @@
     <ProjectReference Include="..\FrostNova.TimeRangeChart\FrostNova.TimeRangeChart.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="FrostNova.TimeRangeChart.Wpf" Version="0.0.15" />
+    <PackageReference Include="FrostNova.TimeRangeChart.Wpf" Version="1.1.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\FrostNova.Core.Wpf\FrostNova.Core.Wpf.csproj" />
