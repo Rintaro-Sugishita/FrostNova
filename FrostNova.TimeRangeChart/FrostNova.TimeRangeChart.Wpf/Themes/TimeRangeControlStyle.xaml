@@ -270,6 +270,7 @@
                               Grid.Column="2" Grid.Row="1"
                               Content="{TemplateBinding Content}"
                               ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                      ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"
                               VerticalAlignment="Center"
                               HorizontalAlignment="Left"
                               Margin="4,0,0,0" />

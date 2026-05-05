@@ -68,7 +68,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         }
 
         [RelayCommand]
-        public void SetData()
+        public virtual void SetData()
         {
             SetData(1000, 100, 600);
 
@@ -76,7 +76,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
 
 
 
-        private void SetData(int days, int r, int c)
+        protected virtual void SetData(int days, int r, int c)
         {
             ModelList.Clear();
             using (_ = new OperationScope(NonWorkingTimes,RangeList, BackgroundList, ModelList))

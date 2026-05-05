@@ -799,8 +799,16 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             if (ItemsSource != null)
             {
-                CurrentFirstRow = ItemsSource[_chart.CurrentFirstRow];
-                CurrentLastRow = ItemsSource[_chart.CurrentLastRow];
+                if (_chart.CurrentFirstRow > -1 && _chart.CurrentFirstRow < ItemsSource.Count)
+                { CurrentFirstRow = ItemsSource[_chart.CurrentFirstRow]; }
+                else { CurrentFirstRow = null; }
+                if (_chart.CurrentLastRow > -1 && _chart.CurrentLastRow < ItemsSource.Count)
+                { CurrentLastRow = ItemsSource[_chart.CurrentLastRow]; }
+                else
+                {
+                    CurrentLastRow = null;
+                }
+
             }
 
             CurrentCenterTime = _chart.CurrenCenterTime;
