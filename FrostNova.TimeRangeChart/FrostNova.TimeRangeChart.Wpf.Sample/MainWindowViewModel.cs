@@ -55,6 +55,9 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
         [ObservableProperty]
         MilestoneViewModel _milestoneVM = new MilestoneViewModel();
 
+        [ObservableProperty]
+        CombineModel _combineVM = new CombineModel();
+
         protected override void InitializeOnDesign()
         {
             base.InitializeOnDesign();
@@ -70,6 +73,7 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
             OneDayGridVm.SetData();
             GridVm.SetData();
             MilestoneVM.SetData();
+            CombineVM.SetData();
         }
 
 

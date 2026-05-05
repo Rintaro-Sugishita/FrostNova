@@ -337,6 +337,77 @@
                 </chart:GridTimeRangeChart>
             </TabItem>
 
+            <TabItem Header="Combine">
+                <TabItem.Resources>
+                    <DataTemplate x:Key="normalTemplate">
+                        <StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="(" />
+                                <TextBlock Text="{Binding RowIndex}" />
+                                <TextBlock Text=")" />
+                                <TextBlock Text="{Binding StartTime, StringFormat='MM/dd'}" />
+                                <TextBlock Text="-" />
+                                <TextBlock Text="{Binding EndTime, StringFormat='MM/dd'}" />
+
+                            </StackPanel>
+                        </StackPanel>
+                    </DataTemplate>
+
+                    <DataTemplate x:Key="anotherTemplate">
+                        <StackPanel Width="80">
+                            <TextBlock FontFamily="Segoe Fluent Icons">&#xe972;</TextBlock>
+                            <TextBlock Text="{Binding StartTime}"/>
+
+                        </StackPanel>
+                        
+                    </DataTemplate>
+
+                    <local:CombineSelector x:Key="selector"
+                                           NormalTemplate="{StaticResource normalTemplate}"
+                                           AnotherTemplate="{StaticResource anotherTemplate}"
+
+                                           >
+                        
+                    </local:CombineSelector>
+                    
+                </TabItem.Resources>
+                <chart:GridTimeRangeChart WidthPerRuledLine="100"
+                                          CanStackRange="True"
+                                          
+                                      RuledLineThickness="0.5"
+                                      StartTime="{Binding CombineVM.ChartStart}"
+                                      EndTime="{Binding CombineVM.ChartEnd}"
+                                      ScaleIncrement="{StaticResource minSpan}"
+                                      ItemsSource="{Binding CombineVM.ModelList}"
+                                          MinSpan="{StaticResource minSpan}"
+                                      HeaderFormat="MM/dd"
+                                      TasksSourcePath="Tasks"
+                                          ItemTemplateSelector="{StaticResource selector}"
+                            
+                                      >
+                    <chart:GridTimeRangeChart.RowHeaderTemplate>
+                        <DataTemplate DataType="local:GridSampleData">
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </chart:GridTimeRangeChart.RowHeaderTemplate>
+                    <chart:GridTimeRangeChart.TimeRangeStyle>
+                        <Style TargetType="{x:Type chart:TimeRangeControl}" BasedOn="{StaticResource {x:Type chart:TimeRangeControl}}">
+                            <Setter Property="IsMilestone" Value="true" />
+                            <Setter Property="MilestoneType" Value="None" />
+                            <Setter Property="LabelPosition" Value="Bottom" />
+                          
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CanStack}" Value="True">
+                                    <Setter Property="IsMilestone" Value="False" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                        
+                    </chart:GridTimeRangeChart.TimeRangeStyle>
+                </chart:GridTimeRangeChart>
+            </TabItem>
+
         </TabControl>
 
 

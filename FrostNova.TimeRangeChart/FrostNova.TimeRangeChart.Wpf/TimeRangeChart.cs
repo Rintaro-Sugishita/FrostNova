@@ -1237,9 +1237,19 @@ public class TimeRangeChart : Control
             var dragTargetsInRow = dragTargets.Where(t => t.RowIndex == rowIndex);
             foreach (var t in dragTargetsInRow)
             {
+                // スタック禁止タスクなら、計算せずに Level 0 固定
+                if (!CanStackRange || !t.CanStack)
+                {
+                    _dataStackLevelMap[t] = 0;
+                    continue;
+                }
+
                 // 各タスクの「今の位置」で、計算済みの otherTasks と重なりを判定
+                // ★修正点：otherTasks の中でも「CanStack == true」のものだけを比較対象にする
                 var overlappedTasks = otherTasks.Where(ot =>
-                    ot.StartTime < t.EndTime && ot.EndTime > t.StartTime);
+                    ot.CanStack && // スタックしないタスクは判定から除外
+                    ot.StartTime < t.EndTime &&
+                    ot.EndTime > t.StartTime);
 
                 int maxLevelAtPos = overlappedTasks.Any()
                     ? overlappedTasks.Max(ot => _dataStackLevelMap.TryGetValue(ot, out int l) ? l : 0)
@@ -1304,17 +1314,17 @@ public class TimeRangeChart : Control
 
         foreach (var rowGroup in groupedByRow)
         {
-            // その行に属するタスクを時間順にソート
-            var orderedTasks = rowGroup.OrderBy(x => x.StartTime).ThenByDescending(x => x.EndTime).ToList();
+            // 1. スタックするタスクだけを抽出して計算
+            var stackableTasks = rowGroup
+                .Where(t => CanStackRange && t.CanStack)
+                .OrderBy(x => x.StartTime)
+                .ThenByDescending(x => x.EndTime)
+                .ToList();
+
             var levelEnds = new List<DateTime>();
 
-            foreach (var task in orderedTasks)
+            foreach (var task in stackableTasks)
             {
-                if (!CanStackRange || !task.CanStack)
-                {
-                    _dataStackLevelMap[task] = 0;
-                    continue;
-                }
                 int assignedLevel = -1;
                 for (int i = 0; i < levelEnds.Count; i++)
                 {
@@ -1331,7 +1341,14 @@ public class TimeRangeChart : Control
                     levelEnds.Add(task.EndTime);
                 }
                 _dataStackLevelMap[task] = assignedLevel;
+            }
 
+            // 2. スタックしないタスクは後から問答無用で 0 に設定
+            // これにより、通常のタスクの計算結果（levelEnds）に一切影響を与えない
+            var nonStackableTasks = rowGroup.Where(t => !CanStackRange || !t.CanStack);
+            foreach (var task in nonStackableTasks)
+            {
+                _dataStackLevelMap[task] = 0;
             }
         }
     }
@@ -1632,6 +1649,19 @@ public class TimeRangeChart : Control
     {
         if (sender is not TimeRangeControl ctrl || ctrl.DataContext is not ITimeRangeRowIndex task) return;
 
+        bool isShiftDown = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+        bool isCtrlDown = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
+
+        if (!task.IsSelected)
+        {
+            // 選択されていないタスクをクリックした場合
+            if (!isShiftDown && !isCtrlDown)
+            {
+                // Ctrl/Shiftなしなら、一旦すべての選択を解除してから自分を選択
+                ClearAllSelection();
+            }
+            task.IsSelected = true;
+        }
 
 
         _draggingControl = ctrl;
