@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -51,7 +51,6 @@ namespace FrostNova.Core.Wpf.Controls
             DefaultStyleKeyProperty.OverrideMetadata(typeof(NumericUpDown), new FrameworkPropertyMetadata(typeof(NumericUpDown)));
         }
 
-        private TextBox numTextBox;
 
         public override void EndInit()
         {
@@ -418,63 +417,28 @@ namespace FrostNova.Core.Wpf.Controls
 
         private char InputKeyToText(Key e)
         {
-            switch (e)
+            return e switch
             {
-                case Key.D0:
-                case Key.NumPad0:
-                    return '0';
-                case Key.D1:
-                case Key.NumPad1:
-                    return '1';
-                case Key.D2:
-                case Key.NumPad2:
-                    return '2';
-                case Key.D3:
-                case Key.NumPad3:
-                    return '3';
-                case Key.D4:
-                case Key.NumPad4:
-                    return '4';
-                case Key.D5:
-                case Key.NumPad5:
-                    return '5';
-                case Key.D6:
-                case Key.NumPad6:
-                    return '6';
-                case Key.D7:
-                case Key.NumPad7:
-                    return '7';
-                case Key.D8:
-                case Key.NumPad8:
-                    return '8';
-                case Key.D9:
-                case Key.NumPad9:
-                    return '9';
-                case Key.OemPeriod:
-                    return '.';
-                case Key.OemMinus:
-                    return '-';
-                case Key.OemPlus:
-                    return '+';
-                case Key.E:
-                    return 'e';
-                case Key.Back:
-                    return 'B';
-
-                case Key.Delete:
-                    return 'D';
-
-                case Key.Up:
-                    return 'U';
-
-                case Key.Down:
-                    return 'Y';
-
-                default:
-                    return ' ';
-            }
-
-
+                Key.D0 or Key.NumPad0 => '0',
+                Key.D1 or Key.NumPad1 => '1',
+                Key.D2 or Key.NumPad2 => '2',
+                Key.D3 or Key.NumPad3 => '3',
+                Key.D4 or Key.NumPad4 => '4',
+                Key.D5 or Key.NumPad5 => '5',
+                Key.D6 or Key.NumPad6 => '6',
+                Key.D7 or Key.NumPad7 => '7',
+                Key.D8 or Key.NumPad8 => '8',
+                Key.D9 or Key.NumPad9 => '9',
+                Key.OemPeriod => '.',
+                Key.OemMinus => '-',
+                Key.OemPlus => '+',
+                Key.E => 'e',
+                Key.Back => 'B',
+                Key.Delete => 'D',
+                Key.Up => 'U',
+                Key.Down => 'Y',
+                _ => ' ',
+            };
         }
 
         #endregion
