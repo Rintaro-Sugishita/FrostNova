@@ -7,41 +7,60 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using FrostNova.Core.Wpf.Messages;
 
 namespace FrostNova.Core.Wpf.Diagnostics;
 
+/// <summary>
+/// Provides global exception handling for the application, including logging unhandled exceptions and notifying users
+/// of unexpected errors.
+/// </summary>
+/// <remarks>This static class centralizes exception handling for UI, task, and AppDomain unhandled exceptions. It
+/// logs detailed exception information to uniquely named files in a configurable log directory and displays
+/// user-friendly error messages. Use this class to ensure consistent error reporting and logging throughout the
+/// application.</remarks>
 public static class GlobalExceptionHandler
 {
-    private const string LogFolderName = "log";
+    private static string LogFolderName = "log";
+
+    public static void SetLogFolder(string logFolderName)
+    {
+        LogFolderName = logFolderName;
+    }
+
 
     /// <summary>
     /// Registers exception handling events and prepares the log directory.
     /// </summary>
-    public static void Initialize()
+    /// <param name="isDevelopment">
+    /// A value indicating whether the application is running in a development environment.
+    /// If <see langword="true"/>, detailed exception information is displayed.
+    /// </param>
+    public static void Initialize(bool isDevelopment = false)
     {
         Application.Current.DispatcherUnhandledException += (s, e) =>
         {
-            HandleException(e.Exception, "UI Dispatcher");
+            HandleException(e.Exception, "UI Dispatcher", isDevelopment);
             e.Handled = true;
         };
 
         TaskScheduler.UnobservedTaskException += (s, e) =>
         {
-            HandleException(e.Exception, "Task Scheduler");
+            HandleException(e.Exception, "Task Scheduler", isDevelopment);
             e.SetObserved();
         };
 
         AppDomain.CurrentDomain.UnhandledException += (s, e) =>
         {
             if (e.ExceptionObject is Exception ee)
-                HandleException(ee, "AppDomain");
+                HandleException(ee, "AppDomain", isDevelopment);
         };
     }
 
     /// <summary>
     /// Handles the exception by logging to a unique file and notifying the user.
     /// </summary>
-    private static void HandleException(Exception ex, string source)
+    private static void HandleException(Exception ex, string source, bool isDevelop)
     {
         if (ex == null) return;
 
@@ -54,7 +73,7 @@ public static class GlobalExceptionHandler
             string logFilePath = SaveLogToFile(logContent);
 
             // ユーザーへの通知
-            ShowErrorMessage(ex, logFilePath);
+            ShowErrorMessage(ex, logFilePath, isDevelop);
         }
         catch (Exception fatalEx)
         {
@@ -137,11 +156,21 @@ public static class GlobalExceptionHandler
     /// <summary>
     /// Displays an error dialog to the user.
     /// </summary>
-    private static void ShowErrorMessage(Exception ex, string logPath)
+    private static void ShowErrorMessage(Exception ex, string logPath, bool isDevelop)
     {
-        string message = "An unexpected error has occurred.\n\n" +
-                             $"Error: {ex.Message}\n\n" +
-                             $"For more details, please check the log file at:\n{logPath}";
-        MessageBox.Show(message, "Unexpected Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        string message;
+        if (isDevelop || Debugger.IsAttached)
+        {
+            message = "An unexpected error has occurred.\n\n" +
+                                 $"Error: {ex}";
+        }
+        else
+        {
+            message = "An unexpected error has occurred.\n\n" +
+                                 $"Error: {ex.Message}\n\n" +
+                                 $"For more details, please check the log file at:\n{logPath}";
+        }
+
+        FrostNovaMessageBox.Show(message, "Unexpected Error", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 }
