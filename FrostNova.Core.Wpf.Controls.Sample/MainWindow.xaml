@@ -46,6 +46,7 @@
                     </Grid.ColumnDefinitions>
                     <ctrls:TimePickerEditBox MinHeight="20" Height="30"
                                              HorizontalContentAlignment="Right"
+                                             
                                              TimeValue="{StaticResource timeOne}"
                                              IsShowSecond="{Binding ElementName=secondCheckBox,Path=IsChecked}"
                                              IsShowDay="{Binding ElementName=dayCheckBox,Path=IsChecked}"
@@ -80,7 +81,7 @@
                         <CheckBox x:Name="updownCheckBox" Content="Visible UpDown" IsChecked="True" />
                         <CheckBox x:Name="minLimitCheckBox" Content="Limit min value to Zero" />
                         <CheckBox x:Name="maxLimitCheckBox" Content="Limit max value to 23:59" />
-                        <TextBox x:Name="minuteSpanTextbox" Text="10" />
+                        <TextBox x:Name="minuteSpanTextbox" Text="10" IsReadOnly="False" />
                     </StackPanel>
                 </Grid>
 
@@ -155,7 +156,7 @@
                         <ColumnDefinition />
                         <ColumnDefinition />
                     </Grid.ColumnDefinitions>
-                    <ctrls:NumericUpDown Height="30" />
+                    <ctrls:NumericUpDown Height="20" />
                 </Grid>
             </TabItem>
             
