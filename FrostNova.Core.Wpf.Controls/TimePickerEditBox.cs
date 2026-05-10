@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,8 +59,8 @@ namespace FrostNova.Core.Wpf.Controls
         {
             base.OnApplyTemplate();
 
-            var upButton = GetTemplateChild("PART_UpButton") as Button;
-            var downButton = GetTemplateChild("PART_DownButton") as Button;
+            var upButton = GetTemplateChild("PART_upButton") as Button;
+            var downButton = GetTemplateChild("PART_downButton") as Button;
 
             if (upButton != null) upButton.Click += (o, e) => { UpTime(); };
             if (downButton != null) downButton.Click += (o, e) => { DownTime(); };
