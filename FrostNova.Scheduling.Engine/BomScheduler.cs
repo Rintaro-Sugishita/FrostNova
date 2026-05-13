@@ -421,7 +421,8 @@ public static class BomScheduler
     /// <remarks>Use this enumeration to indicate whether a resource is associated with a specific line, a
     /// member, or is global in scope. The meaning of each value depends on the context in which the enumeration is
     /// used.</remarks>
-    public enum ResourceType {
+    public enum ResourceType
+    {
         /// <summary>
         /// Represents a single line of data.
         /// </summary>
@@ -775,21 +776,20 @@ public static class BomScheduler
         /// </summary>
         private bool IsCalendarHoliday(List<ResourceKey> keys, IPendingTimeRange collision)
         {
-            // グローバル非稼働に含まれているか確認
-            if (_globalNonWorking.Any(nw => nw == collision)) return true;
+            if (collision == null) return false;
 
-            // 各リソースのカレンダー非稼働に含まれているか確認
+            // この衝突オブジェクト自体が、リソース予約（usages）の中に存在するか確認する
+            // もし予約データなら、それは「純粋な休日」ではない
             foreach (var key in keys)
             {
-                var resNonWorking = _resNonWorkingGetter?.Invoke(key);
-                if (resNonWorking != null && resNonWorking.Any(nw => nw == collision))
+                if (_resourceUsage.TryGetValue(key, out var usages) && usages.Contains(collision))
                 {
-                    return true;
+                    return false;
                 }
             }
 
-            // どちらにもなければ、それは _usage（他人の予約）
-            return false;
+            // 予約リストに存在しないなら、それはグローバルまたは個別の非稼働設定である
+            return true;
         }
         private TimeSpan CalculateActualDuration<TOperation, TOperationKey>(TOperation step, TimeSpan baseDuration, double efficiency) where TOperation : IProcessStep<TOperationKey>
         {
@@ -806,23 +806,34 @@ public static class BomScheduler
 
         private IPendingTimeRange? FindCollisionWithBatch(IEnumerable<ResourceKey> keys, DateTime start, DateTime end, double capacity)
         {
+            // --- 1. まず「予約（リソース使用状況）」との衝突を最優先でチェック ---
+            foreach (var key in keys)
+            {
+                if (_resourceUsage.TryGetValue(key, out var usages))
+                {
+                    var overlaps = usages.Where(u => IsOverlap(u, start, end)).ToList();
+                    if (overlaps.Count > 0)
+                    {
+                        // 容量1以下（排他）なら即衝突。バッチなら件数で判定。
+                        if (capacity <= 1 || overlaps.Count >= capacity)
+                        {
+                            // 予約との衝突が見つかったら、即座にこの「予約」を返す
+                            return overlaps[0];
+                        }
+                    }
+                }
+            }
+
+            // --- 2. 予約がない場合のみ、「非稼働（休日）」をチェック ---
             var globalHit = _globalNonWorking.FirstOrDefault(nw => IsOverlap(nw, start, end));
             if (globalHit != null) return globalHit;
 
             foreach (var key in keys)
             {
-
                 var calHit = _resNonWorkingGetter?.Invoke(key).FirstOrDefault(nw => IsOverlap(nw, start, end));
                 if (calHit != null) return calHit;
-
-                if (_resourceUsage.TryGetValue(key, out var usages))
-                {
-                    // バッチ考慮：指定時間内に既にキャパを超えて予約があるか
-                    var overlaps = usages.Where(u => IsOverlap(u, start, end)).ToList();
-                    if (overlaps.Count == 0) return null;
-                    if (capacity <= 1 && overlaps.Any()) return overlaps[0];
-                }
             }
+
             return null;
         }
 
