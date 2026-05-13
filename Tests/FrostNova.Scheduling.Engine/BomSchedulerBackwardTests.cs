@@ -159,7 +159,7 @@ public class BomSchedulerBackwardTests
     }
 
     [Fact]
-     public void Forward_SetupTime_Pushback()
+    public void Forward_SetupTime_Pushback()
     {
         // リードタイム2日、段取り(SetupTime)1日。
         // 期待値: 作業に2日、その前に段取り1日が必要。合計3日前から開始。
@@ -180,7 +180,7 @@ public class BomSchedulerBackwardTests
     }
 
     [Fact]
-     public void Backward_SetupTime_Pushback()
+    public void Backward_SetupTime_Pushback()
     {
         // リードタイム2日、段取り(SetupTime)1日。
         // 期待値: 作業に2日、その前に段取り1日が必要。合計3日前から開始。
@@ -309,7 +309,8 @@ public class BomSchedulerBackwardTests
             Enumerable.Empty<MyBom>(),
             Enumerable.Empty<IPendingTimeRange>(),
             k => Enumerable.Empty<IPendingTimeRange>(),
-            s => {
+            s =>
+            {
                 // 両方とも 4/10 18:00 納期
                 if (s.Id == "StepA")
                     return new BaseDateInfo(Priority: -10, BaseDate: deadline, Mode: BaseDateMode.Deadline);
@@ -364,7 +365,8 @@ public class BomSchedulerBackwardTests
             Enumerable.Empty<MyBom>(),
             Enumerable.Empty<IPendingTimeRange>(),
             k => Enumerable.Empty<IPendingTimeRange>(),
-            s => {
+            s =>
+            {
                 // 両方とも 4/10 18:00 納期
                 if (s.Id == "StepA") return new BaseDateInfo(Priority: -10, BaseDate: deadline, Mode: BaseDateMode.Deadline);
                 return new BaseDateInfo(Priority: 0, BaseDate: deadline, Mode: BaseDateMode.Deadline);
@@ -396,7 +398,7 @@ public class BomSchedulerBackwardTests
         // --- 案件1 (優先度高: -10) ---
         var item1_Child = CreateNode("I1_C", "I1_C1", "I1_C2", lineId);
         var item1_Parent = CreateNode("I1_P", "I1_P1", null, lineId);
-        item1_Parent.Children .Add( item1_Child);
+        item1_Parent.Children.Add(item1_Child);
         item1_Child.Parent = item1_Parent;
 
         // --- 案件2 (優先度低: 0) ---
@@ -413,7 +415,8 @@ public class BomSchedulerBackwardTests
             Enumerable.Empty<MyBom>(),
             Enumerable.Empty<IPendingTimeRange>(),
             k => Enumerable.Empty<IPendingTimeRange>(),
-            s => {
+            s =>
+            {
                 // C1は「4/6以降に着手」のフォワード。それ以外は 4/10納期。
                 bool isC1 = s.Id.EndsWith("C1");
                 var mode = isC1 ? BaseDateMode.ScheduledStart : BaseDateMode.Deadline;
@@ -473,7 +476,7 @@ public class BomSchedulerBackwardTests
                 new (){Id="I1_C1", LeadTime = null, StepOrder = 1 },
                 ]
         };
-        item1_Parent.Children .Add( item1_Child);
+        item1_Parent.Children.Add(item1_Child);
         item1_Child.Parent = item1_Parent;
 
         // --- 案件2 (優先度低: 0) ---
@@ -523,7 +526,8 @@ public class BomSchedulerBackwardTests
             Enumerable.Empty<MyBom>(),
             Enumerable.Empty<IPendingTimeRange>(),
             k => Enumerable.Empty<IPendingTimeRange>(),
-            s => {
+            s =>
+            {
                 // C1は「4/6以降に着手」のフォワード。それ以外は 4/10納期。
                 bool isC1 = s.Id.EndsWith("P1");
                 var mode = isC1 ? BaseDateMode.ScheduledStart : BaseDateMode.Deadline;
@@ -680,6 +684,82 @@ public class BomSchedulerBackwardTests
         // S1: 10:00-11:00 (Occupies 9:00-12:00)
         // S2: S1の占有終了(12:00) + S2.Setup(1h) = 13:00 Start であるべき
         Assert.Equal(baseDate.AddHours(4), step2.Start);
+    }
+    [Fact]
+    /// <summary>リソース競合の検証_非稼働とリソース予約の両方が衝突した場合</summary>
+    public void Should_NotOverlap_ResourceOccupancyIncludingSetupAndPostSetupAndNonWorkingTimes()
+    {
+        //期待する動き
+        //4/3 step1の工程
+        //4/4 非稼働
+        //4/5 非稼働
+        //4/6 リソース予約済み step3の工程
+        //4/7 後工程 step2, step4の工程
+
+
+        var baseDate = new DateTime(2026, 4, 8, 0, 0, 0);
+        var machineA = "MachineA";
+        var _unit = TimeSpan.FromDays(1);
+        var nonWorkingTimes = new List<IPendingTimeRange>()
+        {
+            new MyRange(new(2026, 4, 4), new(2026, 4, 5)),
+            new MyRange(new(2026, 4, 5), new(2026, 4, 6)),
+        };
+
+        var step1 = new MyStep
+        {
+            Id = "S1",
+            LeadTime = TimeSpan.FromDays(1),
+            Lines = new List<(object, double)> { (machineA, 1.0) },
+            StepOrder = 1,
+
+        };
+        var step2 = new MyStep
+        {
+            Id = "S1-1",
+            StepOrder = 2,
+        };
+
+        // Node 2: 同じリソースを使う別ノード。
+        var step3 = new MyStep
+        {
+            Id = "S2",
+            LeadTime = TimeSpan.FromDays(1),
+            Lines = new List<(object, double)> { (machineA, 1.0) },
+            StepOrder = 1,
+        };
+        var step4 = new MyStep
+        {
+            Id = "S2-1",
+            StepOrder = 2,
+        };
+        var node1 = new MyBom { Id = "N1", ProcessSteps = new List<MyStep> { step1, step2 } };
+        var node2 = new MyBom { Id = "N2", ProcessSteps = new List<MyStep> { step3, step4 } };
+
+        // Act
+        // S1 を後に計算させるために Priority を設定
+        node1.Priority = 2;
+        node2.Priority = 1;
+        var nodes = new[] { node1, node2 };
+
+        BomScheduler.Schedule<MyBom, string, MyStep, string>(
+           nodes,
+            Enumerable.Empty<MyBom>(),
+            nonWorkingTimes,
+            k => Enumerable.Empty<IPendingTimeRange>(),
+            s => new(0, baseDate), false, _unit);
+
+        Assert.Equal(new DateTime(2026, 4, 3), step1.Start);
+        Assert.Equal(new DateTime(2026, 4, 4), step1.End); //エラーになる
+
+
+        Assert.Equal(new DateTime(2026, 4, 7), step2.Start);
+        Assert.Equal(new DateTime(2026, 4, 8), step2.End);
+        Assert.Equal(new DateTime(2026, 4, 6), step3.Start);
+        Assert.Equal(new DateTime(2026, 4, 7), step3.End);
+        Assert.Equal(new DateTime(2026, 4, 7), step4.Start);
+        Assert.Equal(new DateTime(2026, 4, 8), step4.End);
+
     }
 }
 
