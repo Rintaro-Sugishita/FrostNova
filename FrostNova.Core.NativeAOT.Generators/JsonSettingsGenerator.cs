@@ -309,16 +309,19 @@ namespace FrostNova.Core.NativeAOT
 
             // 共通して利用する TypeInfo の参照先を決定
             string typeInfoSource;
+            string genericText;
             if (contextTypeName != null)
             {
                 // Contextがある場合は、既に生成済みの _indentedContext から取得
                 typeInfoSource = $"_indentedContext.{className}";
+                genericText = "";
             }
             else
             {
                 // Contextがない場合は、Optionsから動的に取得（リフレクションベース）
                 var currentOption = customConverters.Any() ? $"{className}._specificIndentedOptions" : DEFAULT_INDENTED_OPTION_NAME;
-                typeInfoSource = $"(System.Text.Json.Serialization.Metadata.JsonTypeInfo<{className}>){currentOption}.GetTypeInfo(typeof({className}))";
+                typeInfoSource = $"{currentOption}";
+                genericText = $"<{className}>";
             }
 
             // 共通の FromJson (ReadOnlySpan版)
@@ -328,7 +331,7 @@ namespace FrostNova.Core.NativeAOT
         {{
             if (json.IsWhiteSpace()) return null;
             try {{
-                var a = JsonSerializer.Deserialize(json, {typeInfoSource});
+                var a = JsonSerializer.Deserialize{genericText}(json, {typeInfoSource});
                 a?.AfterDeserialize();
                 return a;
             }} catch {{ return null; }}
@@ -339,7 +342,7 @@ namespace FrostNova.Core.NativeAOT
         {{
             if (utf8Json.Length == 0) return null;
             try {{
-                var a = JsonSerializer.Deserialize(utf8Json, {typeInfoSource});
+                var a = JsonSerializer.Deserialize{genericText}(utf8Json, {typeInfoSource});
                 a?.AfterDeserialize();
                 return a;
             }} catch {{ return null; }}
