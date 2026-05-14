@@ -87,12 +87,12 @@
                                 <RowDefinition />
                                 <RowDefinition />
                             </Grid.RowDefinitions>
-                            <Button x:Name="PART_upButton" Padding="0" Focusable="False" MinWidth="16">
+                            <Button x:Name="PART_upButton" Padding="0" Focusable="False" MinWidth="16" Margin="0">
                                 <Viewbox Stretch="Uniform" Margin="-2">
                                     <TextBlock Text="&#xe971;" FontFamily="Segoe Fluent Icons" />
                                 </Viewbox>
                             </Button>
-                            <Button Name="PART_downButton" Grid.Row="1" Focusable="False" MinWidth="16">
+                            <Button Name="PART_downButton" Grid.Row="1" Focusable="False" MinWidth="16" Margin="0">
                                 <Viewbox Stretch="Uniform" Margin="-2">
                                     <TextBlock Text="&#xe972;" FontFamily="Segoe Fluent Icons" />
                                 </Viewbox>
