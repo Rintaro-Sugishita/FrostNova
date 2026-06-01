@@ -1,4 +1,5 @@
-﻿using FrostNova.Core.Wpf.AttachedProperties;
+using FrostNova.Core.Wpf.AttachedProperties;
+using FrostNova.Core.Wpf.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -13,7 +14,7 @@ using System.Windows.Media;
 
 namespace FrostNova.Core.Wpf.VisualHelpers
 {
-    internal class DataGridHelper
+    public class DataGridHelper
     {
 
         internal static DataGridCell? GetCell(DataGrid dataGrid, DataGridCellInfo cellInfo)
@@ -133,5 +134,20 @@ namespace FrostNova.Core.Wpf.VisualHelpers
             foreach (var ci in toRemove)
                 grid.SelectedCells.Remove(ci);
         }
+
+        public static DataGrid? GetDataGrid(DataGridCell cell)
+        {
+
+            var dataGrid = ItemsControl.ItemsControlFromItemContainer(cell) as DataGrid;
+
+            if (dataGrid != null) return dataGrid;
+
+
+            var dataGrid2 = GeneralHelper.FindAncestor<DataGrid>(cell) as DataGrid;
+            return dataGrid2 != null ? dataGrid2 : null;
+
+        }
+
+
     }
 }

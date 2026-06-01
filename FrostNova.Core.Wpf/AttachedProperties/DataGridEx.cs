@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
@@ -13,11 +14,36 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using FrostNova.Core.Wpf.Models.DataGrdExtCols;
+using FrostNova.Core.Wpf.VisualHelpers;
 
 namespace FrostNova.Core.Wpf.AttachedProperties
 {
     public class DataGridEx
     {
+        public static readonly DependencyProperty IsEditOnEnterProperty =
+            DependencyProperty.RegisterAttached(
+                "IsEditOnEnter",
+                typeof(bool),
+                typeof(DataGridEx),
+                new PropertyMetadata(false, OnIsEditOnEnterChanged));
+
+        public static bool? GetIsEditOnEnter(DataGrid element) => (bool)element.GetValue(IsEditOnEnterProperty);
+
+        public static void SetIsEditOnEnter(DataGrid element, bool value) => element.SetValue(IsEditOnEnterProperty, value);
+
+        private static void OnIsEditOnEnterChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DataGrid dataGrid && e.NewValue is bool newValue && newValue)
+            {
+                GeneralHelper.SetBehavior<FrostNova.Core.Wpf.Behaviors.DataGridEditOnEnterBehavior>(d,true);
+            }
+            else
+            {
+                GeneralHelper.ClearBehavior<FrostNova.Core.Wpf.Behaviors.DataGridEditOnEnterBehavior>(d);
+            }
+        }
+
+
 
         public static readonly DependencyProperty SelectedItemsProperty =
                     DependencyProperty.RegisterAttached(
@@ -156,16 +182,30 @@ namespace FrostNova.Core.Wpf.AttachedProperties
             if (d is DataGrid dataGrid)
             {
                 if (e.OldValue is ObservableCollection<ExtensionColumnInfo> oldList)
-                    oldList.CollectionChanged -= (s, args) => RebuildColumns(dataGrid, oldList);
+                    if (dataGrid.GetValue(CollectionHandlerProperty)
+                        is NotifyCollectionChangedEventHandler oldHandler)
+                    {
+                        oldList.CollectionChanged -= oldHandler;
+                    }
 
                 if (e.NewValue is ObservableCollection<ExtensionColumnInfo> newList)
                 {
-                    newList.CollectionChanged += (s, args) => RebuildColumns(dataGrid, newList);
+                    var handler =
+                        new NotifyCollectionChangedEventHandler(
+                            (s, args) => RebuildColumns(dataGrid, newList));
+
+                    newList.CollectionChanged += handler;
+
+                    dataGrid.SetValue(CollectionHandlerProperty, handler);
                     RebuildColumns(dataGrid, newList);
                 }
             }
         }
-
+        private static readonly DependencyProperty CollectionHandlerProperty =
+    DependencyProperty.RegisterAttached(
+        "CollectionHandler",
+        typeof(NotifyCollectionChangedEventHandler),
+        typeof(DataGridEx));
         private static void RebuildColumns(DataGrid dataGrid, IEnumerable<ExtensionColumnInfo> config)
         {
             // 自作した拡張カラムだけを特定して削除（固定列は残す）
@@ -181,7 +221,9 @@ namespace FrostNova.Core.Wpf.AttachedProperties
                 {
                     ColumnType.checkBox => new DataGridCheckBoxColumn
                     {
-                        Binding = CreateBinding(dataGrid, info.UniqueKey)
+                        Binding = CreateBinding(dataGrid, info.UniqueKey),
+                        ElementStyle = CreateCenterCheckBoxStyle(),
+                        EditingElementStyle = CreateCenterCheckBoxStyle()
                     },
                     ColumnType.comboBox => new DataGridComboBoxColumn
                     {
@@ -194,7 +236,9 @@ namespace FrostNova.Core.Wpf.AttachedProperties
                     ColumnType.numeric => new DataGridTextColumn
                     {
                         Binding = CreateBinding(dataGrid, info.UniqueKey),
-                        ElementStyle = CreateRightAlignedStyle() // 数値なので右寄せ
+                        ElementStyle = CreateRightAlignedStyle(), // 数値なので右寄せ
+                        EditingElementStyle = CreateRightAlignedTextBoxStyle()
+
                     },
                     ColumnType.date => new DataGridTemplateColumn
                     {
@@ -244,7 +288,37 @@ namespace FrostNova.Core.Wpf.AttachedProperties
             style.Setters.Add(new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Right));
             return style;
         }
+        private static Style CreateRightAlignedTextBoxStyle()
+        {
+            var style = new Style(typeof(TextBox));
 
+            style.Setters.Add(
+                new Setter(
+                    TextBox.TextAlignmentProperty,
+                    TextAlignment.Right));
+
+            return style;
+        }
+        /// <summary>
+        /// CheckBoxの中央寄せスタイル
+        /// </summary>
+        /// <returns></returns>
+        private static Style CreateCenterCheckBoxStyle()
+        {
+            var style = new Style(typeof(CheckBox));
+
+            style.Setters.Add(
+                new Setter(
+                    FrameworkElement.HorizontalAlignmentProperty,
+                    HorizontalAlignment.Center));
+
+            style.Setters.Add(
+                new Setter(
+                    FrameworkElement.VerticalAlignmentProperty,
+                    VerticalAlignment.Center));
+
+            return style;
+        }
         // DatePickerのテンプレート生成
         private static DataTemplate CreateDatePickerTemplate(DependencyObject datagrid, string key)
         {
@@ -272,7 +346,9 @@ namespace FrostNova.Core.Wpf.AttachedProperties
                 // テンプレート内での "." は、DataGridの各行のデータ(DataContext)を指します
                 factory.SetBinding(Button.CommandParameterProperty, new Binding("."));
             }
-
+            factory.SetValue(
+                FrameworkElement.MarginProperty,
+                new Thickness(0));
             template.VisualTree = factory;
             return new DataGridTemplateColumn
             {
@@ -280,8 +356,22 @@ namespace FrostNova.Core.Wpf.AttachedProperties
                 CellTemplate = template
             };
         }
+        private static Style CreateGridButtonStyle()
+        {
+            var style = new Style(typeof(Button));
 
+            style.Setters.Add(
+                new Setter(
+                    FrameworkElement.MarginProperty,
+                    new Thickness(0)));
 
+            style.Setters.Add(
+                new Setter(
+                    Control.PaddingProperty,
+                    new Thickness(4, 0, 4, 0)));
+
+            return style;
+        }
 
     }
 }

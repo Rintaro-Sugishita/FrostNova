@@ -1,4 +1,4 @@
-﻿using FrostNova.Core.Wpf.AttachedProperties;
+using FrostNova.Core.Wpf.AttachedProperties;
 using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections;
@@ -35,18 +35,18 @@ namespace FrostNova.Core.Wpf.Behaviors
             var selectedList = AssociatedObject.SelectedCells.Select(x => x.Item).Distinct().ToList();
             try
             {
-                isSettingSelectedItems = true;
+                //isSettingSelectedItems = true;
 
                 //cell単体を選択しているときはrow自体が選択状態とはみなされない
                 DataGridEx.SetSelectedItems(AssociatedObject, selectedList);
             }
             finally
             {
-                isSettingSelectedItems = false;
+                //isSettingSelectedItems = false;
             }
 
         }
-        private bool isSettingSelectedItems = false;
+        //private bool isSettingSelectedItems = false;
 
         
         private static void OnSelectedItemsChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e)

@@ -25,7 +25,7 @@ public class ExtensionColumnInfo
     public ICommand? Command { get; set; }
 
     // コマンドに渡す固定パラメーター（必要であれば）
-    public object CommandParameter { get; set; }
+    public object? CommandParameter { get; set; }
     public List<ComboBoxOption> Options { get; set; } = new();
 
 }

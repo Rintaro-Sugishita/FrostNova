@@ -1,4 +1,4 @@
-﻿using FrostNova.Core.Wpf.AttachedProperties;
+using FrostNova.Core.Wpf.AttachedProperties;
 using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections.Generic;
@@ -44,8 +44,19 @@ namespace FrostNova.Core.Wpf.Behaviors
         private bool _isInternalUpdate;
         private string _lastValidText = string.Empty;
         private bool _isImeComposing;
-        private bool IsImeComposing() => _isImeComposing;
-        #endregion
+        private bool IsImeComposing(InputFormatType type)
+        {
+            if ( InputFormatType.None == type)
+            {
+                return _isImeComposing;
+
+            }
+            else
+            {
+                return false;
+            }
+        }
+            #endregion
 
         #region initialize and finalize
 
@@ -110,11 +121,12 @@ namespace FrostNova.Core.Wpf.Behaviors
         private void OnPreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             var tb = AssociatedObject;
-            if (IsImeComposing())
+
+            var type = TextBoxInput.GetFormatType(tb);
+            if (IsImeComposing(type))
                 return;
             //if (IsImeComposing(tb)) return;
 
-            var type = TextBoxInput.GetFormatType(tb);
 
             var input = NormalizeInput(e.Text);
             var next = GetNextText(tb, input);
@@ -134,10 +146,10 @@ namespace FrostNova.Core.Wpf.Behaviors
         {
             if (_isInternalUpdate)
                 return;
-            if (IsImeComposing())
-                return;
             var tb = AssociatedObject;
             var type = TextBoxInput.GetFormatType(tb);
+            if (IsImeComposing(type))
+                return;
 
             var normalized = NormalizeInput(tb.Text);
 
@@ -180,25 +192,31 @@ namespace FrostNova.Core.Wpf.Behaviors
                     {
                         _isInternalUpdate = true;
                         tb.Text = normalized;
+                        _lastValidText = normalized;
                         //tb.CaretIndex = _previousCaretIndex;
                         tb.CaretIndex = Math.Min(_previousCaretIndex, tb.Text.Length);
                         _isInternalUpdate = false;
                     }
+                    _lastValidText = normalized;
                 }
                 else
                 {
                     // NG → 差し戻し
                     _isInternalUpdate = true;
 
-                    tb.Dispatcher.BeginInvoke(
-                        DispatcherPriority.Background,
-                        new Action(() =>
-                        {
-                            if (tb.CanUndo)
-                                tb.Undo();
+                    //tb.Dispatcher.BeginInvoke(
+                    //    DispatcherPriority.Background,
+                    //    new Action(() =>
+                    //    {
+                    //        if (tb.CanUndo)
+                    //            tb.Undo();
 
-                            _isInternalUpdate = false;
-                        }));
+                    //        _isInternalUpdate = false;
+                    //    }));
+                    var caret = _previousCaretIndex;
+
+                    tb.Text = _lastValidText;
+                    tb.CaretIndex = Math.Min(caret, tb.Text.Length);
 
 
                     //_isInternalUpdate = false;
@@ -461,31 +479,24 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private bool IsValid(string text, TextBox tb, InputFormatType type)
         {
-            switch (type)
+            return type switch
             {
                 //case InputFormatType.Integer:
                 //    return Regex.IsMatch(text, @"^-?\d*$");
-
                 //case InputFormatType.Decimal:
                 //    return Regex.IsMatch(text, @"^-?\d*(\.\d*)?$");
-                case InputFormatType.Integer:
-                    return IsValidInteger(text, tb);
-
-                case InputFormatType.Decimal:
-                    return IsValidDecimal(text, tb);
-                case InputFormatType.DateTime:
-                    return IsValidDateTime(text, tb);
-
-                default:
-                    return true;
-            }
+                InputFormatType.Integer => IsValidInteger(text, tb),
+                InputFormatType.Decimal => IsValidDecimal(text, tb),
+                InputFormatType.DateTime => IsValidDateTime(text, tb),
+                _ => true,
+            };
         }
-        private static bool IsImeComposing(TextBox tb)
-        {
-            var imeState = InputMethod.GetPreferredImeState(tb);
-            return InputMethod.GetIsInputMethodEnabled(tb)
-                && imeState == InputMethodState.On;
-        }
+        //private static bool IsImeComposing(TextBox tb)
+        //{
+        //    var imeState = InputMethod.GetPreferredImeState(tb);
+        //    return InputMethod.GetIsInputMethodEnabled(tb)
+        //        && imeState == InputMethodState.On;
+        //}
 
         #region validation for number
 
@@ -621,7 +632,7 @@ namespace FrostNova.Core.Wpf.Behaviors
                         // 年月が揃っていたら月日制約をかける
                         if (year.HasValue && month.HasValue &&
                             part.Length == 2 &&
-                            dayExceedsMonth(year.Value, month.Value, value))
+                            IsDayExceedsMonth(year.Value, month.Value, value))
                             return false;
 
                         day = value;
@@ -643,7 +654,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
             return true;
         }
-        private bool dayExceedsMonth(int year, int month, int day)
+        private bool IsDayExceedsMonth(int year, int month, int day)
         {
             try
             {
@@ -865,8 +876,9 @@ namespace FrostNova.Core.Wpf.Behaviors
         {
             if (e.Key != Key.Enter)
                 return;
+            var type = TextBoxInput.GetFormatType(tb);
 
-            if (IsImeComposing()) return;
+            if (IsImeComposing(type)) return;
             // フォーマット & 確定処理
             CommitText(tb);
 
