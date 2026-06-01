@@ -1,11 +1,13 @@
-﻿using FrostNova.Core.Wpf.VisualHelpers;
-using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
+using FrostNova.Core.Wpf.AttachedProperties;
+using FrostNova.Core.Wpf.VisualHelpers;
+using Microsoft.Xaml.Behaviors;
 
 namespace FrostNova.Core.Wpf.Behaviors
 {
@@ -41,27 +43,43 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         public static void EnterEdit(DataGridCell gridCell, DataGrid grid)
         {
-            if (gridCell != null && !gridCell.IsEditing)
+            //if (gridCell != null && !gridCell.IsEditing)
+            //{
+
+
+            //    // enables editing on single click  
+            //    if (!gridCell.IsFocused)
+            //        gridCell.Focus();
+            //    if (!gridCell.IsSelected && grid.SelectionUnit == DataGridSelectionUnit.Cell)
+            //        gridCell.IsSelected = true;
+            //    grid.BeginEdit();
+
+
+
+
+            //    //if (bFocus)
+            //    //{
+            //    //    gridCell.Focus();
+
+            //    //}
+            //}
+
+
+
+            if (gridCell == null || gridCell.IsEditing)
+                return;
+
+            if (!gridCell.IsSelected &&
+                grid.SelectionUnit == DataGridSelectionUnit.Cell)
             {
-
-
-                // enables editing on single click  
-                if (!gridCell.IsFocused)
-                    gridCell.Focus();
-                if (!gridCell.IsSelected && grid.SelectionUnit == DataGridSelectionUnit.Cell)
-                    gridCell.IsSelected = true;
-                grid.BeginEdit();
-
-
-
-
-                //if (bFocus)
-                //{
-                //    gridCell.Focus();
-
-                //}
+                gridCell.IsSelected = true;
             }
+
+            grid.BeginEdit();
         }
+
+
+
 
 
     }

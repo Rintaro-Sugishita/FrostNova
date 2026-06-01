@@ -235,6 +235,22 @@ namespace FrostNova.Core.Wpf.VisualHelpers
             }
         }
 
+        public static void ClearBehavior<T>(DependencyObject d) where T : Behavior, new()
+        {
+
+            if (d is UIElement element)
+            {
+                var attachingBehaviors = Microsoft.Xaml.Behaviors.Interaction.GetBehaviors(element);
+
+                var existing = attachingBehaviors.OfType<Behavior>().FirstOrDefault(b => b.GetType() == typeof(T));
+                if (existing != null)
+                {
+                    //存在してたら削除
+                    attachingBehaviors.Remove(existing);
+                }
+            }
+        }
+
         #endregion
 
     }

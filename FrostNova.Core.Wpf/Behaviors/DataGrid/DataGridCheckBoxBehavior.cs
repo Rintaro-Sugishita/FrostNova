@@ -1,10 +1,13 @@
-﻿using Microsoft.Xaml.Behaviors;
+﻿using FrostNova.Core.Wpf.VisualHelpers;
+using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 
@@ -26,31 +29,67 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private void AssociatedObject_PreviewKeyDown(object? sender, KeyEventArgs e)
         {
-            if (Keyboard.IsKeyDown(Key.Space))
+            if (e.Key != Key.Space)
             {
-                OnSpace(e);
+                return;
+            }
+
+            if (IsEditingTextCell())
+            {
+                return;
+            }
+
+            if (TryToggleCheckBoxColumn())
+            {
                 e.Handled = true;
             }
         }
 
-        private void OnSpace(KeyEventArgs e)
+        private bool IsEditingTextCell()
         {
-            if (AssociatedObject.CurrentCell.Column is DataGridCheckBoxColumn checkBoxColumn && AssociatedObject.CurrentItem != null)
+            if (!AssociatedObject.CurrentCell.IsValid)
             {
-                var binding = (checkBoxColumn.Binding as Binding);
-                if (binding != null)
-                {
-                    var propertyName = binding.Path.Path;
-                    var item = AssociatedObject.CurrentItem;
-                    var property = item.GetType().GetProperty(propertyName);
-                    if (property != null && property.PropertyType == typeof(bool))
-                    {
-                        var currentValue = (bool?)property.GetValue(item);
-                        property.SetValue(item, !currentValue);
-                        e.Handled = true;
-                    }
-                }
+                return false;
             }
+
+            var cell = DataGridHelper.GetCell(AssociatedObject, AssociatedObject.CurrentCell);
+            if (cell == null)
+            {
+                return false;
+            }
+
+            if (cell.IsEditing)
+            {
+                return true;
+            }
+
+            return Keyboard.FocusedElement is TextBoxBase;
+        }
+
+        private bool TryToggleCheckBoxColumn()
+        {
+            if (AssociatedObject.CurrentCell.Column is not DataGridCheckBoxColumn checkBoxColumn
+                || AssociatedObject.CurrentItem == null)
+            {
+                return false;
+            }
+
+            if (checkBoxColumn.Binding is not Binding binding)
+            {
+                return false;
+            }
+
+            var propertyName = binding.Path.Path;
+            var item = AssociatedObject.CurrentItem;
+            var property = item.GetType().GetProperty(propertyName);
+            if (property == null || property.PropertyType != typeof(bool))
+            {
+                return false;
+            }
+
+            var currentValue = (bool?)property.GetValue(item);
+            property.SetValue(item, !currentValue);
+            return true;
         }
 
     }
