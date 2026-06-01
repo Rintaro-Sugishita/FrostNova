@@ -597,7 +597,7 @@ public class BomSchedulerBackwardTests
             LeadTime = TimeSpan.FromHours(1),      // 11:00 - 12:00 (Resource Occupied/Start-End)
             PostSetupTime = TimeSpan.FromHours(1), // 12:00 - 13:00 (Resource Occupied)
             PostBuffer = TimeSpan.FromHours(1),    // 13:00 - 14:00 (Buffer)
-            Lines = new List<(object, double)> { (machineA, 1.0) }
+            Lines = new List<(object?, double)> { (machineA, 1.0) }
         };
 
         // Step 2: Step 1の直後の工程（同じマシンを使用）
@@ -608,7 +608,7 @@ public class BomSchedulerBackwardTests
             StepOrder = 2,
             SetupTime = TimeSpan.FromHours(1),
             LeadTime = TimeSpan.FromHours(1),
-            Lines = new List<(object, double)> { (machineA, 1.0) }
+            Lines = new List<(object?, double)> { (machineA, 1.0) }
         };
 
         var node = new MyBom { Id = "N1", ProcessSteps = new List<MyStep> { step1, step2 } };
@@ -652,7 +652,7 @@ public class BomSchedulerBackwardTests
             LeadTime = TimeSpan.FromHours(1),
             SetupTime = TimeSpan.FromHours(1),
             PostSetupTime = TimeSpan.FromHours(1),
-            Lines = new List<(object, double)> { (machineA, 1.0) }
+            Lines = new List<(object?, double)> { (machineA, 1.0) }
         };
 
         // Node 2: 同じリソースを使う別ノード。
@@ -662,7 +662,7 @@ public class BomSchedulerBackwardTests
             Id = "S2",
             LeadTime = TimeSpan.FromHours(1),
             SetupTime = TimeSpan.FromHours(1),
-            Lines = new List<(object, double)> { (machineA, 1.0) }
+            Lines = new List<(object?, double)> { (machineA, 1.0) }
         };
 
         var node1 = new MyBom { Id = "N1", ProcessSteps = new List<MyStep> { step1 } };
@@ -710,7 +710,7 @@ public class BomSchedulerBackwardTests
         {
             Id = "S1",
             LeadTime = TimeSpan.FromDays(1),
-            Lines = new List<(object, double)> { (machineA, 1.0) },
+            Lines = new List<(object?, double)> { (machineA, 1.0) },
             StepOrder = 1,
 
         };
@@ -725,7 +725,7 @@ public class BomSchedulerBackwardTests
         {
             Id = "S2",
             LeadTime = TimeSpan.FromDays(1),
-            Lines = new List<(object, double)> { (machineA, 1.0) },
+            Lines = new List<(object?, double)> { (machineA, 1.0) },
             StepOrder = 1,
         };
         var step4 = new MyStep

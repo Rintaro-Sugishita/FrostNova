@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,7 +15,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         public object MovedItem { get; private set; }
 
-        internal EventArgs OriginalEventArgs { get; set; }
+        //internal EventArgs OriginalEventArgs { get; set; }
 
         internal DragMoveEventArgs(int newRowIndex, int oldRowIndex, object movedItem)
         {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -106,7 +106,7 @@ namespace FrostNova.WindowEventPickers
         {
             //activeWindowChangedHandler += handler;
             ActiveWindowChangedAction = handler;
-            _timer.Tick += _timer_Tick;
+            _timer.Tick += Timer_Tick;
 
             _timer.Interval = TimeSpan.FromMilliseconds(eventSpanMilisecond);
 
@@ -122,7 +122,7 @@ namespace FrostNova.WindowEventPickers
         private static bool doingEvent = false;
 
 
-        private static void _timer_Tick(object? sender, EventArgs e)
+        private static void Timer_Tick(object? sender, EventArgs e)
         {
             if (!doingEvent)
             {

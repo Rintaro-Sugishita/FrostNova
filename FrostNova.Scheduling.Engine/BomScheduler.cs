@@ -380,7 +380,7 @@ public static class BomScheduler
 
         public bool Equals(ResourceKey x, ResourceKey y)
         {
-            if (ReferenceEquals(x, y)) return true;
+            if (x.Equals(y)) return true;
 
             // 1. まずリソースの種類が違うなら別物
             if (x.Type != y.Type) return false;

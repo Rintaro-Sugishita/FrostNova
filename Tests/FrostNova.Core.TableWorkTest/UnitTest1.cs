@@ -66,7 +66,7 @@ public class UnitTest1
         public int Val1 { get; set; }
         public decimal Val2 { get; set; }
 
-        public string TextVal1 { get; set; }
+        public string TextVal1 { get; set; } = "";
         public DateTime dateVal
         {
             get; set;
