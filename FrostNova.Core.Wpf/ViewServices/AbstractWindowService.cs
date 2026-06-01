@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
+using CommunityToolkit.Mvvm.Messaging;
 using FrostNova.Core.Wpf.Messages;
 using FrostNova.Core.Wpf.ViewModelBases;
 using FrostNova.Core.Wpf.Views;
@@ -126,6 +126,10 @@ namespace FrostNova.Core.Wpf.ViewServices
                     floatingVm.OnClosing(e);
                 };
 
+                subWindow.Closed += (object? sender, EventArgs e) =>
+                {
+                    floatingVm.OnClosed();
+                };
 
                 if (vm is not DialogWindowViewModelBase)
                 {
