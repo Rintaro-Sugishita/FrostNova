@@ -1,20 +1,27 @@
-﻿using FrostNova.Core.Wpf.Behaviors;
-using Microsoft.Xaml.Behaviors;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using FrostNova.Core.Wpf.Behaviors;
+using FrostNova.Core.Wpf.AttachedProperties;
+using FrostNova.Core.Wpf.VisualHelpers;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 
 namespace FrostNova.Core.Wpf.Controls
 {
     public class FrostNovaDataGridTextBoxColumn : DataGridTextColumn
     {
+        private static Style? _editingTextBoxStyle;
 
-        private static Style? _style;
+        private readonly DependencyPropertyDescriptor _textAlignmentDescriptor;
+
+        public FrostNovaDataGridTextBoxColumn()
+        {
+            _textAlignmentDescriptor = DependencyPropertyDescriptor.FromProperty(
+                TextBlock.TextAlignmentProperty,
+                typeof(TextBlock));
+            _textAlignmentDescriptor.AddValueChanged(this, OnColumnTextAlignmentChanged);
+        }
 
         protected override FrameworkElement GenerateEditingElement(DataGridCell cell, object dataItem)
         {
@@ -22,68 +29,134 @@ namespace FrostNova.Core.Wpf.Controls
 
             if (element is TextBox textBox)
             {
-
-                if (_style == null)
+                _editingTextBoxStyle ??= Application.Current.TryFindResource("dataGridTextBoxStyle") as Style;
+                if (_editingTextBoxStyle != null)
                 {
-                    _style = Application.Current.TryFindResource("dataGridTextBoxStyle") as Style;
+                    textBox.Style = _editingTextBoxStyle;
                 }
 
-
-                // 編集時に必要な TextBox 設定
-                textBox.Style = _style;
-
-                //textBox.Style.Setters.Add(new Setter() { Property = TextBox.PaddingProperty, Value = 0 });
-
-                var binding = new Binding(nameof(CanLineBreak));
-                //binding.Path = ;
-                binding.Source = this;
-
+                var binding = new Binding(nameof(CanLineBreak))
+                {
+                    Source = this
+                };
                 element.SetBinding(TextBoxBehaviors.EnableLineBreakProperty, binding);
-
             }
+
+            SyncTextAlignment(element);
             return element;
         }
+
         protected override FrameworkElement GenerateElement(DataGridCell cell, object dataItem)
         {
-            if (IsEditOnEnter)
+            var element = base.GenerateElement(cell, dataItem);
+            SyncTextAlignment(element);
+
+            //if (cell != null)
+            //{
+            //    cell.GotFocus -= OnDataGridCellGotFocus;
+            //    cell.GotFocus += OnDataGridCellGotFocus;
+            //}
+
+            return element;
+        }
+
+        private void OnColumnTextAlignmentChanged(object? sender, EventArgs e)
+        {
+            RefreshTextAlignmentInRealizedCells();
+        }
+
+        private void RefreshTextAlignmentInRealizedCells()
+        {
+            var grid = DataGridOwner;
+            if (grid == null)
             {
-                return GenerateEditingElement(cell, dataItem);
+                return;
+            }
+
+            var displayIndex = DisplayIndex;
+            for (var i = 0; i < grid.Items.Count; i++)
+            {
+                if (grid.Items[i] == CollectionView.NewItemPlaceholder)
+                {
+                    continue;
+                }
+
+                if (grid.ItemContainerGenerator.ContainerFromIndex(i) is not DataGridRow row)
+                {
+                    continue;
+                }
+
+                var presenter = GeneralHelper.FindVisualChild<DataGridCellsPresenter>(row);
+                if (presenter == null)
+                {
+                    continue;
+                }
+
+                if (presenter.ItemContainerGenerator.ContainerFromIndex(displayIndex) is not DataGridCell cell
+                    || cell.Column != this
+                    || cell.Content is not FrameworkElement content)
+                {
+                    continue;
+                }
+
+                SyncTextAlignment(content);
+            }
+        }
+
+        private void SyncTextAlignment(FrameworkElement? element)
+        {
+            switch (element)
+            {
+                case TextBlock textBlock:
+                    SyncColumnTextAlignment(this, textBlock, TextBlock.TextAlignmentProperty);
+                    break;
+                case TextBox textBox:
+                    SyncColumnTextAlignment(this, textBox, TextBox.TextAlignmentProperty);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Mirrors <c>DataGridHelper.SyncColumnProperty</c> for <see cref="TextBlock.TextAlignmentProperty"/> on the column.
+        /// </summary>
+        private static void SyncColumnTextAlignment(
+            DependencyObject column,
+            FrameworkElement element,
+            DependencyProperty targetProperty)
+        {
+            if (column.ReadLocalValue(TextBlock.TextAlignmentProperty) != DependencyProperty.UnsetValue)
+            {
+                element.SetValue(targetProperty, column.GetValue(TextBlock.TextAlignmentProperty));
             }
             else
             {
-                return base.GenerateElement(cell, dataItem);
+                element.ClearValue(targetProperty);
             }
         }
-        /// <summary>
-        /// string
-        /// </summary>
+
+
         public bool CanLineBreak
         {
-            get { return (bool)GetValue(CanLineBreakProperty); }
-            set { SetValue(CanLineBreakProperty, value); }
+            get => (bool)GetValue(CanLineBreakProperty);
+            set => SetValue(CanLineBreakProperty, value);
         }
-        public static DependencyProperty CanLineBreakProperty = DependencyProperty.Register(
+
+        public static readonly DependencyProperty CanLineBreakProperty = DependencyProperty.Register(
             nameof(CanLineBreak),
             typeof(bool),
             typeof(FrostNovaDataGridTextBoxColumn),
-            new PropertyMetadata(false)
-            );
+            new PropertyMetadata(false));
 
-        /// <summary>
-        /// string
-        /// </summary>
-        public bool IsEditOnEnter
-        {
-            get { return (bool)GetValue(IsEditOnEnterProperty); }
-            set { SetValue(IsEditOnEnterProperty, value); }
-        }
-        public static DependencyProperty IsEditOnEnterProperty = DependencyProperty.Register(
-            nameof(IsEditOnEnter), typeof(bool), typeof(FrostNovaDataGridTextBoxColumn),
-            new PropertyMetadata(false)
-            );
+        //public bool IsEditOnEnter
+        //{
+        //    get => (bool)GetValue(IsEditOnEnterProperty);
+        //    set => SetValue(IsEditOnEnterProperty, value);
+        //}
 
-
-
-
+        //public static readonly DependencyProperty IsEditOnEnterProperty = DependencyProperty.Register(
+        //    nameof(IsEditOnEnter),
+        //    typeof(bool),
+        //    typeof(FrostNovaDataGridTextBoxColumn),
+        //    new PropertyMetadata(false));
     }
 }
