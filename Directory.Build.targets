@@ -1,0 +1,10 @@
+<Project>
+  <!--
+    WPF + UseArtifactsOutput + multi-targeting can make wpftmp builds write to the same
+    IntermediateOutputPath for every TFM, causing intermittent CS2012 file-lock errors.
+    See: https://github.com/dotnet/wpf/issues/9556
+  -->
+  <PropertyGroup Condition="'$(UseArtifactsOutput)' == 'true'">
+    <IntermediateOutputPath>$(BaseIntermediateOutputPath)$(ArtifactsPivots)\</IntermediateOutputPath>
+  </PropertyGroup>
+</Project>
