@@ -79,7 +79,7 @@ public class DeepCloneGenerator : IIncrementalGenerator
                     .CreateSyntaxProvider(
                         predicate: (s, _) => IsSyntaxTargetForGeneration(s), // 高速な構文チェック
                         transform: (ctx, _) => GetSemanticTargetForGeneration(ctx)) // 詳細な型情報取得
-                    .Where(m => m is not null);
+                    .Where(m => m.type is not null);
 
         //メソッドの抽出
         var methodDeclarations = context.SyntaxProvider
@@ -96,25 +96,33 @@ public class DeepCloneGenerator : IIncrementalGenerator
     private static bool IsSyntaxTargetForGeneration(SyntaxNode node)
         => node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };
 
-    private static ITypeSymbol? GetSemanticTargetForGeneration(GeneratorSyntaxContext context)
+    private static (ITypeSymbol? type, bool isNullable) GetSemanticTargetForGeneration(GeneratorSyntaxContext context)
     {
         // InitializeでのPredicateにより、nodeはClassDeclarationSyntaxであることが確定済み
         var classDeclaration = (ClassDeclarationSyntax)context.Node;
 
         // クラスのシンボル情報を取得
         var symbol = context.SemanticModel.GetDeclaredSymbol(classDeclaration);
-        if (symbol is not INamedTypeSymbol classSymbol) return null;
+        if (symbol is not INamedTypeSymbol classSymbol) return (null,false);
 
         // 属性をチェック（完全修飾名での比較が確実）
         foreach (var attribute in classSymbol.GetAttributes())
         {
             if (attribute.AttributeClass?.ToDisplayString() == CLONE_ATTRIBUTE_NAME)
             {
-                return classSymbol;
+
+                var compilation = context.SemanticModel.Compilation;
+                var projectNullable = compilation.Options.NullableContextOptions;
+                var nullableContextAtLocation = context.SemanticModel.GetNullableContext(classDeclaration.GetLocation().SourceSpan.Start);
+
+                bool useNullable = nullableContextAtLocation.HasFlag(NullableContext.AnnotationsEnabled) ||
+                                   projectNullable.HasFlag(NullableContextOptions.Annotations);
+
+                return (classSymbol, useNullable);
             }
         }
 
-        return null;
+        return (null, false);
     }
     private static bool IsMethodTarget(SyntaxNode node)
         => node is MethodDeclarationSyntax { AttributeLists.Count: > 0 };
@@ -133,7 +141,7 @@ public class DeepCloneGenerator : IIncrementalGenerator
         return null;
     }
 
-    private static void Execute(SourceProductionContext context, ImmutableArray<ITypeSymbol?> types, ImmutableArray<IMethodSymbol?> methods, string version)
+    private static void Execute(SourceProductionContext context, ImmutableArray<(ITypeSymbol? type, bool useNullable)> types, ImmutableArray<IMethodSymbol?> methods, string version)
     {
         var methodMap = methods
             .Where(m => m is not null)
@@ -148,11 +156,23 @@ public class DeepCloneGenerator : IIncrementalGenerator
 
         var generateAttText = $"[global::System.CodeDom.Compiler.GeneratedCodeAttribute(\"FrostNova.Core.NativeAOT.DeepCloneGenerator\", \"{version}\")]";
 
+
+
         // クラスの生成処理
-        foreach (var typeSymbol in types.Where(t => t is not null).Cast<INamedTypeSymbol>().Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default))
+        foreach (var typeSymbol in types
+                    .Where(t => t.type is not null && t.type is INamedTypeSymbol)
+                    // 比較用に SymbolEqualityComparer でラップしたタプル（または匿名型）を作る
+                    .Select(x => (
+                        Key: (Type: x.type, Equality: SymbolEqualityComparer.Default.GetHashCode(x.type)),
+                        x.useNullable
+                    ))
+                    // 重複排除（ValueTuple の標準比較を利用、ハッシュコードの一致で判定）
+                    .Distinct()
+                    // 元の (INamedTypeSymbol, bool) の形に戻す
+                    .Select(x => ((INamedTypeSymbol)x.Key.Type!, x.useNullable)))
         {
-            var source = ProcessClass(typeSymbol, methodMap, version, generateAttText);
-            if (source is not null) AddSource(context, typeSymbol, source, "Class");
+            var source = ProcessClass(typeSymbol.Item1,typeSymbol.useNullable, methodMap, version, generateAttText);
+            if (source is not null) AddSource(context, typeSymbol.Item1, source, "Class");
         }
 
         // メソッドの生成処理
@@ -171,7 +191,7 @@ public class DeepCloneGenerator : IIncrementalGenerator
     }
 
 
-    private static string? ProcessClass(INamedTypeSymbol classSymbol, ImmutableDictionary<ITypeSymbol, ExternalCloneMap> methodMap, string version, string generateAttText)
+    private static string? ProcessClass(INamedTypeSymbol classSymbol, bool isNullable, ImmutableDictionary<ITypeSymbol, ExternalCloneMap> methodMap, string version, string generateAttText)
     {
         if (!classSymbol.ContainingSymbol.Equals(classSymbol.ContainingNamespace, SymbolEqualityComparer.Default))
         {
@@ -186,6 +206,7 @@ public class DeepCloneGenerator : IIncrementalGenerator
 
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated/>");
+        if (isNullable) sb.AppendLine("#nullable enable");
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Linq;");
         sb.AppendLine();
@@ -447,7 +468,7 @@ public class DeepCloneGenerator : IIncrementalGenerator
                 .FirstOrDefault(a => a.AttributeClass?.Name == "DeepCloneAttribute");
 
         // Modeを取得（デフォルトは Default）
-        var mode = attr != null ? (int)attr.ConstructorArguments[0].Value : 0;
+        var mode = attr != null && attr.ConstructorArguments[0].Value is int v ? v : 0;
 
         if (mode == 2) // Ignore
             return "// Ignored: " + prop.Name;
@@ -783,11 +804,11 @@ public class DeepCloneGenerator : IIncrementalGenerator
             var typeName = actualType.ToDisplayString();
 
             resultExpr = $@"{sourcePath} switch 
-    {{ 
-        {INTERFACE_NAME} d => d.DeepClone(), 
-        System.ICloneable c => c.Clone(), 
-        _ => {sourcePath} 
-    }}";
+            {{ 
+                {INTERFACE_NAME} d => d.DeepClone(), 
+                System.ICloneable c => c.Clone(), 
+                _ => {sourcePath} 
+            }}";
 
             // キャストが必要な場合は追加 (object型なら (object)cast)
             resultExpr = $"({typeName})({resultExpr})";

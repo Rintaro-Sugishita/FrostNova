@@ -20,7 +20,7 @@ public class BomSchedulerTests
         {
             Id = "S1",
             LeadTime = TimeSpan.FromHours(2),
-            Lines = new List<(object, double)> { ("FastMachine", 2.0) }
+            Lines = new List<(object?, double)> { ("FastMachine", 2.0) }
         };
         var node = new MyBom { Id = "N1", ProcessSteps = new List<MyStep> { step } };
 
@@ -102,7 +102,7 @@ public class BomSchedulerTests
         {
             Id = "Target",
             LeadTime = TimeSpan.FromHours(1),
-            Lines = new List<(object, double)> { (machineA, 1.0), (machineB, 1.0) }
+            Lines = new List<(object?, double)> { (machineA, 1.0), (machineB, 1.0) }
         };
         var targetNode = new MyBom { Id = "TargetNode", ProcessSteps = new List<MyStep> { targetStep } };
 

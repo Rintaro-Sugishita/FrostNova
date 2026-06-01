@@ -1,4 +1,4 @@
-﻿using FrostNova.Core.Wpf.AttachedProperties;
+using FrostNova.Core.Wpf.AttachedProperties;
 using FrostNova.Core.Wpf.VisualHelpers;
 using Microsoft.Xaml.Behaviors;
 using System;
@@ -72,7 +72,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
 
             //選択行にフラグを立てる
-            var selectedRows = grid.SelectedCells.Select(x => DataGridHelper.GetRowHeader(grid, x)).Distinct();
+            var selectedRows = grid.SelectedCells.Select(x => DataGridHelper.GetRowHeader(grid, x)).Where(x=> x!=null).Cast<DataGridRowHeader>().Distinct();
             foreach (var row in selectedRows)
             {
                 DataGridRowHeaderEx.SetIsSelectedHeader(row, true);

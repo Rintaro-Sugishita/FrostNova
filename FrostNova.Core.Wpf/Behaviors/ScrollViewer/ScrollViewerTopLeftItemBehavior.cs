@@ -1,4 +1,4 @@
-﻿using Microsoft.Xaml.Behaviors;
+using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -119,28 +119,42 @@ namespace FrostNova.Core.Wpf.Behaviors
         }
 
 
-        private void SetTopItem(FrameworkElement obj)
+        private void SetTopItem(FrameworkElement? obj)
         {
             var point = new Point(1, 1); // 可視領域の左上近く
             TopVisibleItem = GetItem(obj, point);
         }
 
-        private void SetBottomItem(FrameworkElement obj)
+        private void SetBottomItem(FrameworkElement? obj)
         {
-            var point = new Point(obj.ActualWidth, obj.ActualHeight); // 可視領域の右下近く
-            BottomVisibleItem = GetItem(obj, point);
-
+            if (obj != null)
+            {
+                var point = new Point(obj.ActualWidth, obj.ActualHeight); // 可視領域の右下近く
+                BottomVisibleItem = GetItem(obj, point);
+            }
+            else
+            {
+                BottomVisibleItem = null;
+            }
         }
 
-        private void SetCenterItem(FrameworkElement obj)
+        private void SetCenterItem(FrameworkElement? obj)
         {
-            var point = new Point(obj.ActualWidth / 2.0, obj.ActualHeight / 2.0);
-            CenterVisibleItem = GetItem(obj, point);
+            if (obj != null)
+            {
+                var point = new Point(obj.ActualWidth / 2.0, obj.ActualHeight / 2.0);
+                CenterVisibleItem = GetItem(obj, point);
+            }
+            else
+            {
+                CenterVisibleItem = null;
+            }
         }
 
 
-        private object? GetItem(Visual viewer, Point point)
+        private object? GetItem(Visual? viewer, Point point)
         {
+            if (viewer == null) return null;
             var result = VisualTreeHelper.HitTest(viewer, point);
             return GetDataContext(result); 
         }

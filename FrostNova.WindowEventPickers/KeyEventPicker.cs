@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -90,22 +90,23 @@ namespace FrostNova.WindowEventPickers
             return CallNextHookEx(hookID, nCode, wParam, lParam);
         }
 
+        private const int LLKHF_EXTENDED = 0x01;
+
+        // --- IsNumpadEnterKey メソッドの修正 ---
+        /// <summary>
+        /// Determines whether the pressed key is the Numpad Enter key.
+        /// </summary>
+        /// <param name="lParam">A pointer to a KBDLLHOOKSTRUCT structure.</param>
+        /// <returns>true if the key is Numpad Enter; otherwise, false.</returns>
         private static bool IsNumpadEnterKey(IntPtr lParam)
         {
-            
-            long scanCode = Marshal.ReadInt64(lParam);
-            //bool isExtended = (scanCode & 0x100) != 0;
+            // KBDLLHOOKSTRUCT の flags メンバは、先頭から8バイト目（vkCode:4, scanCode:4 の後ろ）にあります
+            int flagsOffset = 8;
+            int flags = Marshal.ReadInt32(lParam, flagsOffset);
 
-            return false;
-            
-            if (scanCode == 120259084301)
-            {
-                return false;
-            }
-            return true;
-
+            // flags の第0ビット（LLKHF_EXTENDED）が1であれば拡張キー（テンキーのEnter）
+            return (flags & LLKHF_EXTENDED) != 0;
         }
-
 
 
 

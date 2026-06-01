@@ -1,4 +1,4 @@
-﻿using FrostNova.Core.Wpf.AttachedProperties;
+using FrostNova.Core.Wpf.AttachedProperties;
 using FrostNova.Core.Wpf.Controls;
 using FrostNova.Core.Wpf.Interfaces;
 using FrostNova.Core.Wpf.VisualHelpers;
@@ -198,7 +198,7 @@ namespace FrostNova.Core.Wpf.Behaviors
         private void OnDelete(KeyEventArgs e)
         {
             var gotCell = DataGridHelper.GetCell(AssociatedObject, AssociatedObject.CurrentCell);
-            if (gotCell.IsEditing == true)
+            if (gotCell?.IsEditing == true)
             {
                 return;
             }
@@ -234,7 +234,7 @@ namespace FrostNova.Core.Wpf.Behaviors
 
                     var content = e.ClipboardRowContent.FirstOrDefault(x => x.Column == column && x.Item == item);
                     var index = e.ClipboardRowContent.IndexOf(content);
-                    if (content != null)
+                    if (content.Content !=null)
                     {
                         e.ClipboardRowContent.Remove(content);
                     }

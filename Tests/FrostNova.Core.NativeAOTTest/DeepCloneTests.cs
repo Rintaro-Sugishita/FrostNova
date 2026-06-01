@@ -101,7 +101,7 @@ public class DeepCloneTests
         Assert.NotSame(source.Object, target.Object);
         Assert.Equal(((DeepCloneableClass)source.Object).Name, ((DeepCloneableClass)target.Object).Name);
         var a = source.Object as DeepCloneableClass;
-        a.Name = "sharow";
+        a?.Name = "sharow";
 
         Assert.NotEqual(((DeepCloneableClass)source.Object).Name, ((DeepCloneableClass)target.Object).Name);
 

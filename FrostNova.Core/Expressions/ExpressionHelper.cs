@@ -211,7 +211,7 @@ namespace FrostNova.Core.Expressions
 
             // 親パス (例: x.A.B) を再構築する
             // selector.Parameters[0] を modelParam に差し替えてたどる
-            var parentExpr = ReplaceParameter(memberExpr.Expression, selector.Parameters[0], modelParam);
+            var parentExpr = ReplaceParameter(memberExpr?.Expression, selector.Parameters[0], modelParam);
 
             // 代入式 (例: model.A.B.C = value)
             var assignExpr = Expression.Assign(Expression.Property(parentExpr, property), valueParam);
@@ -219,7 +219,7 @@ namespace FrostNova.Core.Expressions
             return Expression.Lambda<Action<TModel, TProperty?>>(assignExpr, modelParam, valueParam).Compile();
         }
 
-        private static Expression ReplaceParameter(Expression expr, ParameterExpression oldParam, ParameterExpression newParam)
+        private static Expression? ReplaceParameter(Expression? expr, ParameterExpression oldParam, ParameterExpression newParam)
         {
             if (expr == oldParam) return newParam;
             if (expr is MemberExpression me)

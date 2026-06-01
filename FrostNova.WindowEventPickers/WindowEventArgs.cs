@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -15,14 +15,14 @@ namespace FrostNova.WindowEventPickers
 
         public DateTime LastChangedTime { get; }
 
-        public Process PreviousProcess { get; }
+        public Process? PreviousProcess { get; }
 
         public string PreviousWindowTitle { get; }
 
         //public string BrowserUrl { get; }
 
 
-        public WindowEventArgs(Process process, string windowTitle, Process previoudProcess, string previousWindowTitle)
+        public WindowEventArgs(Process process, string windowTitle, Process? previoudProcess, string previousWindowTitle)
         {
             Process = process;
             WindowTitle = windowTitle;
