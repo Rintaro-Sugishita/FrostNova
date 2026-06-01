@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:att="clr-namespace:FrostNova.Core.Wpf.AttachedProperties;assembly=FrostNova.Core.Wpf"
     xmlns:behaviors="clr-namespace:FrostNova.Core.Wpf.Behaviors;assembly=FrostNova.Core.Wpf"
+    xmlns:common="clr-namespace:FrostNova.Core.Wpf.Common;assembly=FrostNova.Core.Wpf"
     xmlns:conv="clr-namespace:FrostNova.Core.Wpf.Controls.Converters;assembly=FrostNova.Core.Wpf.Controls"
     xmlns:ctrls="clr-namespace:FrostNova.Core.Wpf.Controls;assembly=FrostNova.Core.Wpf.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -19,6 +20,7 @@
         <local:MainWindowViewModel />
     </Window.DataContext>
     <Window.Resources>
+        <common:BindingProxy x:Key="viewModelProxy" Data="{Binding}" />
         <sys:TimeSpan x:Key="timeOne">01:30:00</sys:TimeSpan>
         <sys:TimeSpan x:Key="minValueSource">00:00:00</sys:TimeSpan>
         <sys:TimeSpan x:Key="maxValueSource">24:00:00</sys:TimeSpan>
@@ -89,7 +91,7 @@
 
             </TabItem>
 
-            <TabItem Header="Limit TextBox"  IsSelected="True">
+            <TabItem Header="Limit TextBox">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
@@ -177,7 +179,7 @@
                     </StackPanel>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="DataGrid1">
+            <TabItem Header="DataGrid1" IsSelected="True">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
@@ -186,24 +188,36 @@
                     <DataGrid
                         att:DataGridEx.SelectedItems="{Binding SelectedSamples}"
                         att:DataGridEx.SelectedItemsChangeCommand="{Binding SelectedItemsChangedCommand}"
+                        att:DataGridEx.IsEditOnEnter="{Binding ElementName=alwaysEditCheckbox, Path=IsChecked}"
                         ItemsSource="{Binding Samples}">
                         <i:Interaction.Behaviors>
                             <behaviors:DataGridRowNumberDisplayBehavior />
                         </i:Interaction.Behaviors>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Binding="{Binding ColumnValue}" Header="Column1" />
-                            <DataGridTextColumn Binding="{Binding NumValue}" Header="Column2">
-                                <DataGridTextColumn.EditingElementStyle>
-                                    <Style TargetType="{x:Type TextBox}">
-                                        <Setter Property="Padding" Value="0" />
-                                    </Style>
-                                </DataGridTextColumn.EditingElementStyle>
-                            </DataGridTextColumn>
+                            <ctrls:FrostNovaDataGridTextBoxColumn Binding="{Binding ColumnValue}" Header="Column1" />
+                            <ctrls:FrostNovaDataGridTextBoxColumn Binding="{Binding NumValue}" Header="Column2"
+                                                                  TextBlock.TextAlignment="Right"
+                                                                  >
+                            </ctrls:FrostNovaDataGridTextBoxColumn>
                             <ctrls:FrostNovaDataGridTextBoxColumn
                                 Binding="{Binding MultiLineText}"
-                                CanLineBreak="True"
+                                CanLineBreak="{Binding Data.CanLineBreak, Source={StaticResource viewModelProxy}, Mode=TwoWay}"
                                 Header="custom1"
-                                IsEditOnEnter="False" />
+                                />
+                            <DataGridTemplateColumn>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition />
+                                                <RowDefinition />
+                                            </Grid.RowDefinitions>
+                                            <TextBox />
+                                            <TextBox Grid.Row="1" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
 
 
@@ -224,8 +238,8 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                         <StackPanel Grid.Row="1">
-                            <CheckBox x:Name="lineBreakCheckbox" Content="CanLineBreak" />
-                            <CheckBox x:Name="alwaysEditCheckbox" Content="AlwaysEdit" />
+                            <CheckBox Content="CanLineBreak" IsChecked="{Binding CanLineBreak, Mode=TwoWay}" />
+                            <CheckBox x:Name="alwaysEditCheckbox" Content="AlwaysEdit" IsChecked="True" />
                         </StackPanel>
 
                     </Grid>
@@ -240,6 +254,7 @@
                     <DataGrid
                         att:DataGridEx.ExtColumns="{Binding ExtCols}"
                         att:DataGridEx.ExtColumnInsertIndex="1"
+                        att:DataGridEx.IsEditOnEnter="{Binding IsChecked, ElementName=editOnEnterCheckBox}"
                         ItemsSource="{Binding Samples2}">
                         <i:Interaction.Behaviors>
                             <behaviors:DataGridRowNumberDisplayBehavior />
@@ -259,6 +274,7 @@
                             <ComboBox ItemsSource="{Binding ColTypes}" SelectedValue="{Binding SelectedColType}" />
                             <Button Command="{Binding AddCustomColumnCommand}" >Add</Button>
                             <Button Command="{Binding ApplyToCommand}" >apply to aaa</Button>
+                            <CheckBox Content="AlwaysEdit" x:Name="editOnEnterCheckBox" />
                         </StackPanel>
 
                     </Grid>

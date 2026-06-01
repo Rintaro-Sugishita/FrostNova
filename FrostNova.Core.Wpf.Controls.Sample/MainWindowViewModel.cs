@@ -51,6 +51,9 @@ namespace FrostNova.Core.Wpf.Controls.Sample
         [ObservableProperty]
         private AllowedCharTypes _testCharType = AllowedCharTypes.All;
 
+        [ObservableProperty]
+        private bool _canLineBreak;
+
         [RelayCommand]
         private void ShowColorDialog()
         {
