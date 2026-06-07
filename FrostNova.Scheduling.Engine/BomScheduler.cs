@@ -48,7 +48,7 @@ public static class BomScheduler
     /// <param name="isForward">A value indicating whether to schedule forward (from earliest possible date) or backward (from latest possible
     /// date).</param>
     /// <param name="unit">The minimum time unit for scheduling operations. Used as the default lead time if not specified for a step.</param>
-    public static void Schedule<TBom, TBomKey, TOperation, TOperationKey>
+    public static IReadOnlyList<ScheduleViolationInfo> Schedule<TBom, TBomKey, TOperation, TOperationKey>
 (
         IEnumerable<TBom> targetNodes,
         IEnumerable<TBom> referenceNodes,
@@ -63,6 +63,7 @@ public static class BomScheduler
         where TOperation : IProcessStep<TOperationKey>
         where TBomKey : notnull
     {
+        var violations = new List<ScheduleViolationInfo>();
         var resourceManager = new ResourceScheduler(unit, resourceNonWorkingGetter, comparers);
 
         // 既存予約（referenceNodes）の登録
@@ -195,6 +196,18 @@ public static class BomScheduler
             item.Step.LineId = result.LineId;
             item.Step.MemberId = result.MemberId;
 
+            // 制約違反を記録
+            if (result.Violation != ScheduleViolationType.None)
+            {
+                var constraintDate = result.Violation == ScheduleViolationType.DeadlineMiss
+                    ? (item.Info.Mode == BaseDateMode.Deadline ? item.Info.BaseDate : stepCursors[item.Step])
+                    : stepCursors[item.Step];
+                var actualDate = result.Violation == ScheduleViolationType.DeadlineMiss
+                    ? result.End
+                    : result.Start;
+                violations.Add(new ScheduleViolationInfo(item.Step.Id!, result.Violation, constraintDate, actualDate));
+            }
+
             foreach (var other in item.Node.ProcessSteps)
             {
                 if (object.ReferenceEquals(other, item.Step)) continue;
@@ -214,13 +227,15 @@ public static class BomScheduler
             }
 
             // --- 計算結果を他の全工程へ伝播させる ---
-            PropagateConstraints<TBom, TBomKey, TOperation, TOperationKey>(item.Node, item.Step, isForward, stepCursors);
+            PropagateConstraints<TBom, TBomKey, TOperation, TOperationKey>(item.Node, item.Step, isForward, stepCursors, useForwardForLinks: useForward);
 
             // リソース予約の確定
-            resourceManager.Book<TOperation, TOperationKey>(item.Step, result.LineId, result.MemberId);
+            resourceManager.Book<TOperation, TOperationKey>(item.Step, result.LineId, result.MemberId, result.EffectiveSetupTime, result.EffectivePostSetupTime);
 
             completedSteps.Add(currentStep);
         }
+
+        return violations;
     }
 
     /// <summary>
@@ -230,7 +245,8 @@ public static class BomScheduler
         TBom currentNode,
         TOperation calculatedStep,
         bool isForward,
-        Dictionary<TOperation, DateTime> stepConstraints)
+        Dictionary<TOperation, DateTime> stepConstraints,
+        bool useForwardForLinks = true)
         where TBom : class, IBomNode<TBom, TBomKey, TOperationKey, TOperation>
         where TOperation : IProcessStep<TOperationKey>
         where TBomKey : notnull
@@ -239,7 +255,7 @@ public static class BomScheduler
         var start = calculatedStep.Start ?? DateTime.MinValue;
         var end = calculatedStep.End ?? DateTime.MaxValue;
 
-        // 1. 同一ノード内の他のステップへの伝播
+        // 1. 同一ノード内の他のステップへの伝播（StepOrder ベースの FS 制約）
         foreach (var other in currentNode.ProcessSteps)
         {
             if (object.ReferenceEquals(other, calculatedStep)) continue;
@@ -247,7 +263,6 @@ public static class BomScheduler
             if (other.StepOrder < calculatedStep.StepOrder)
             {
                 // 先行工程に対して：今回の開始日以前に終わらなければならない (Min)
-                //if (start < stepConstraints[other]) stepConstraints[other] = start;
                 var gap = other.PostSetupTime + other.PostBuffer + calculatedStep.PreBuffer + calculatedStep.SetupTime;
                 var latestEnd = start - gap;
                 if (latestEnd < stepConstraints[other]) stepConstraints[other] = latestEnd;
@@ -255,10 +270,33 @@ public static class BomScheduler
             else if (other.StepOrder > calculatedStep.StepOrder)
             {
                 // 後続工程に対して：今回の終了日以降に始めなければならない (Max)
-                //if (end > stepConstraints[other]) stepConstraints[other] = end;
                 var gap = calculatedStep.PostSetupTime + calculatedStep.PostBuffer + other.PreBuffer + other.SetupTime;
                 var earliestStart = end + gap;
                 if (earliestStart > stepConstraints[other]) stepConstraints[other] = earliestStart;
+            }
+        }
+
+        // 1b. StepLinks による明示的な依存制約（SS/FF/SF）
+#pragma warning disable CS8714
+        var stepById = currentNode.ProcessSteps.ToDictionary(s => s.Id!);
+#pragma warning restore CS8714
+        foreach (var link in currentNode.StepLinks)
+        {
+            // calculatedStep が From 側の場合：To 側に制約を伝播
+            if (link.FromStepId is TOperationKey fromId && EqualityComparer<TOperationKey>.Default.Equals(fromId, calculatedStep.Id))
+            {
+                if (link.ToStepId is TOperationKey toId && stepById.TryGetValue(toId, out var toStep) && stepConstraints.ContainsKey(toStep))
+                {
+                    ApplyStepLinkConstraint(link.Type, link.Lag, start, end, toStep, stepConstraints, isForward: useForwardForLinks);
+                }
+            }
+            // calculatedStep が To 側の場合：From 側に制約を伝播（逆向き）
+            else if (link.ToStepId is TOperationKey toId2 && EqualityComparer<TOperationKey>.Default.Equals(toId2, calculatedStep.Id))
+            {
+                if (link.FromStepId is TOperationKey fromId2 && stepById.TryGetValue(fromId2, out var fromStep) && stepConstraints.ContainsKey(fromStep))
+                {
+                    ApplyStepLinkConstraint(link.Type, link.Lag, start, end, fromStep, stepConstraints, isForward: !useForwardForLinks);
+                }
             }
         }
 
@@ -291,6 +329,65 @@ public static class BomScheduler
         }
     }
 
+
+    /// <summary>
+    /// StepLink の種別に応じた制約を対象ステップの stepConstraints に反映する。
+    /// </summary>
+    private static void ApplyStepLinkConstraint<TStep>(
+        StepDependencyType type,
+        TimeSpan lag,
+        DateTime fromStart,
+        DateTime fromEnd,
+        TStep targetStep,
+        Dictionary<TStep, DateTime> stepConstraints,
+        bool isForward)
+        where TStep : notnull
+    {
+        switch (type)
+        {
+            case StepDependencyType.FinishToStart:
+                // To.Start >= From.End + lag
+                var fsConstraint = fromEnd + lag;
+                if (fsConstraint > stepConstraints[targetStep]) stepConstraints[targetStep] = fsConstraint;
+                break;
+
+            case StepDependencyType.StartToStart:
+                if (isForward)
+                {
+                    // To.Start >= From.Start + lag
+                    var ssConstraint = fromStart + lag;
+                    if (ssConstraint > stepConstraints[targetStep]) stepConstraints[targetStep] = ssConstraint;
+                }
+                else
+                {
+                    // From.Start <= To.Start - lag (逆方向：From の締め切りを絞る)
+                    var ssConstraint = fromEnd - lag;
+                    if (ssConstraint < stepConstraints[targetStep]) stepConstraints[targetStep] = ssConstraint;
+                }
+                break;
+
+            case StepDependencyType.FinishToFinish:
+                if (isForward)
+                {
+                    // To.End >= From.End + lag → To の着手可能日を From.End + lag - To.LeadTime に相当する値で制約
+                    var ffConstraint = fromEnd + lag;
+                    if (ffConstraint > stepConstraints[targetStep]) stepConstraints[targetStep] = ffConstraint;
+                }
+                else
+                {
+                    // From.End <= To.End - lag (逆方向)
+                    var ffConstraint = fromStart - lag;
+                    if (ffConstraint < stepConstraints[targetStep]) stepConstraints[targetStep] = ffConstraint;
+                }
+                break;
+
+            case StepDependencyType.StartToFinish:
+                // To.End >= From.Start + lag
+                var sfConstraint = fromStart + lag;
+                if (sfConstraint > stepConstraints[targetStep]) stepConstraints[targetStep] = sfConstraint;
+                break;
+        }
+    }
 
     /// <summary>
     /// 伝播された基準日と、ユーザー指定の基準日を比較し、より厳しい方の制約を返します。
@@ -485,15 +582,18 @@ public static class BomScheduler
         /// specific line.</param>
         /// <param name="memberId">An optional identifier for the resource member to associate with the booking. Can be null to indicate no
         /// specific member.</param>
-        public void Book<TOperation, TOperationKey>(TOperation step, object? lineId, object? memberId)
+        public void Book<TOperation, TOperationKey>(TOperation step, object? lineId, object? memberId, TimeSpan? effectiveSetupTime = null, TimeSpan? effectivePostSetupTime = null)
                     where TOperation : IProcessStep<TOperationKey>
         {
             if (step.LeadTime == null || !step.Start.HasValue || !step.End.HasValue) return;
 
+            var setup = effectiveSetupTime ?? step.SetupTime;
+            var postSetup = effectivePostSetupTime ?? step.PostSetupTime;
+
             var range = new TimeRangeInstance
             {
-                Start = step.Start - step.SetupTime,
-                End = step.End + step.PostSetupTime
+                Start = step.Start - setup,
+                End = step.End + postSetup
             };
             foreach (var key in GetSelectedResourceKeys(lineId, memberId))
             {
@@ -544,23 +644,27 @@ public static class BomScheduler
                     // 効率を加味した実際の所要時間を計算
                     var actualDuration = CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, totalEfficiency);
 
+                    // 段取り時間に効率を適用するかどうかに応じて実効段取り時間を算出
+                    var effectiveSetup = step.ScaleSetupByEfficiency
+                        ? TimeSpan.FromTicks((long)(step.SetupTime.Ticks / Math.Max(0.01, totalEfficiency)))
+                        : step.SetupTime;
+                    var effectivePostSetup = step.ScaleSetupByEfficiency
+                        ? TimeSpan.FromTicks((long)(step.PostSetupTime.Ticks / Math.Max(0.01, totalEfficiency)))
+                        : step.PostSetupTime;
+
                     // リソースを占有すべき全時間を計算 (Setup + Lead + PostSetup)
-                    var totalOccupancy = step.SetupTime + actualDuration + step.PostSetupTime;
+                    var totalOccupancy = effectiveSetup + actualDuration + effectivePostSetup;
+
+                    var (foundStart, foundEnd, violation) = FindFirstAvailableStart(keys, startCursor, totalOccupancy, step.BatchCapacity, latestFinish);
 
 
-                    // 2. 検索。LeadTimeがnull（マイルストーン等）なら最小単位で検索
-                    var searchDuration = (step.LeadTime == null) ? _unit : totalOccupancy;
+                    var leadStart = foundStart.Add(effectiveSetup);
+                    var leadEnd = foundEnd.Subtract(effectivePostSetup);
 
-                    var (foundStart, foundEnd) = FindFirstAvailableStart(keys, startCursor, totalOccupancy, step.BatchCapacity, latestFinish);
-
-
-                    var leadStart = foundStart.Add(step.SetupTime);
-                    var leadEnd = foundEnd.Subtract(step.PostSetupTime);
-
-                    // 「最も早く終わる」組み合わせを保持iya
+                    // 「最も早く終わる」組み合わせを保持
                     if (bestResult == null || leadEnd < bestResult.Value.End)
                     {
-                        bestResult = new ScheduleResult(leadStart, leadEnd, line.Id, member.Id, actualDuration);
+                        bestResult = new ScheduleResult(leadStart, leadEnd, line.Id, member.Id, actualDuration, violation, effectiveSetup, effectivePostSetup);
                     }
                 }
 
@@ -602,21 +706,29 @@ public static class BomScheduler
 
                     // 効率を加味した実際の所要時間を計算
                     var actualDuration = CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, totalEfficiency);
+
+                    // 段取り時間に効率を適用するかどうかに応じて実効段取り時間を算出
+                    var effectiveSetup = step.ScaleSetupByEfficiency
+                        ? TimeSpan.FromTicks((long)(step.SetupTime.Ticks / Math.Max(0.01, totalEfficiency)))
+                        : step.SetupTime;
+                    var effectivePostSetup = step.ScaleSetupByEfficiency
+                        ? TimeSpan.FromTicks((long)(step.PostSetupTime.Ticks / Math.Max(0.01, totalEfficiency)))
+                        : step.PostSetupTime;
+
                     // リソースを占有すべき全時間を計算 (Setup + Lead + PostSetup)
-                    var totalOccupancy = step.SetupTime + actualDuration + step.PostSetupTime;
-                    var searchDuration = (step.LeadTime == null) ? _unit : totalOccupancy;
+                    var totalOccupancy = effectiveSetup + actualDuration + effectivePostSetup;
 
                     // 2. 探索。endCursorから遡って searchDuration 分の空きを探す
-                    var (foundStart, foundEnd) = FindFirstAvailableEnd(keys, endCursor, totalOccupancy, step.BatchCapacity, earliestStart);
+                    var (foundStart, foundEnd, violation) = FindFirstAvailableEnd(keys, endCursor, totalOccupancy, step.BatchCapacity, earliestStart);
 
                     // 3. スケジュール結果の算出
                     // LeadTimeの終了 = 見つかった枠の末尾 - PostSetupTime
-                    var leadEnd = foundEnd.Subtract(step.PostSetupTime);
-                    var leadStart = foundStart.Subtract(step.SetupTime);
+                    var leadEnd = foundEnd.Subtract(effectivePostSetup);
+                    var leadStart = foundStart.Subtract(effectiveSetup);
 
                     if (bestResult == null || leadEnd > bestResult.Value.End)
                     {
-                        bestResult = new ScheduleResult(leadStart, leadEnd, line.Id, member.Id, actualDuration);
+                        bestResult = new ScheduleResult(leadStart, leadEnd, line.Id, member.Id, actualDuration, violation, effectiveSetup, effectivePostSetup);
                     }
 
                 }
@@ -649,7 +761,7 @@ public static class BomScheduler
         /// <returns>A tuple containing the start and end date-times of the first available window that meets the specified
         /// criteria. The window is guaranteed to fall within working hours and not exceed the latest finish time if
         /// provided.</returns>
-        private (DateTime Start, DateTime End) FindFirstAvailableStart(List<ResourceKey> keys, DateTime start, TimeSpan duration, double capacity, DateTime? latestFinish)
+        private (DateTime Start, DateTime End, ScheduleViolationType Violation) FindFirstAvailableStart(List<ResourceKey> keys, DateTime start, TimeSpan duration, double capacity, DateTime? latestFinish)
         {
             // 1. まず開始地点を稼働時間（非稼働じゃない時間）まで進める
             var currentStart = MoveToAvailableSlot(keys, start, true);
@@ -661,9 +773,7 @@ public static class BomScheduler
 
                 if (latestFinish.HasValue && endCandidate > latestFinish.Value)
                 {
-                    // 本来はエラーを投げるか、最小限の期間を確保して親の開始日に合わせる
-                    // 今回は整合性を優先し、親の開始日に強制クリップする（または例外）
-                    return (latestFinish.Value.Subtract(duration), latestFinish.Value);
+                    return (latestFinish.Value.Subtract(duration), latestFinish.Value, ScheduleViolationType.DeadlineMiss);
                 }
                 // 3. 衝突を確認
                 var collision = FindCollisionWithBatch(keys, currentStart, endCandidate, capacity);
@@ -671,7 +781,7 @@ public static class BomScheduler
                 if (collision == null || IsCalendarHoliday(keys, collision))
                 {
                     // 衝突がない、またはカレンダーの休みの場合は、この開始・終了ペアが正解
-                    return (currentStart, endCandidate);
+                    return (currentStart, endCandidate, ScheduleViolationType.None);
                 }
 
                 // 衝突したのが「カレンダー（休日や昼休み）」である場合、
@@ -687,7 +797,7 @@ public static class BomScheduler
         /// <summary>
         /// 指定された期間内で、最も遅い完了時間を探索する（バックワードコアロジック）
         /// </summary>
-        private (DateTime Start, DateTime End) FindFirstAvailableEnd(List<ResourceKey> keys, DateTime end, TimeSpan duration, double capacity, DateTime? earliestStart)
+        private (DateTime Start, DateTime End, ScheduleViolationType Violation) FindFirstAvailableEnd(List<ResourceKey> keys, DateTime end, TimeSpan duration, double capacity, DateTime? earliestStart)
         {
             var currentEnd = MoveToAvailableSlot(keys, end, false);
             while (true)
@@ -696,16 +806,14 @@ public static class BomScheduler
 
                 if (earliestStart.HasValue && startCandidate < earliestStart.Value)
                 {
-                    // 本来はエラーを投げるか、最小限の期間を確保して親の開始日に合わせる
-                    // 今回は整合性を優先し、親の開始日に強制クリップする（または例外）
-                    return (earliestStart.Value.Subtract(duration), earliestStart.Value);
+                    return (earliestStart.Value, earliestStart.Value.Add(duration), ScheduleViolationType.EarliestStartViolation);
                 }
                 var collision = FindCollisionWithBatch(keys, startCandidate, currentEnd, capacity);
 
                 if (collision == null || IsCalendarHoliday(keys, collision))
                 {
                     // 衝突がない、またはカレンダー由来の休みの場合は、このペアを返す
-                    return (startCandidate, currentEnd);
+                    return (startCandidate, currentEnd, ScheduleViolationType.None);
                 }
                 // 衝突があった場合は、衝突の開始点（Start）からさらに前（過去）を探す
                 currentEnd = RoundDown(collision.Start ?? currentEnd.Subtract(_unit), _unit);
@@ -814,10 +922,26 @@ public static class BomScheduler
                     var overlaps = usages.Where(u => IsOverlap(u, start, end)).ToList();
                     if (overlaps.Count > 0)
                     {
-                        // 容量1以下（排他）なら即衝突。バッチなら件数で判定。
-                        if (capacity <= 1 || overlaps.Count >= capacity)
+                        if (capacity <= 1)
                         {
-                            // 予約との衝突が見つかったら、即座にこの「予約」を返す
+                            // 排他リソース：1件でも重なれば衝突
+                            return overlaps[0];
+                        }
+
+                        // バッチリソース：時系列スイープで最大同時稼働数を算出
+                        // （A=10-11, B=11-12 の2件は count=2 だが同時には1件しか稼働しない）
+                        int maxConcurrent = 0;
+                        var cursor = start;
+                        while (cursor < end)
+                        {
+                            var sliceEnd = cursor.Add(_unit);
+                            var concurrentCount = overlaps.Count(u => IsOverlap(u, cursor, sliceEnd));
+                            if (concurrentCount > maxConcurrent) maxConcurrent = concurrentCount;
+                            cursor = sliceEnd;
+                        }
+
+                        if (maxConcurrent >= capacity)
+                        {
                             return overlaps[0];
                         }
                     }
@@ -923,8 +1047,15 @@ public static class BomScheduler
             public object? LineId;
             public object? MemberId;
             public TimeSpan WorkingSpan;
+            public ScheduleViolationType Violation;
+            public TimeSpan EffectiveSetupTime;
+            public TimeSpan EffectivePostSetupTime;
 
-            public ScheduleResult(DateTime s, DateTime e, object? l, object? m, TimeSpan workingSpan) { Start = s; End = e; LineId = l; MemberId = m; WorkingSpan = workingSpan; }
+            public ScheduleResult(DateTime s, DateTime e, object? l, object? m, TimeSpan workingSpan, ScheduleViolationType violation = ScheduleViolationType.None, TimeSpan effectiveSetup = default, TimeSpan effectivePostSetup = default)
+            {
+                Start = s; End = e; LineId = l; MemberId = m; WorkingSpan = workingSpan; Violation = violation;
+                EffectiveSetupTime = effectiveSetup; EffectivePostSetupTime = effectivePostSetup;
+            }
         }
     }
 }
