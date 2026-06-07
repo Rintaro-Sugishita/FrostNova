@@ -69,27 +69,26 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
 
 
 
-            if (ruledLines?.Count > 0)
+            if (ruledLines == null || ruledLines.Count == 0) return 0.0;
+
+            if (time < ruledLines[0]) return 0.0;
+            if (time >= ruledLines[ruledLines.Count - 1])
+                return widthPerRuledLine * (ruledLines.Count - 1);
+
+            var nextPoint = ruledLines.FirstOrDefault<DateTime>(x => x >= time);
+            var nextPointIndex = -1;
+            if (nextPoint != default)
             {
-                //ショートカットできるか確認
+                nextPointIndex = ruledLines.IndexOf(nextPoint);
+            }
+            DateTime? firstPoint = 0 <= nextPointIndex - 1 ? ruledLines[nextPointIndex - 1] : null;
 
-                var nextPoint = ruledLines.FirstOrDefault<DateTime>(x => x >= time);
-                var nextPointIndex = -1;
-                if (nextPoint != default)
-                {
-                    nextPointIndex = ruledLines.IndexOf(nextPoint);
-                }
-                DateTime? firstPoint = 0 <= nextPointIndex - 1 ? ruledLines[nextPointIndex - 1] : null;
+            double frameLeftPoint = (nextPointIndex - 1) * widthPerRuledLine;
 
-                //point内では均等
-                double innerPoint = double.NaN;
-                double frameLeftPoint = (nextPointIndex - 1) * widthPerRuledLine;
-
-                if (firstPoint != null && nextPoint != default)
-                {
-                    innerPoint = TimeToPoint(time, firstPoint.Value, nextPoint, widthPerRuledLine);
-                    return innerPoint + frameLeftPoint;
-                }
+            if (firstPoint != null && nextPoint != default)
+            {
+                double innerPoint = TimeToPoint(time, firstPoint.Value, nextPoint, widthPerRuledLine);
+                return innerPoint + frameLeftPoint;
             }
 
             return 0.0;
