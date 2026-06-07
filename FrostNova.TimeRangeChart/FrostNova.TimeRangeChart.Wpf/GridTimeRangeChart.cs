@@ -811,7 +811,7 @@ namespace FrostNova.TimeRangeChart.Wpf
 
             }
 
-            CurrentCenterTime = _chart.CurrenCenterTime;
+            CurrentCenterTime = _chart.CurrentCenterTime;
             CurrentLeftTime = _chart.CurrentFirstTime;
             CurrentRightTime = _chart.CurrentLastTime;
 

@@ -202,7 +202,7 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
                     {
                         int days = DateTime.DaysInMonth(year, month);
                         ticks.Add(monthStart);
-                        ticks.Add(monthStart.AddDays(days / 2.0));
+                        ticks.Add(monthStart.AddDays((int)(days / 2.0)));
                         break;
                     }
 
@@ -211,7 +211,7 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
                         int days = DateTime.DaysInMonth(year, month);
                         for (int i = 0; i < 4; i++)
                         {
-                            ticks.Add(monthStart.AddDays(days * i / 4.0));
+                            ticks.Add(monthStart.AddDays((int)(days * i / 4.0)));
                         }
                         break;
                     }
