@@ -56,6 +56,12 @@ public interface IProcessStep<TKey> : IPendingTimeRange
 
     public object? LineId { get; set; }
     public object? MemberId { get; set; }
+
+    /// <summary>
+    /// SetupTime と PostSetupTime にもリソース効率を適用するかどうか。
+    /// true の場合、段取り時間も LeadTime と同様に効率で割り算される。
+    /// </summary>
+    bool ScaleSetupByEfficiency => false;
 }
 public interface IProcessStep<TKey, TMachine, TMember> : IProcessStep<TKey>, IResourceConstraint
 {
