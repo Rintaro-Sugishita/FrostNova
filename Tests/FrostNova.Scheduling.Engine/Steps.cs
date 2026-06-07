@@ -31,6 +31,8 @@ public class MyStep : IProcessStep<string>, IResourceConstraint
 
     public IEnumerable<(object? Id, double Efficiency)> GetLineCandidates() => Lines;
     public IEnumerable<(object? Id, double Efficiency)> GetMemberCandidates() => Members;
+
+    public bool ScaleSetupByEfficiency { get; set; } = false;
 }
 
 [DebuggerDisplay("Id: {Id}, Level: {Level}, Priority: {Priority}, Steps: {ProcessSteps.Count}")]
@@ -42,6 +44,7 @@ public class MyBom : IBomNode<MyBom,string, string, MyStep>
     public MyBom? Parent { get; set; }
     public List<MyBom> Children { get; set; } = new();
     public List<MyStep> ProcessSteps { get; set; } = new();
+    public IEnumerable<IStepLink<string>> StepLinks { get; set; } = Enumerable.Empty<IStepLink<string>>();
 
 }
 
