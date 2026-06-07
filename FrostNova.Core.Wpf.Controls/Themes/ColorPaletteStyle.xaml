@@ -1,94 +1,118 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib"
-                    xmlns:local="clr-namespace:FrostNova.Core.Wpf.Controls"
-                    >
+                    xmlns:local="clr-namespace:FrostNova.Core.Wpf.Controls">
 
     <x:Array Type="Color" x:Key="foregroundList">
-        <Color >Black</Color>
-        <Color >Gray</Color>
-        <Color >Red</Color>
-        <Color >Orange</Color>
-        <Color >Yellow</Color>
-        <Color >GreenYellow</Color>
-        <Color >Green</Color>
-        <Color >Aqua</Color>
-        <Color >Blue</Color>
-        <Color >DarkViolet</Color>
-        <Color >Indigo</Color>
+        <Color>Black</Color>
+        <Color>Gray</Color>
+        <Color>Red</Color>
+        <Color>Orange</Color>
+        <Color>Yellow</Color>
+        <Color>GreenYellow</Color>
+        <Color>Green</Color>
+        <Color>Aqua</Color>
+        <Color>Blue</Color>
+        <Color>DarkViolet</Color>
+        <Color>Indigo</Color>
     </x:Array>
 
     <x:Array Type="Color" x:Key="backgroundList">
-        <Color >White</Color>
-        <Color >#F7C7C7</Color>
-        <Color >#FEF4AD</Color>
-        <Color >#87C9A5</Color>
-        <Color >#B9E3F9</Color>
-        <Color >#FACD89</Color>
-        <Color >#D2CCE6</Color>
-        <Color >#CEDE4A</Color>
-        <Color >#FF99FF</Color>
-        <Color >#00F0EA</Color>
-        <Color >#B56BFF</Color>
+        <Color>White</Color>
+        <Color>#F7C7C7</Color>
+        <Color>#FEF4AD</Color>
+        <Color>#87C9A5</Color>
+        <Color>#B9E3F9</Color>
+        <Color>#FACD89</Color>
+        <Color>#D2CCE6</Color>
+        <Color>#CEDE4A</Color>
+        <Color>#FF99FF</Color>
+        <Color>#00F0EA</Color>
+        <Color>#B56BFF</Color>
     </x:Array>
 
-    <sys:Double x:Key="circleSize">16.0</sys:Double>
-
-
+    <!-- ListBoxItem: 選択ハイライトを除去してスウォッチだけ表示 -->
+    <Style x:Key="colorSwatchItemStyle" TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <ContentPresenter/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
     <Style TargetType="{x:Type ListBox}" x:Key="selectColorListBox">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ItemContainerStyle" Value="{StaticResource colorSwatchItemStyle}"/>
         <Setter Property="ItemsPanel">
             <Setter.Value>
                 <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" />
+                    <WrapPanel Orientation="Horizontal"/>
                 </ItemsPanelTemplate>
             </Setter.Value>
         </Setter>
-
         <Setter Property="ItemTemplate">
             <Setter.Value>
                 <DataTemplate DataType="{x:Type Color}">
-                    <Button Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:ColorPalette}}, Path=SelectColorCommand}" CommandParameter="{Binding }">
+                    <Button Margin="1"
+                            Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:ColorPalette}}, Path=SelectColorCommand}"
+                            CommandParameter="{Binding}">
                         <Button.Style>
                             <Style TargetType="{x:Type Button}">
                                 <Setter Property="Template">
                                     <Setter.Value>
-                                        <ControlTemplate>
-                                            <Ellipse Height="{StaticResource circleSize}" Width="{StaticResource circleSize}"                                             
-                                                     StrokeThickness="1"
-                                                     Stroke="DarkGray"                             
-                                                                     >
-                                                <Ellipse.Fill>
-                                                    <SolidColorBrush Color="{Binding}" />
-                                                </Ellipse.Fill>
-                                            </Ellipse>
+                                        <ControlTemplate TargetType="{x:Type Button}">
+                                            <Border x:Name="swatchBorder"
+                                                    Width="18" Height="18"
+                                                    CornerRadius="2"
+                                                    BorderThickness="1"
+                                                    BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}">
+                                                <Border.Background>
+                                                    <SolidColorBrush Color="{Binding}"/>
+                                                </Border.Background>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="swatchBorder" Property="BorderBrush"
+                                                            Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                                                    <Setter TargetName="swatchBorder" Property="BorderThickness" Value="2"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
                                         </ControlTemplate>
                                     </Setter.Value>
                                 </Setter>
                             </Style>
                         </Button.Style>
-                        
                     </Button>
                 </DataTemplate>
             </Setter.Value>
         </Setter>
     </Style>
 
-
     <Style TargetType="{x:Type local:ColorPalette}" x:Key="defaultColorPaletteStyle">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:ColorPalette}">
-                    <StackPanel Background="{TemplateBinding Background}">
-                        <ListBox ItemsSource="{StaticResource foregroundList}" Style="{StaticResource selectColorListBox}" />
-                        <ListBox ItemsSource="{StaticResource backgroundList}" Style="{StaticResource selectColorListBox}" />
-                        <ListBox ItemsSource="{TemplateBinding RecentlyUsedColors}" Style="{StaticResource selectColorListBox}" />
+                    <StackPanel Margin="8,6,8,4">
+                        <ListBox ItemsSource="{StaticResource foregroundList}" Style="{StaticResource selectColorListBox}"/>
+                        <ListBox ItemsSource="{StaticResource backgroundList}" Style="{StaticResource selectColorListBox}" Margin="0,2,0,0"/>
+                        <Border Height="1" Background="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}" Margin="0,5,0,3"/>
+                        <TextBlock Text="最近使用"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                                   Margin="0,0,0,2"/>
+                        <ListBox ItemsSource="{TemplateBinding RecentlyUsedColors}" Style="{StaticResource selectColorListBox}" MinHeight="18"/>
                     </StackPanel>
-
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
-
 
 </ResourceDictionary>

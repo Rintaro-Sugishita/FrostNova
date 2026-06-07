@@ -34,9 +34,13 @@ namespace FrostNova.Core.Wpf.Converters
             bool isShowDay = false;
 
 
-            if (values.Length > 0 && values[0] is TimeSpan)
+            if (values.Length > 0 && values[0] is TimeSpan ts)
             {
-                time = (TimeSpan)values[0];
+                time = ts;
+            }
+            else if (values.Length > 0 && values[0] is DateTime dt)
+            {
+                time = dt.TimeOfDay;
             }
 
             if (values.Length > 1 && values[1] is bool)
@@ -46,7 +50,7 @@ namespace FrostNova.Core.Wpf.Converters
 
             if (values.Length > 2 && values[2] is bool)
             {
-                isShowDay = (bool)values[1];
+                isShowDay = (bool)values[2];
             }
 
             string text = Convert(time, isShowSecond, isShowDay);

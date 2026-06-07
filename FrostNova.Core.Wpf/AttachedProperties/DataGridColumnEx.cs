@@ -84,6 +84,54 @@ namespace FrostNova.Core.Wpf.AttachedProperties
             }
         }
 
+        /// <summary>
+        /// プログラマーがユーザー操作より優先して表示状態を強制したい列に設定する。
+        /// セットされた列はコーナーメニューに表示されず、ユーザーの保存設定も無視される。
+        /// null の場合はユーザー設定が適用される通常動作。
+        /// </summary>
+        public static readonly DependencyProperty ForcedVisibilityProperty =
+            DependencyProperty.RegisterAttached(
+                "ForcedVisibility",
+                typeof(Visibility?),
+                typeof(DataGridColumnEx),
+                new PropertyMetadata(null, OnForcedVisibilityChanged));
+
+        public static Visibility? GetForcedVisibility(DependencyObject target)
+            => (Visibility?)target.GetValue(ForcedVisibilityProperty);
+
+        public static void SetForcedVisibility(DependencyObject target, Visibility? value)
+            => target.SetValue(ForcedVisibilityProperty, value);
+
+        // 強制前の Visibility を退避するための内部プロパティ
+        private static readonly DependencyProperty PreForcedVisibilityProperty =
+            DependencyProperty.RegisterAttached(
+                "PreForcedVisibility",
+                typeof(Visibility?),
+                typeof(DataGridColumnEx),
+                new PropertyMetadata(null));
+
+        private static void OnForcedVisibilityChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not System.Windows.Controls.DataGridColumn col) return;
+
+            if (e.NewValue is Visibility forced)
+            {
+                // 初めて強制するとき（null→値）だけ元の状態を退避する。
+                // null→値→別値 の連続変化で退避値を上書きしないようにする。
+                if (e.OldValue == null)
+                    col.SetValue(PreForcedVisibilityProperty, col.Visibility);
+
+                col.Visibility = forced;
+            }
+            else
+            {
+                // 強制解除：退避した状態に戻す。退避値がなければ Visible をデフォルトとする。
+                var before = (Visibility?)(col.GetValue(PreForcedVisibilityProperty));
+                col.Visibility = before ?? Visibility.Visible;
+                col.SetValue(PreForcedVisibilityProperty, null);
+            }
+        }
+
 
 
     }

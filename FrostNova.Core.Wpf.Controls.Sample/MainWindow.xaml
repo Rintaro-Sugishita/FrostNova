@@ -28,16 +28,95 @@
     <Grid>
         <TabControl>
             <TabItem Header="Time">
-                <StackPanel>
-                    <TextBox Text="{Binding Date}" />
-                    <ctrls:TimePicker IsPartsDateTime="True" TimeValue="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBox Text="{Binding Span}" />
-                    <ctrls:TimePicker
-                        IsPartsDateTime="False"
-                        IsShowSecond="True"
-                        TimeValue="{Binding Span, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    <ctrls:FontComboBox />
-                </StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="12" Width="500" HorizontalAlignment="Left">
+
+                        <!-- DateTime バインディング -->
+                        <TextBlock Text="DateTime バインディング" FontWeight="Bold" Margin="0,0,0,6"/>
+                        <TextBlock Text="時刻部分のみ変更し、日付（年月日）は保持されることを確認できます。" Foreground="Gray" FontSize="11" Margin="0,0,0,8"/>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="バインド先の値:" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding Date, StringFormat='yyyy-MM-dd  HH:mm:ss', TargetNullValue='(null)'}"
+                                       FontFamily="Consolas" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="TimePicker:" VerticalAlignment="Center"/>
+                            <ctrls:TimePicker Grid.Column="1"
+                                              IsPartsDateTime="True"
+                                              TimeValue="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              HorizontalAlignment="Left"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="TimePickerEditBox:" VerticalAlignment="Center"/>
+                            <ctrls:TimePickerEditBox Grid.Column="1"
+                                                     IsPartsDateTime="True"
+                                                     TimeValue="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Height="28" Width="160" HorizontalAlignment="Left"
+                                                     UpDownButtonVisibility="Visible"/>
+                        </Grid>
+
+                        <Separator Margin="0,12"/>
+
+                        <!-- TimeSpan バインディング -->
+                        <TextBlock Text="TimeSpan バインディング" FontWeight="Bold" Margin="0,0,0,6"/>
+                        <TextBlock Text="秒表示あり。TimeSpan型をそのままバインドします。" Foreground="Gray" FontSize="11" Margin="0,0,0,8"/>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="バインド先の値:" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding Span, StringFormat='hh\\:mm\\:ss', TargetNullValue='(null)'}"
+                                       FontFamily="Consolas" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="TimePicker:" VerticalAlignment="Center"/>
+                            <ctrls:TimePicker Grid.Column="1"
+                                              IsPartsDateTime="False"
+                                              IsShowSecond="True"
+                                              TimeValue="{Binding Span, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              HorizontalAlignment="Left"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="TimePickerEditBox:" VerticalAlignment="Center"/>
+                            <ctrls:TimePickerEditBox Grid.Column="1"
+                                                     IsPartsDateTime="False"
+                                                     IsShowSecond="True"
+                                                     TimeValue="{Binding Span, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Height="28" Width="160" HorizontalAlignment="Left"
+                                                     UpDownButtonVisibility="Visible"/>
+                        </Grid>
+
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
 
             <TabItem Header="TimePickerEditBox">
@@ -189,22 +268,26 @@
                         att:DataGridEx.SelectedItems="{Binding SelectedSamples}"
                         att:DataGridEx.SelectedItemsChangeCommand="{Binding SelectedItemsChangedCommand}"
                         att:DataGridEx.IsEditOnEnter="{Binding ElementName=alwaysEditCheckbox, Path=IsChecked}"
-                        ItemsSource="{Binding Samples}">
+                        ItemsSource="{Binding Samples}"
+                        behaviors:DataGridBehaviors.EnableColumnSizeSaving="True"
+att:DataGridEx.SaveKey="a1"
+                        >
                         <i:Interaction.Behaviors>
                             <behaviors:DataGridRowNumberDisplayBehavior />
+                            
                         </i:Interaction.Behaviors>
                         <DataGrid.Columns>
                             <ctrls:FrostNovaDataGridTextBoxColumn Binding="{Binding ColumnValue}" Header="Column1" />
                             <ctrls:FrostNovaDataGridTextBoxColumn Binding="{Binding NumValue}" Header="Column2"
                                                                   TextBlock.TextAlignment="Right"
-                                                                  >
-                            </ctrls:FrostNovaDataGridTextBoxColumn>
+                                                                  att:DataGridColumnEx.ForcedVisibility="{Binding Data.Column2ForcedVisibility, Source={StaticResource viewModelProxy}}"
+                                                                  />
                             <ctrls:FrostNovaDataGridTextBoxColumn
                                 Binding="{Binding MultiLineText}"
                                 CanLineBreak="{Binding Data.CanLineBreak, Source={StaticResource viewModelProxy}, Mode=TwoWay}"
                                 Header="custom1"
                                 />
-                            <DataGridTemplateColumn>
+                            <DataGridTemplateColumn att:DataGridColumnEx.Key="template1">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Grid>
@@ -240,6 +323,7 @@
                         <StackPanel Grid.Row="1">
                             <CheckBox Content="CanLineBreak" IsChecked="{Binding CanLineBreak, Mode=TwoWay}" />
                             <CheckBox x:Name="alwaysEditCheckbox" Content="AlwaysEdit" IsChecked="True" />
+                            <CheckBox x:Name="freezeCollapseCheckbox" Content="Collapse Column2" IsChecked="{Binding IsColumn2ForceCollapsed, Mode=TwoWay}" />
                         </StackPanel>
 
                     </Grid>

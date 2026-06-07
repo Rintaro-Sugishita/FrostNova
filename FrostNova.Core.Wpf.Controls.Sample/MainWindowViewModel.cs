@@ -54,6 +54,18 @@ namespace FrostNova.Core.Wpf.Controls.Sample
         [ObservableProperty]
         private bool _canLineBreak;
 
+        [ObservableProperty]
+        private bool _isColumn2ForceCollapsed = true;
+
+        partial void OnIsColumn2ForceCollapsedChanged(bool value)
+        {
+            OnPropertyChanged(nameof(Column2ForcedVisibility));
+        }
+
+        // trueなら強制非表示、falseならユーザー設定に従う（null = ForcedVisibility解除）
+        public System.Windows.Visibility? Column2ForcedVisibility
+            => _isColumn2ForceCollapsed ? System.Windows.Visibility.Collapsed : null;
+
         [RelayCommand]
         private void ShowColorDialog()
         {
@@ -63,6 +75,8 @@ namespace FrostNova.Core.Wpf.Controls.Sample
         protected override void InitializeOnExecute()
         {
             base.InitializeOnExecute();
+            Date = new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day, 9, 30, 0);
+            Span = TimeSpan.FromHours(9).Add(TimeSpan.FromMinutes(30));
             Samples.Clear();
             Samples.Add(new DataGridSampleModel1() { ColumnValue = "aaaa", NumValue = 20, MultiLineText = "aaa\nbbbb" });
             Samples.Add(new DataGridSampleModel1() { ColumnValue = "bbbb", NumValue = 40 });

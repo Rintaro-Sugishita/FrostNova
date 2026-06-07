@@ -265,6 +265,7 @@ namespace FrostNova.Core.Wpf.AttachedProperties
                 }
                 newCol.Header = info.HeaderText;
                 newCol.SetValue(DataGridColumnEx.IsGeneratedProperty, true); // 削除用目印をセット
+                newCol.SetValue(DataGridColumnEx.KeyProperty, info.UniqueKey); // 幅保存ビヘイビアが識別できるようにKeyをセット
                 dataGrid.Columns.Insert(insertIndex, newCol);
                 insertIndex++;
             }
