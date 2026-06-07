@@ -79,7 +79,19 @@ namespace FrostNova.Core.Wpf.Controls
             get { return (object?)GetValue(TimeValueProperty); }
             set { SetValue(TimeValueProperty, value); }
         }
-        public static DependencyProperty TimeValueProperty = DependencyProperty.Register(nameof(TimeValue), typeof(object), typeof(TimePickerEditBox));
+        public static DependencyProperty TimeValueProperty = DependencyProperty.Register(nameof(TimeValue), typeof(object), typeof(TimePickerEditBox),
+            new PropertyMetadata(null, null, CoerceTimeValue));
+
+        private static object CoerceTimeValue(DependencyObject d, object baseValue)
+        {
+            var control = (TimePickerEditBox)d;
+            if (baseValue is TimeSpan ts && control.IsPartsDateTime)
+            {
+                var existingDate = (control.TimeValue as DateTime?)?.Date ?? DateTime.Today;
+                return existingDate.Add(ts);
+            }
+            return baseValue;
+        }
 
 
         /// <summary>
@@ -295,35 +307,36 @@ namespace FrostNova.Core.Wpf.Controls
 
         private void UpTime()
         {
-            TimeSpan newValue = (TimeValue as TimeSpan?) ?? TimeSpan.Zero;
-            newValue = newValue + TimeSpan.FromMinutes(MinuteSpan);
-
-            if (MaxValue.HasValue)
+            if (TimeValue is DateTime dtValue)
             {
-                TimeValue = MaxValue.Value < newValue ? MaxValue.Value : newValue;
+                var newTime = dtValue.TimeOfDay + TimeSpan.FromMinutes(MinuteSpan);
+                TimeValue = MaxValue.HasValue && MaxValue.Value < newTime
+                    ? dtValue.Date.Add(MaxValue.Value)
+                    : dtValue.Date.Add(newTime);
             }
             else
             {
-                TimeValue = newValue;
+                TimeSpan newValue = (TimeValue as TimeSpan?) ?? TimeSpan.Zero;
+                newValue += TimeSpan.FromMinutes(MinuteSpan);
+                TimeValue = MaxValue.HasValue && MaxValue.Value < newValue ? MaxValue.Value : newValue;
             }
-
         }
 
         private void DownTime()
         {
-
-            TimeSpan newValue = (TimeValue as TimeSpan?) ?? TimeSpan.Zero;
-            newValue = newValue - TimeSpan.FromMinutes(MinuteSpan);
-            if (MinValue.HasValue)
+            if (TimeValue is DateTime dtValue)
             {
-                TimeValue =  newValue < MinValue.Value ? MinValue.Value : newValue;
+                var newTime = dtValue.TimeOfDay - TimeSpan.FromMinutes(MinuteSpan);
+                TimeValue = MinValue.HasValue && newTime < MinValue.Value
+                    ? dtValue.Date.Add(MinValue.Value)
+                    : dtValue.Date.Add(newTime);
             }
             else
             {
-                TimeValue = newValue;
+                TimeSpan newValue = (TimeValue as TimeSpan?) ?? TimeSpan.Zero;
+                newValue -= TimeSpan.FromMinutes(MinuteSpan);
+                TimeValue = MinValue.HasValue && newValue < MinValue.Value ? MinValue.Value : newValue;
             }
-
-
         }
 
 

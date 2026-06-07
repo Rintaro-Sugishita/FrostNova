@@ -1,7 +1,6 @@
-﻿<ResourceDictionary
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="clr-namespace:FrostNova.Core.Wpf.Controls">
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:FrostNova.Core.Wpf.Controls">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/ColorPaletteStyle.xaml" />
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/ColorSelectorStyle.xaml" />
@@ -14,92 +13,85 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:ColorPicker}">
                     <Grid>
-                        <ToggleButton
-                            x:Name="PART_BUTTON"
-                            Background="{TemplateBinding SelectedColor,
-                                                         Converter={StaticResource colorToSolidBrushConverter},
-                                                         ConverterParameter=Colors.White}"
-                            Foreground="{TemplateBinding SelectedColor,
-                                                         Converter={StaticResource foregroundBrushConverter}}">
-                            <!--<ToggleButton.Background>
-                                <SolidColorBrush Color="{TemplateBinding SelectedColor}" />
-                            </ToggleButton.Background>-->
+                        <!-- ToggleButton: 選択色を背景に表示 -->
+                        <ToggleButton x:Name="PART_BUTTON"
+                                      Background="{TemplateBinding SelectedColor,
+                                                   Converter={StaticResource colorToSolidBrushConverter},
+                                                   ConverterParameter=Colors.White}"
+                                      Foreground="{TemplateBinding SelectedColor,
+                                                   Converter={StaticResource foregroundBrushConverter}}">
                             <ToggleButton.Style>
                                 <Style BasedOn="{StaticResource FrostNovaToggleButtonStyle}" TargetType="{x:Type ToggleButton}">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ElementName=PART_popup, Path=IsOpen}" Value="True">
-                                            <Setter Property="IsHitTestVisible" Value="False" />
+                                            <Setter Property="IsHitTestVisible" Value="False"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                     <Setter Property="ContentTemplate">
                                         <Setter.Value>
                                             <DataTemplate>
-                                                <TextBlock FontFamily="Segoe Fluent Icons" Foreground="{Binding RelativeSource={RelativeSource AncestorType={x:Type ToggleButton}}, Path=Foreground}">&#xe790;</TextBlock>
+                                                <TextBlock FontFamily="Segoe Fluent Icons"
+                                                           Foreground="{Binding RelativeSource={RelativeSource AncestorType={x:Type ToggleButton}}, Path=Foreground}">&#xe790;</TextBlock>
                                             </DataTemplate>
                                         </Setter.Value>
                                     </Setter>
-                                    <!--<Setter Property="Background">
-                                        <Setter.Value>
-                                            <SolidColorBrush Color="{TemplateBinding SelectedColor}" />
-                                        </Setter.Value>
-
-                                    </Setter>-->
-                                    <!--<Setter Property="Background" Value="{TemplateBinding SelectedColor, Converter={StaticResource colorToBrushConverter},ConverterParameter=Colors.White}"/>-->
                                 </Style>
                             </ToggleButton.Style>
-
                         </ToggleButton>
-                        <Popup
-                            x:Name="PART_popup"
-                            Width="{TemplateBinding PopupWidth}"
-                            Height="{TemplateBinding PopupHeight}"
-                            MinWidth="{TemplateBinding MinPopupWidth}"
-                            MinHeight="{TemplateBinding MinPopupHeight}"
-                            MaxWidth="{TemplateBinding MaxPopupWidth}"
-                            MaxHeight="{TemplateBinding MaxPopupHeight}"
-                            IsOpen="{Binding IsChecked, ElementName=PART_BUTTON}"
-                            Placement="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Placement, FallbackValue={x:Static PlacementMode.Bottom}}"
-                            StaysOpen="False">
+
+                        <!-- Popup -->
+                        <Popup x:Name="PART_popup"
+                               Width="{TemplateBinding PopupWidth}"
+                               Height="{TemplateBinding PopupHeight}"
+                               MinWidth="{TemplateBinding MinPopupWidth}"
+                               MinHeight="{TemplateBinding MinPopupHeight}"
+                               MaxWidth="{TemplateBinding MaxPopupWidth}"
+                               MaxHeight="{TemplateBinding MaxPopupHeight}"
+                               IsOpen="{Binding IsChecked, ElementName=PART_BUTTON}"
+                               Placement="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Placement, FallbackValue={x:Static PlacementMode.Bottom}}"
+                               StaysOpen="False">
                             <Popup.Style>
                                 <Style TargetType="{x:Type Popup}">
-                                    <Setter Property="PlacementTarget" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=PlacementTarget}" />
-
+                                    <Setter Property="PlacementTarget" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=PlacementTarget}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=PlacementTarget}" Value="{x:Null}">
-                                            <Setter Property="PlacementTarget" Value="{Binding ElementName=PART_BUTTON}" />
+                                            <Setter Property="PlacementTarget" Value="{Binding ElementName=PART_BUTTON}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=IsDialogMode}" Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Setter Property="Visibility" Value="Collapsed"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Popup.Style>
-                            <Grid Background="White">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition />
-                                    <RowDefinition Height="30" />
-                                </Grid.RowDefinitions>
-                                <local:ColorPalette
-                                    Height="80"
-                                    RecentlyUsedColors="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=RecentlyUsedColors, Mode=TwoWay}"
-                                    SelectedColor="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=CurrentPopupColor, Mode=TwoWay}"
-                                    SetRecentlyUsedColorsFunc="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=SetRecentlyUsedColorsFunc}" />
-                                <local:ColorSelector
-                                    x:Name="colorSelecter"
-                                    Grid.Row="1"
-                                    OldColor="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=OldPopupColor, Mode=TwoWay}"
-                                    SelectedColor="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=CurrentPopupColor, Mode=TwoWay}" />
-                                <Grid Grid.Row="2" Background="white">
-                                    <Button
-                                        x:Name="PART_OK"
-                                        Width="60"
-                                        Content="OK" />
-                                </Grid>
 
+                            <Border Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                                    BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                                    BorderThickness="1">
+                                <StackPanel>
+                                    <!-- パレット -->
+                                    <local:ColorPalette
+                                        RecentlyUsedColors="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=RecentlyUsedColors, Mode=TwoWay}"
+                                        SelectedColor="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=CurrentPopupColor, Mode=TwoWay}"
+                                        SetRecentlyUsedColorsFunc="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=SetRecentlyUsedColorsFunc}"/>
 
+                                    <!-- セパレーター -->
+                                    <Border Height="1" Background="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"/>
 
-                            </Grid>
+                                    <!-- カラーセレクター -->
+                                    <local:ColorSelector
+                                        x:Name="colorSelecter"
+                                        OldColor="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=OldPopupColor, Mode=TwoWay}"
+                                        SelectedColor="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=CurrentPopupColor, Mode=TwoWay}"/>
+
+                                    <!-- セパレーター -->
+                                    <Border Height="1" Background="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"/>
+
+                                    <!-- OK ボタン行 -->
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="8,6">
+                                        <Button x:Name="PART_OK" Content="OK" MinWidth="64" Padding="8,4"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
                         </Popup>
                     </Grid>
                 </ControlTemplate>

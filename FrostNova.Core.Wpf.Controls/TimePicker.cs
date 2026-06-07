@@ -432,25 +432,138 @@ namespace FrostNova.Core.Wpf.Controls
             }
         }
 
+        private object? _timeValueBackup;
+        private bool _confirmClicked;
+
+        private readonly TextBlock?[] _hourRows   = new TextBlock?[3];
+        private readonly TextBlock?[] _minuteRows = new TextBlock?[3];
+        private readonly TextBlock?[] _secondRows = new TextBlock?[3];
+
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
             SetHourList(this);
-            SetMinuteList(this, this.MinuteSpan);
-            SetSecondList(this, this.SecondSpan);
-
+            SetMinuteList(this, MinuteSpan);
+            SetSecondList(this, SecondSpan);
 
             var toggleButton = GetTemplateChild("PART_BUTTON") as ToggleButton;
+            var okButton     = GetTemplateChild("PART_ok")     as ButtonBase;
+            var cancelButton = GetTemplateChild("PART_cancel") as ButtonBase;
+
+            for (int i = 0; i < 3; i++)
+            {
+                _hourRows[i]   = GetTemplateChild($"PART_hour_r{i}")   as TextBlock;
+                _minuteRows[i] = GetTemplateChild($"PART_minute_r{i}") as TextBlock;
+                _secondRows[i] = GetTemplateChild($"PART_second_r{i}") as TextBlock;
+            }
+
+            var hourContainer   = GetTemplateChild("PART_hour_container")   as UIElement;
+            var minuteContainer = GetTemplateChild("PART_minute_container") as UIElement;
+            var secondContainer = GetTemplateChild("PART_second_container") as UIElement;
+
+            WireDrumColumn(HourValueProperty,   _hourRows,   hourContainer,   "PART_hour_up",   "PART_hour_down");
+            WireDrumColumn(MinuteValueProperty, _minuteRows, minuteContainer, "PART_minute_up", "PART_minute_down");
+            WireDrumColumn(SecondValueProperty, _secondRows, secondContainer, "PART_second_up", "PART_second_down");
+
             if (toggleButton != null)
             {
-                toggleButton.Unchecked += (sender, e) =>
-                {
-                    SetValue(this);
-                };
                 toggleButton.Checked += (sender, e) =>
                 {
+                    _timeValueBackup = TimeValue;
+                    _confirmClicked = false;
                     SetHourAndMinute(this);
+                    RefreshAllDrums();
                 };
+                toggleButton.Unchecked += (sender, e) =>
+                {
+                    if (_confirmClicked)
+                        SetValue(this);
+                    else
+                        TimeValue = _timeValueBackup;
+                    _confirmClicked = false;
+                };
+            }
+
+            if (okButton != null)
+                okButton.Click += (s, e) => { _confirmClicked = true; if (toggleButton != null) toggleButton.IsChecked = false; };
+            if (cancelButton != null)
+                cancelButton.Click += (s, e) => { if (toggleButton != null) toggleButton.IsChecked = false; };
+        }
+
+        private void RefreshAllDrums()
+        {
+            UpdateDrumDisplay(HourValueProperty,   _hourRows);
+            UpdateDrumDisplay(MinuteValueProperty, _minuteRows);
+            UpdateDrumDisplay(SecondValueProperty, _secondRows);
+        }
+
+        private void WireDrumColumn(DependencyProperty valueProp, TextBlock?[] rows, UIElement? container, string upPartName, string downPartName)
+        {
+            var up   = GetTemplateChild(upPartName)   as ButtonBase;
+            var down = GetTemplateChild(downPartName) as ButtonBase;
+
+            if (up   != null) up.Click   += (s, e) => StepDrum(valueProp, rows, -1);
+            if (down != null) down.Click += (s, e) => StepDrum(valueProp, rows,  1);
+
+            if (container != null)
+            {
+                container.PreviewMouseWheel += (s, e) =>
+                {
+                    StepDrum(valueProp, rows, e.Delta > 0 ? -1 : 1);
+                    e.Handled = true;
+                };
+            }
+
+            // 上下の行をクリックするとその方向に1ステップ進む
+            for (int i = 0; i < 3; i++)
+            {
+                if (i == 1) continue;   // 中央はスキップ
+                int offset = i - 1;     // 0→-1, 2→+1
+                var row = rows[i];
+                if (row != null)
+                    row.MouseLeftButtonUp += (s, e) => StepDrum(valueProp, rows, offset);
+            }
+        }
+
+        private IList<int> GetItems(DependencyProperty valueProp)
+        {
+            IEnumerable<int>? src =
+                valueProp == HourValueProperty   ? Hours   :
+                valueProp == MinuteValueProperty ? Minutes :
+                valueProp == SecondValueProperty ? Seconds : null;
+            return src?.ToList() ?? new List<int>();
+        }
+
+        private void StepDrum(DependencyProperty valueProp, TextBlock?[] rows, int delta)
+        {
+            var items = GetItems(valueProp);
+            if (items.Count == 0) return;
+            int currentVal = (GetValue(valueProp) as int?) ?? 0;
+            int idx = items.IndexOf(currentVal);
+            if (idx < 0) idx = 0;
+            int nextIdx = (idx + delta + items.Count) % items.Count;
+            SetValue(valueProp, items[nextIdx]);
+            RefreshDrumDisplay(items, nextIdx, rows);
+        }
+
+        private void UpdateDrumDisplay(DependencyProperty valueProp, TextBlock?[] rows)
+        {
+            var items = GetItems(valueProp);
+            int currentVal = (GetValue(valueProp) as int?) ?? 0;
+            int idx = items.IndexOf(currentVal);
+            if (idx < 0) idx = 0;
+            RefreshDrumDisplay(items, idx, rows);
+        }
+
+        private static void RefreshDrumDisplay(IList<int> items, int centerIdx, TextBlock?[] rows)
+        {
+            int count = items.Count;
+            if (count == 0) return;
+            for (int i = 0; i < 3; i++)
+            {
+                int offset = i - 1;  // -1, 0, +1
+                int idx = ((centerIdx + offset) % count + count) % count;
+                if (rows[i] != null) rows[i]!.Text = items[idx].ToString("D2");
             }
         }
 
