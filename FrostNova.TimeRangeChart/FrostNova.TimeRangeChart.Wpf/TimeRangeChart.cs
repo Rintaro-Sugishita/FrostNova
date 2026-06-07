@@ -90,6 +90,14 @@ public class TimeRangeChart : Control
 
     #endregion
 
+    #region background popup
+
+    private Popup? _backgroundPopup;
+    private ContentPresenter? _backgroundPopupPresenter;
+    private IBackgroundTimeRange? _hoveredBackgroundRange;
+
+    #endregion
+
     #region drag info
 
     private TimeRangeControl? _draggingControl;
@@ -352,6 +360,15 @@ public class TimeRangeChart : Control
         set { SetValue(BackgroundTimesProperty, value); }
     }
     public static DependencyProperty BackgroundTimesProperty = DependencyProperty.Register(nameof(BackgroundTimes), typeof(IList<IBackgroundTimeRange>), typeof(TimeRangeChart), new PropertyMetadata(OnBackgroundTimesChanged));
+
+    public DataTemplate? BackgroundTimeRangePopupTemplate
+    {
+        get => (DataTemplate?)GetValue(BackgroundTimeRangePopupTemplateProperty);
+        set => SetValue(BackgroundTimeRangePopupTemplateProperty, value);
+    }
+    public static readonly DependencyProperty BackgroundTimeRangePopupTemplateProperty =
+        DependencyProperty.Register(nameof(BackgroundTimeRangePopupTemplate), typeof(DataTemplate), typeof(TimeRangeChart));
+
     public string SubScaleFormat
     {
         get { return (string)GetValue(SubScaleFormatProperty); }
@@ -642,6 +659,21 @@ public class TimeRangeChart : Control
 
             GeneralHelper.SetBehavior<ScrollGestureBehavior>(_scrollViewer, true);
         }
+
+        _backgroundPopupPresenter = new ContentPresenter();
+        _backgroundPopup = new Popup
+        {
+            Child = _backgroundPopupPresenter,
+            Placement = PlacementMode.Mouse,
+            StaysOpen = true,
+            AllowsTransparency = true,
+        };
+
+        if (_itemsHost != null)
+        {
+            _itemsHost.MouseMove += OnItemsHostMouseMove;
+            _itemsHost.MouseLeave += OnItemsHostMouseLeave;
+        }
     }
 
     private void RebuildTasksByRow()
@@ -751,6 +783,69 @@ public class TimeRangeChart : Control
         // 直接一致しない場合は「次の要素の補数」が返るためビット反転して調整
         if (idx < 0) idx = (~idx) - 1;
         return Math.Max(0, Math.Min(idx, RowOffsets.Length - 1));
+    }
+
+    private IBackgroundTimeRange? FindBackgroundTimeRangeAt(Point pos)
+    {
+        if (RowOffsets == null || RowHeights == null || _indexedBackgroundTimes.Count == 0)
+            return null;
+
+        foreach (var (rowIndex, ranges) in _indexedBackgroundTimes)
+        {
+            if (rowIndex >= RowOffsets.Length || rowIndex >= RowHeights.Length) continue;
+            double y = RowOffsets[rowIndex];
+            double height = RowHeights[rowIndex];
+            if (pos.Y < y || pos.Y > y + height) continue;
+
+            foreach (var item in ranges)
+            {
+                double x1 = TimeToPoint(item.StartTime);
+                double x2 = TimeToPoint(item.EndTime);
+                if (pos.X >= x1 && pos.X <= x2)
+                    return item;
+            }
+        }
+
+        return null;
+    }
+
+    private void OnItemsHostMouseMove(object sender, MouseEventArgs e)
+    {
+        if (BackgroundTimeRangePopupTemplate == null)
+        {
+            if (_backgroundPopup!.IsOpen)
+            {
+                _backgroundPopup.IsOpen = false;
+                _hoveredBackgroundRange = null;
+            }
+            return;
+        }
+
+        var pos = e.GetPosition(_itemsHost);
+        var hit = FindBackgroundTimeRangeAt(pos);
+
+        if (hit != null)
+        {
+            _backgroundPopupPresenter!.ContentTemplate = BackgroundTimeRangePopupTemplate;
+            if (!ReferenceEquals(hit, _hoveredBackgroundRange))
+            {
+                _hoveredBackgroundRange = hit;
+                _backgroundPopupPresenter.Content = hit;
+                _backgroundPopup!.IsOpen = false;
+                _backgroundPopup.IsOpen = true;
+            }
+        }
+        else
+        {
+            _backgroundPopup!.IsOpen = false;
+            _hoveredBackgroundRange = null;
+        }
+    }
+
+    private void OnItemsHostMouseLeave(object sender, MouseEventArgs e)
+    {
+        _backgroundPopup!.IsOpen = false;
+        _hoveredBackgroundRange = null;
     }
 
     private DateTime FindColumnAtOffset(double x)

@@ -397,6 +397,14 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty BackgroundTimesProperty = DependencyProperty.Register(nameof(BackgroundTimes), typeof(IList<IBackgroundTimeRange>), typeof(GridTimeRangeChart));
 
+        public DataTemplate? BackgroundTimeRangePopupTemplate
+        {
+            get => (DataTemplate?)GetValue(BackgroundTimeRangePopupTemplateProperty);
+            set => SetValue(BackgroundTimeRangePopupTemplateProperty, value);
+        }
+        public static readonly DependencyProperty BackgroundTimeRangePopupTemplateProperty =
+            DependencyProperty.Register(nameof(BackgroundTimeRangePopupTemplate), typeof(DataTemplate), typeof(GridTimeRangeChart));
+
         #endregion
 
         #region Chart Styles
