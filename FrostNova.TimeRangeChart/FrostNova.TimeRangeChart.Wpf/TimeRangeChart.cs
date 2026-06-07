@@ -80,11 +80,11 @@ public class TimeRangeChart : Control
     public int CurrentLastRow => _currentLastRow;
 
     DateTime _currentFirstTime;
-    DateTime _currenCentertTime;
+    DateTime _currentCenterTime;
     DateTime _currentLastTime;
 
     public DateTime CurrentFirstTime => _currentFirstTime;
-    public DateTime CurrenCenterTime => _currenCentertTime;
+    public DateTime CurrentCenterTime => _currentCenterTime;
     public DateTime CurrentLastTime => _currentLastTime;
 
 
@@ -733,7 +733,7 @@ public class TimeRangeChart : Control
         this._currentLastRow = lastRow;
 
         this._currentFirstTime = firstDate;
-        this._currenCentertTime = centerDate;
+        this._currentCenterTime = centerDate;
         this._currentLastTime = lastDate;
 
 
@@ -991,18 +991,7 @@ public class TimeRangeChart : Control
             var tickObject = new RuledLineData(timeChart!);
             tickObject.DateValue = item;
 
-            var x = 0.0;
-            if (timeChart != null)
-            {
-                x = timeChart.TimeToPoint(item);
-            }
-            else
-            {
-                var timeUnit = timeChart!.TimeUnit;
-                x = timeUnit == TimeUnitType.Normal ?
-                         TimeScreenHelper.TimeToPoint(item, startTime, endTime, newWidth) :
-                         TimeScreenHelper.TimeToPointMonth(item, timeChart!.WidthPerRuledLine, timeChart!.TimeTicks);
-            }
+            var x = timeChart.TimeToPoint(item);
             tickObject.LeftPoint = x;
 
 
