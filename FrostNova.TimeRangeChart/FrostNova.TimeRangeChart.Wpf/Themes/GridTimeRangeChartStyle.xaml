@@ -155,6 +155,7 @@
                                               ChartHeight="{TemplateBinding ChartHeight}"
                                               WidthPerRuledLine="{TemplateBinding WidthPerRuledLine}"
                                               BackgroundTimes="{TemplateBinding BackgroundTimes}"
+                                              BackgroundTimeRangePopupTemplate="{TemplateBinding BackgroundTimeRangePopupTemplate}"
                                               Background="{TemplateBinding Background}"
                                               NonWorkingTimes="{TemplateBinding NonWorkingTimes}"
                                               NonWorkingRangeBackground="{TemplateBinding NonWorkingRangeBackground}"
