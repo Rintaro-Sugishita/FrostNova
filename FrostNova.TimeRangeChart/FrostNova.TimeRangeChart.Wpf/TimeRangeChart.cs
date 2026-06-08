@@ -75,6 +75,7 @@ public class TimeRangeChart : Control
     private int _lastLastRow = -1;
     DateTime _lastFirstTime;
     DateTime _lastLastTime;
+    private bool _forceSyncVisuals = false;
 
     public int CurrentFirstRow => _currentFirstRow;
     public int CurrentLastRow => _currentLastRow;
@@ -449,6 +450,7 @@ public class TimeRangeChart : Control
         }
         if (e.NewValue is IEnumerable<ITimeRangeRowIndex> newSource)
         {
+            chart._forceSyncVisuals = true;
             chart.UpdateLayoutMetrics();
             // 2. 現在のスクロール位置に合わせて表示更新
             chart.UpdateVisibleRange();
@@ -729,8 +731,9 @@ public class TimeRangeChart : Control
                           firstDate != _lastFirstTime ||
                           lastDate != _lastLastTime;
         // 1. タスクの配置更新 (仮想化)
-        if (isScopeChanged)
+        if (isScopeChanged || _forceSyncVisuals)
         {
+            _forceSyncVisuals = false;
             _lastFirstRow = firstRow;
             _lastLastRow = lastRow;
             _lastFirstTime = firstDate;
@@ -1476,6 +1479,9 @@ public class TimeRangeChart : Control
                 //マウスキャプチャのあるものは回収しない
                 if (ctrl.IsMouseCaptured) continue;
 
+                if (key is INotifyPropertyChanged oldNotifiable)
+                    oldNotifiable.PropertyChanged -= OnActiveItemPropertyChanged;
+
                 _itemsHost.Children.Remove(ctrl);
                 _controlPool.Push(ctrl);
                 _activeControls.Remove(key);
@@ -1502,6 +1508,9 @@ public class TimeRangeChart : Control
 
                 TryBindDefaultProperties(ctrl);
 
+                if (task is INotifyPropertyChanged notifiable)
+                    notifiable.PropertyChanged += OnActiveItemPropertyChanged;
+
                 _itemsHost.Children.Add(ctrl);
                 _activeControls[task] = ctrl;
             }
@@ -1513,6 +1522,14 @@ public class TimeRangeChart : Control
                 ctrl.InvalidateArrange();
             }
         }
+    }
+
+    private void OnActiveItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender == null) return;
+        if (e.PropertyName != nameof(ITimeRange.StartTime) && e.PropertyName != nameof(ITimeRange.EndTime)) return;
+        if (_activeControls.TryGetValue(sender, out var ctrl) && sender is ITimeRangeRowIndex task)
+            UpdateControlPosition(ctrl, task);
     }
 
     private TimeRangeControl CreateTimeRangeControl()
@@ -1563,45 +1580,33 @@ public class TimeRangeChart : Control
         if (range.DataContext is ITimeRange timeRange)
         {
 
-            if (BindingOperations.GetBindingExpression(range, TimeRangeControl.StartTimeProperty) == null)
+            var startBinding = new Binding(nameof(ITimeRange.StartTime))
             {
-                var startBinding = new Binding(nameof(ITimeRange.StartTime))
-                {
-                    Source = timeRange,
-                    Mode = BindingMode.TwoWay
-                };
-                BindingOperations.SetBinding(range, TimeRangeControl.StartTimeProperty, startBinding);
-            }
+                Source = timeRange,
+                Mode = BindingMode.TwoWay
+            };
+            BindingOperations.SetBinding(range, TimeRangeControl.StartTimeProperty, startBinding);
 
-            if (BindingOperations.GetBindingExpression(range, TimeRangeControl.EndTimeProperty) == null)
+            var endBinding = new Binding(nameof(ITimeRange.EndTime))
             {
-                var endBinding = new Binding(nameof(ITimeRange.EndTime))
-                {
-                    Source = timeRange,
-                    Mode = BindingMode.TwoWay
-                };
-                BindingOperations.SetBinding(range, EndTimeProperty, endBinding);
-            }
+                Source = timeRange,
+                Mode = BindingMode.TwoWay
+            };
+            BindingOperations.SetBinding(range, EndTimeProperty, endBinding);
 
-            if (BindingOperations.GetBindingExpression(range, TimeRangeControl.WorkingSpanProperty) == null)
+            var workingTimeBinding = new Binding(nameof(ITimeRange.WorkingSpan))
             {
-                var workingTimeBinding = new Binding(nameof(ITimeRange.WorkingSpan))
-                {
-                    Source = timeRange,
-                    Mode = BindingMode.TwoWay
-                };
-                BindingOperations.SetBinding(range, TimeRangeControl.WorkingSpanProperty, workingTimeBinding);
-            }
+                Source = timeRange,
+                Mode = BindingMode.TwoWay
+            };
+            BindingOperations.SetBinding(range, TimeRangeControl.WorkingSpanProperty, workingTimeBinding);
 
-            if (BindingOperations.GetBindingExpression(range, TimeRangeControl.ActualSpanProperty) == null)
+            var actualTimeBinding = new Binding(nameof(ITimeRange.ActualSpan))
             {
-                var actualTimeBinding = new Binding(nameof(ITimeRange.ActualSpan))
-                {
-                    Source = timeRange,
-                    Mode = BindingMode.OneWayToSource
-                };
-                BindingOperations.SetBinding(range, TimeRangeControl.ActualSpanProperty, actualTimeBinding);
-            }
+                Source = timeRange,
+                Mode = BindingMode.OneWayToSource
+            };
+            BindingOperations.SetBinding(range, TimeRangeControl.ActualSpanProperty, actualTimeBinding);
 
         }
 
