@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FrostNova.TimeRangeChart.TimeRangeHelpers
 {
@@ -11,78 +8,79 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
     {
         public static void InsertAndPushForward(IList<ITimeRange> ranges, ITimeRange range, IEnumerable<ITimeRange>? nonWorkingTimes)
         {
-            //rangeよりも未来のものを抽出
-            //rangesは時間順に並んでるとは限らない
-            var pushList = ranges.Where(x => x.StartTime >= range.StartTime).OrderBy(x=> x.StartTime).ToList();
+            // range の開始以降のタスクを時間順に抽出
+            var pushList = ranges.Where(x => x.StartTime >= range.StartTime).OrderBy(x => x.StartTime).ToList();
 
-            if (pushList == null || pushList.Count == 0)
+            if (pushList.Count == 0)
             {
-                //ないなら最後に追加して終わり
                 ranges.Add(range);
                 return;
             }
 
-            // 4. rangeをリストに追加
             ranges.Add(range);
 
-            // 5. 未来タスクを順に、前のタスクの終了時刻以降にずらす
-            //    非稼働時間も考慮
-            //    まず、rangeの終了時刻を基準にする
             DateTime prevEnd = range.EndTime;
-            DateTime? prevTaskMovingEnd =null;
+            DateTime? prevTaskOriginalEnd = null;
 
             foreach (var pushRange in pushList)
             {
-                // 元のギャップ（前タスク移動前の終了～現ループタスクの移動前の開始）
-                TimeSpan gap = prevTaskMovingEnd.HasValue ? pushRange.StartTime - prevTaskMovingEnd.Value : TimeSpan.Zero;
+                bool useNonWorking = !pushRange.IgnoreNonWorkingTimes && nonWorkingTimes != null;
 
-                // 次のループ用(移動前の値)
-                prevTaskMovingEnd = pushRange.EndTime;
-
-                // 新しい開始時刻 = 直前タスクの終了時刻 + 元のギャップ
-                DateTime newStart = prevEnd + gap;
-               
-
-                // 非稼働時間を考慮して開始時刻を調整
-                if (!pushRange.IgnoreNonWorkingTimes && nonWorkingTimes != null)
+                // ギャップを稼働時間ベースで計算する（Bug #2 修正）
+                // 絶対時間ではなく稼働時間のギャップを保持することで、
+                // 非稼働時間をまたぐ場合でも間隔が正しく維持される
+                TimeSpan gap = TimeSpan.Zero;
+                if (prevTaskOriginalEnd.HasValue)
                 {
-                    newStart = SkipNonWorkingTimes(newStart, TimeSpan.Zero, nonWorkingTimes);
+                    gap = useNonWorking
+                        ? TimeHelper.CalcWorkingSpan(prevTaskOriginalEnd.Value, pushRange.StartTime, nonWorkingTimes)
+                        : pushRange.StartTime - prevTaskOriginalEnd.Value;
                 }
 
-                var span = newStart - pushRange.StartTime;
+                // 移動前の終了時刻を保存（次ループで gap 計算に使う）
+                prevTaskOriginalEnd = pushRange.EndTime;
 
-                // 新しい終了時刻を計算（元のWorkingSpanを維持）
-                TimeSpan originalSpan = pushRange.WorkingSpan ?? (pushRange.EndTime - pushRange.StartTime);
-                DateTime newEnd = pushRange.IgnoreNonWorkingTimes
-                    ? newStart + originalSpan
-                    : TimeHelper.CalcEndTime(newStart, originalSpan, nonWorkingTimes);
+                DateTime newStart;
+                if (useNonWorking)
+                {
+                    // prevEnd が非稼働期間の開始と一致する場合も含めてスキップする（Bug #1 修正）
+                    // SkipNonWorkingTimes での零長区間判定では nw.StartTime == candidate を検出できないため
+                    // 点包含判定（StartTime <= t < EndTime）に変更した AdvanceToWorkingTime を使う
+                    DateTime workingPrevEnd = AdvanceToWorkingTime(prevEnd, nonWorkingTimes!);
+                    newStart = gap > TimeSpan.Zero
+                        ? TimeHelper.CalcShiftTime(workingPrevEnd, gap, nonWorkingTimes)
+                        : workingPrevEnd;
+                }
+                else
+                {
+                    newStart = prevEnd + gap;
+                }
 
-                TimeRangeHelper.Move(pushRange, span, nonWorkingTimes);
+                TimeRangeHelper.Move(pushRange, newStart - pushRange.StartTime, nonWorkingTimes);
 
-
-                // 次のループ用
                 prevEnd = pushRange.EndTime;
             }
-
         }
 
-        // 非稼働時間をスキップして開始時刻を返す（シンプルな例）
-        private static DateTime SkipNonWorkingTimes(DateTime start, TimeSpan span, IEnumerable<ITimeRange> nonWorkingTimes)
+        /// <summary>
+        /// 指定日時が非稼働時間内（StartTime &lt;= t &lt; EndTime）に含まれる場合、
+        /// その非稼働時間の終了直後まで進める。連続する非稼働時間も連鎖してスキップする。
+        /// </summary>
+        private static DateTime AdvanceToWorkingTime(DateTime start, IEnumerable<ITimeRange> nonWorkingTimes)
         {
             DateTime candidate = start;
-            while (true)
+            bool moved;
+            do
             {
-                // 非稼働時間と重なるか？
-                var overlap = nonWorkingTimes.FirstOrDefault(nw => nw.IsOverlap(new TimeRange(candidate, candidate + span)));
-                if (overlap == null)
-                    return candidate;
-
-                // 非稼働時間の終了後にずらす
-                candidate = overlap.EndTime;
-            }
+                moved = false;
+                var overlap = nonWorkingTimes.FirstOrDefault(nw => nw.StartTime <= candidate && candidate < nw.EndTime);
+                if (overlap != null)
+                {
+                    candidate = overlap.EndTime;
+                    moved = true;
+                }
+            } while (moved);
+            return candidate;
         }
-
-
-
     }
 }
