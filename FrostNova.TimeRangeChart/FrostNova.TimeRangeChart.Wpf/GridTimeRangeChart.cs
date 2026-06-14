@@ -156,6 +156,9 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             if (gridChart.TimeUnit == TimeUnitType.Month) return Brushes.Black;
 
+            // 時刻レベルの表示（スケールが1日未満）では曜日カラーを適用しない
+            if (gridChart.ScaleIncrement < TimeSpan.FromDays(1)) return Brushes.Black;
+
             var b = date.DayOfWeek switch
             {
                 DayOfWeek.Saturday => Brushes.Blue,
