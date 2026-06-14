@@ -90,22 +90,25 @@ namespace FrostNova.WindowEventPickers
             return CallNextHookEx(hookID, nCode, wParam, lParam);
         }
 
-        private const int LLKHF_EXTENDED = 0x01;
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KBDLLHOOKSTRUCT
+        {
+            public uint vkCode;
+            public uint scanCode;
+            public uint flags;
+            public uint time;
+            public UIntPtr dwExtraInfo;
+        }
 
-        // --- IsNumpadEnterKey メソッドの修正 ---
-        /// <summary>
-        /// Determines whether the pressed key is the Numpad Enter key.
-        /// </summary>
-        /// <param name="lParam">A pointer to a KBDLLHOOKSTRUCT structure.</param>
-        /// <returns>true if the key is Numpad Enter; otherwise, false.</returns>
+        private const uint LLKHF_EXTENDED = 0x01;
+
         private static bool IsNumpadEnterKey(IntPtr lParam)
         {
-            // KBDLLHOOKSTRUCT の flags メンバは、先頭から8バイト目（vkCode:4, scanCode:4 の後ろ）にあります
-            int flagsOffset = 8;
-            int flags = Marshal.ReadInt32(lParam, flagsOffset);
-
-            // flags の第0ビット（LLKHF_EXTENDED）が1であれば拡張キー（テンキーのEnter）
-            return (flags & LLKHF_EXTENDED) != 0;
+            var s = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+            // ドライバによって拡張キー情報の格納先が異なる:
+            // - flags の LLKHF_EXTENDED ビット (0x01) に格納するもの
+            // - scanCode のビット8 (0x100) に拡張プレフィックスを込めるもの
+            return (s.flags & LLKHF_EXTENDED) != 0 || (s.scanCode & 0x100) != 0;
         }
 
 
