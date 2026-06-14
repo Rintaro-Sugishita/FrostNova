@@ -13,6 +13,11 @@
 
     <EmitEmbeddedSources>true</EmitEmbeddedSources>
     <DebugType>embedded</DebugType>
+
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <AssemblyVersion>$(Version)</AssemblyVersion>
@@ -38,7 +43,11 @@
     <VersionSuffix>$(Now)</VersionSuffix>
   </PropertyGroup>
     
-  <Target Name="CopyNupkgAfterEachPack"
+    <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    </ItemGroup>
+
+    <Target Name="CopyNupkgAfterEachPack"
             AfterTargets="Pack"
             DependsOnTargets="Pack"
             Condition="Exists('$(OutputPath)')">
