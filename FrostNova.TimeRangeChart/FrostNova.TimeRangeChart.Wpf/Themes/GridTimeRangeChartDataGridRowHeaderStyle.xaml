@@ -48,6 +48,7 @@
         <Setter Property="Height" Value="{Binding Height}" />
         <Setter Property="BorderThickness" Value="0,0,0,0.5" />
         <Setter Property="BorderBrush" Value="Gray" />
+        <Setter Property="Visibility" Value="Collapsed" />
         <Setter Property="Margin" Value="0" />
     </Style>
 
@@ -93,7 +94,6 @@
                             GridLinesVisibility="Horizontal"
                             HeadersVisibility="Column"
                             IsReadOnly="True"
-                            RowHeadersVisibility="Collapsed"
                             RowStyle="{StaticResource dataGridRowHeaderRowStyle}"
                             ScrollViewer.CanContentScroll="False"
                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
