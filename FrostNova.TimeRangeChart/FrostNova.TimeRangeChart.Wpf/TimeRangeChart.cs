@@ -825,7 +825,24 @@ public class TimeRangeChart : Control
         }
 
         var pos = e.GetPosition(_itemsHost);
-        var hit = FindBackgroundTimeRangeAt(pos);
+
+        // タスクコントロールの上にマウスがある場合はBackgroundポップアップを表示しない
+        bool overTask = false;
+        VisualTreeHelper.HitTest(
+            _itemsHost,
+            null,
+            r =>
+            {
+                if (r.VisualHit is FrameworkElement fe && fe.DataContext is ITimeRange)
+                {
+                    overTask = true;
+                    return HitTestResultBehavior.Stop;
+                }
+                return HitTestResultBehavior.Continue;
+            },
+            new PointHitTestParameters(pos));
+
+        var hit = overTask ? null : FindBackgroundTimeRangeAt(pos);
 
         if (hit != null)
         {
