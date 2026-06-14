@@ -6,6 +6,7 @@
         <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/TimeRangeControlStyle.xaml" />
         <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/TimeRangeChartStyle.xaml" />
         <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/GridTimeRangeChartStyle.xaml" />
+        <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/GridTimeRangeChartDataGridRowHeaderStyle.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <Style TargetType="{x:Type local:TimeRangeControl}" BasedOn="{StaticResource timeRangeControlStyle}" />

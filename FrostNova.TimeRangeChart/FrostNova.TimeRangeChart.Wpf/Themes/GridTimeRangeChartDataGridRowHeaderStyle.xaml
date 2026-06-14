@@ -1,0 +1,185 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behaviors="clr-namespace:FrostNova.Core.Wpf.Behaviors;assembly=FrostNova.Core.Wpf"
+    xmlns:cnv="clr-namespace:FrostNova.Core.Wpf.Converters;assembly=FrostNova.Core.Wpf"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:local="clr-namespace:FrostNova.TimeRangeChart.Wpf"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/TimeRangeControlStyle.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!--
+        DataGrid を RowHeader として使用するスタイルテンプレート。
+
+        使用方法:
+          1. GridTimeRangeChart の Style にこのスタイルを参照させる
+          2. RowHeaderDataGridColumns に ObservableCollection<DataGridColumn> をセットする
+          3. 列の Binding パスは "RawData.PropertyName" 形式で指定する
+             (例: new DataGridTextColumn { Binding = new Binding("RawData.Name") })
+
+        レイアウト:
+          左列 (Grid.RowSpan=2): DataGrid (列ヘッダー + 行データ)
+          右列 Row0: 時間軸ヘッダー  (DataGrid.ColumnHeadersHeight と高さを合わせる)
+          右列 Row1: TimeRangeChart
+    -->
+
+    <Style x:Key="dataGridRowHeaderCellStyle" TargetType="{x:Type DataGridCell}">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="dataGridRowHeaderRowStyle" TargetType="{x:Type DataGridRow}">
+        <Setter Property="Height" Value="{Binding Height}" />
+        <Setter Property="BorderThickness" Value="0,0,0,0.5" />
+        <Setter Property="BorderBrush" Value="Gray" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <Style x:Key="dataGridTimeRangeChartStyle" TargetType="{x:Type local:GridTimeRangeChart}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:GridTimeRangeChart}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <!--  RowHeader DataGrid  -->
+                            <ColumnDefinition Width="Auto" MinWidth="{TemplateBinding MinRowWidth}" />
+                            <!--  GridSplitter  -->
+                            <ColumnDefinition Width="Auto" />
+                            <!--  Chart  -->
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <!--  ColumnHeaders (DataGrid column header / 時間軸ヘッダー)  -->
+                            <RowDefinition Height="Auto" />
+                            <!--  Content (DataGrid rows / Chart)  -->
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!--
+                            RowHeader DataGrid
+                            Grid.RowSpan=2 で列ヘッダーと行データを両行に渡って配置。
+                            ColumnHeadersHeight を時間軸ヘッダー (20px) と揃えることで
+                            Row0 の高さが自動的に揃う。
+                        -->
+                        <DataGrid
+                            x:Name="PART_RowHeaderDataGrid"
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Grid.RowSpan="2"
+                            AutoGenerateColumns="False"
+                            CanUserAddRows="False"
+                            CanUserDeleteRows="False"
+                            CanUserReorderColumns="False"
+                            CanUserResizeRows="False"
+                            CanUserSortColumns="False"
+                            CellStyle="{StaticResource dataGridRowHeaderCellStyle}"
+                            ColumnHeaderHeight="{TemplateBinding RowHeaderDataGridColumnHeaderHeight}"
+                            GridLinesVisibility="Horizontal"
+                            HeadersVisibility="Column"
+                            IsReadOnly="True"
+                            RowHeadersVisibility="Collapsed"
+                            RowStyle="{StaticResource dataGridRowHeaderRowStyle}"
+                            ScrollViewer.CanContentScroll="False"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                            SelectionMode="Single"
+                            local:DataGridColumnsBehavior.Columns="{TemplateBinding RowHeaderDataGridColumns}"
+                            BorderBrush="{TemplateBinding RuledLineFill}"
+                            BorderThickness="0,0,0,0.5" />
+
+                        <!--  GridSplitter  -->
+                        <GridSplitter
+                            Grid.Row="0"
+                            Grid.RowSpan="2"
+                            Grid.Column="1"
+                            Width="4"
+                            HorizontalAlignment="Stretch" />
+
+                        <!--  ColumnHeader (時間軸)  -->
+                        <Grid
+                            Grid.Row="0"
+                            Grid.Column="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ScrollViewer
+                                x:Name="PART_ColumnScrollViewer"
+                                Grid.Column="0"
+                                ScrollViewer.CanContentScroll="False"
+                                HorizontalScrollBarVisibility="Hidden"
+                                VerticalScrollBarVisibility="Disabled">
+                                <local:ColumnHeaderRenderLayer
+                                    x:Name="PART_ColumnGrid"
+                                    Height="{TemplateBinding RowHeaderDataGridColumnHeaderHeight}" />
+                            </ScrollViewer>
+                            <Border
+                                Grid.Column="1"
+                                x:Name="PART_ColumnRightSpacer"
+                                Background="Transparent" />
+                        </Grid>
+
+                        <!--  Chart  -->
+                        <Grid Grid.Row="1" Grid.Column="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <local:TimeRangeChart
+                                x:Name="PART_Chart"
+                                Grid.Row="0"
+                                StartTime="{TemplateBinding StartTime}"
+                                EndTime="{TemplateBinding EndTime}"
+                                MinSpan="{TemplateBinding MinSpan}"
+                                ChartHeight="{TemplateBinding ChartHeight}"
+                                WidthPerRuledLine="{TemplateBinding WidthPerRuledLine}"
+                                BackgroundTimes="{TemplateBinding BackgroundTimes}"
+                                BackgroundTimeRangePopupTemplate="{TemplateBinding BackgroundTimeRangePopupTemplate}"
+                                Background="{TemplateBinding Background}"
+                                NonWorkingTimes="{TemplateBinding NonWorkingTimes}"
+                                NonWorkingRangeBackground="{TemplateBinding NonWorkingRangeBackground}"
+                                ScaleIncrement="{TemplateBinding ScaleIncrement}"
+                                SubScaleFormat="{TemplateBinding SubScaleFormat}"
+                                RuledLineFill="{TemplateBinding RuledLineFill}"
+                                RuledLineThickness="{TemplateBinding RuledLineThickness}"
+                                DataTemplate="{TemplateBinding ItemTemplate}"
+                                DataTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                TimeUnit="{TemplateBinding TimeUnit}"
+                                MonthSpan="{TemplateBinding MonthSpan}"
+                                CanStackRange="{TemplateBinding CanStackRange}"
+                                HeaderFormat="{TemplateBinding HeaderFormat}"
+                                StackHeight="{TemplateBinding StackHeight}"
+                                HeaderBrushSelector="{TemplateBinding HeaderBrushSelector}"
+                                AllowMultiDrag="{TemplateBinding AllowMultiDrag}"
+                                AllowMultiSelection="{TemplateBinding AllowMultiSelection}"
+                                TimeRangeStyle="{Binding TimeRangeStyle,
+                                    RelativeSource={RelativeSource TemplatedParent},
+                                    TargetNullValue={StaticResource timeRangeControlStyle}}" />
+                            <Border
+                                Grid.Row="1"
+                                x:Name="PART_RowBottomSpacer"
+                                Background="Transparent" />
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
