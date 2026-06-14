@@ -1,5 +1,4 @@
 using FrostNova.Core.Wpf.AttachedProperties;
-using FrostNova.Core.Wpf.Common;
 using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections.Generic;
@@ -64,7 +63,6 @@ namespace FrostNova.Core.Wpf.Behaviors
         protected override void OnAttached()
         {
             base.OnAttached();
-            NumpadEnterDetector.EnsureInitialized();
 
             AssociatedObject.PreviewKeyDown += OnPreviewKeyDown;
             AssociatedObject.PreviewTextInput += OnPreviewTextInput;
@@ -878,9 +876,6 @@ namespace FrostNova.Core.Wpf.Behaviors
         {
             if (e.Key != Key.Enter)
                 return;
-
-            bool isNumpadEnter = NumpadEnterDetector.IsNumpadEnter;
-
             var type = TextBoxInput.GetFormatType(tb);
 
             if (IsImeComposing(type)) return;
