@@ -1,11 +1,6 @@
-﻿using CommunityToolkit.Mvvm.Input;
-using Microsoft.Xaml.Behaviors;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.Xaml.Behaviors;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 
 namespace FrostNova.Core.Wpf.Behaviors
 {
@@ -15,15 +10,14 @@ namespace FrostNova.Core.Wpf.Behaviors
         {
             base.OnAttached();
             AssociatedObject.LoadingRow += AssociatedObject_LoadingRow;
-            //RowNumberRefreshCommand = new RelayCommand<DragMoveEventArgs>(RefreshRowNumber);
+            AssociatedObject.ItemContainerGenerator.ItemsChanged += ItemContainerGenerator_ItemsChanged;
         }
-
-
 
         protected override void OnDetaching()
         {
             base.OnDetaching();
             AssociatedObject.LoadingRow -= AssociatedObject_LoadingRow;
+            AssociatedObject.ItemContainerGenerator.ItemsChanged -= ItemContainerGenerator_ItemsChanged;
         }
 
         private void AssociatedObject_LoadingRow(object? sender, DataGridRowEventArgs e)
@@ -31,5 +25,19 @@ namespace FrostNova.Core.Wpf.Behaviors
             e.Row.Header = (e.Row.GetIndex() + 1).ToString();
         }
 
+        private void ItemContainerGenerator_ItemsChanged(object sender, ItemsChangedEventArgs e)
+        {
+            RefreshRowHeaders();
+        }
+
+        private void RefreshRowHeaders()
+        {
+            foreach (var item in AssociatedObject.Items)
+            {
+                var row = AssociatedObject.ItemContainerGenerator.ContainerFromItem(item) as DataGridRow;
+                if (row != null)
+                    row.Header = (row.GetIndex() + 1).ToString();
+            }
+        }
     }
 }
