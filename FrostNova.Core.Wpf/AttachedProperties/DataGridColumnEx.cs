@@ -39,7 +39,7 @@ namespace FrostNova.Core.Wpf.AttachedProperties
 
 
         public static readonly DependencyProperty CanDragRowProperty =
-            DependencyProperty.RegisterAttached("CanDragRow", typeof(bool), typeof(DataGridColumnEx), new FrameworkPropertyMetadata(true));
+            DependencyProperty.RegisterAttached("CanDragRow", typeof(bool), typeof(DataGridColumnEx), new FrameworkPropertyMetadata(false));
 
         public static bool GetCanDragRow(DependencyObject target)
         {
