@@ -36,6 +36,7 @@ namespace FrostNova.TimeRangeChart.Wpf
 
 
     [TemplatePart(Name = "PART_RowHeaderListBox", Type = typeof(ListBox))]
+    [TemplatePart(Name = "PART_RowHeaderDataGrid", Type = typeof(DataGrid))]
     [TemplatePart(Name = "PART_Chart", Type = typeof(TimeRangeChart))]
     [TemplatePart(Name = "PART_ColumnGrid", Type = typeof(ColumnHeaderRenderLayer))]
     [TemplatePart(Name = "PART_ChartScrollViewer", Type = typeof(ScrollViewer))]
@@ -62,6 +63,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         #region cashe of the children
 
         internal ListBox _rowHeaderListBox = null!;
+        internal DataGrid? _rowHeaderDataGrid = null;
         internal TimeRangeChart _chart = null!;
         internal ColumnHeaderRenderLayer _columnHeaderLayer = null!;
         internal ScrollViewer _chartScrollViewer = null!;
@@ -282,6 +284,36 @@ namespace FrostNova.TimeRangeChart.Wpf
             set { SetValue(RowHeaderTemplateSelectorProperty, value); }
         }
         public static DependencyProperty RowHeaderTemplateSelectorProperty = DependencyProperty.Register(nameof(RowHeaderTemplateSelector), typeof(DataTemplateSelector), typeof(GridTimeRangeChart));
+
+        /// <summary>
+        /// DataGrid モードで使用する列定義コレクション。
+        /// 各行の DataContext は RowInternalContainer のため、バインディングパスには "RawData.PropertyName" を使用してください。
+        /// DataGridRowHeaderStyle テンプレートと組み合わせて使用します。
+        /// </summary>
+        public ObservableCollection<DataGridColumn> RowHeaderDataGridColumns
+        {
+            get { return (ObservableCollection<DataGridColumn>)GetValue(RowHeaderDataGridColumnsProperty); }
+            set { SetValue(RowHeaderDataGridColumnsProperty, value); }
+        }
+        public static DependencyProperty RowHeaderDataGridColumnsProperty = DependencyProperty.Register(
+            nameof(RowHeaderDataGridColumns),
+            typeof(ObservableCollection<DataGridColumn>),
+            typeof(GridTimeRangeChart),
+            new PropertyMetadata(null));
+
+        /// <summary>
+        /// DataGrid モードで使用する列ヘッダーの高さ。時間軸ヘッダーと揃える値に設定してください。
+        /// </summary>
+        public double RowHeaderDataGridColumnHeaderHeight
+        {
+            get { return (double)GetValue(RowHeaderDataGridColumnHeaderHeightProperty); }
+            set { SetValue(RowHeaderDataGridColumnHeaderHeightProperty, value); }
+        }
+        public static DependencyProperty RowHeaderDataGridColumnHeaderHeightProperty = DependencyProperty.Register(
+            nameof(RowHeaderDataGridColumnHeaderHeight),
+            typeof(double),
+            typeof(GridTimeRangeChart),
+            new PropertyMetadata(20.0));
 
         #endregion
 
@@ -534,6 +566,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             base.OnApplyTemplate();
 
             _rowHeaderListBox = (ListBox)GetTemplateChild("PART_RowHeaderListBox");
+            _rowHeaderDataGrid = GetTemplateChild("PART_RowHeaderDataGrid") as DataGrid;
             _chart = (TimeRangeChart)GetTemplateChild("PART_Chart");
             _columnHeaderLayer = (ColumnHeaderRenderLayer)GetTemplateChild("PART_ColumnGrid");
 
@@ -544,39 +577,42 @@ namespace FrostNova.TimeRangeChart.Wpf
             _columnRightSpacer = (Border)GetTemplateChild("PART_ColumnRightSpacer");
             _rowBottomSpacer = (Border)GetTemplateChild("PART_RowBottomSpacer");
 
-            //必須3大要素がなければ即throw
-            if (_rowHeaderListBox == null || _chart == null || _columnHeaderLayer == null)
+            // ListBox か DataGrid の少なくとも一方と、Chart と ColumnHeader が必須
+            if ((_rowHeaderListBox == null && _rowHeaderDataGrid == null) || _chart == null || _columnHeaderLayer == null)
             {
                 throw new InvalidOperationException();
             }
 
             _columnHeaderLayer.ParentChart = this;
 
-
-
-
-            _rowHeaderListBox.ItemContainerGenerator.StatusChanged += (s, e) =>
+            if (_rowHeaderListBox != null)
             {
-                if (_rowHeaderListBox.ItemContainerGenerator.Status == GeneratorStatus.ContainersGenerated)
+                _rowHeaderListBox.ItemContainerGenerator.StatusChanged += (s, e) =>
                 {
-                    // 画面内に現れたコンテナの高さを再取得して Chart に反映
-                    SyncHeights();
-                }
-            };
+                    if (_rowHeaderListBox.ItemContainerGenerator.Status == GeneratorStatus.ContainersGenerated)
+                        SyncHeights();
+                };
 
+                _rowHeaderListBox.SizeChanged += (s, e) =>
+                {
+                    if (e.WidthChanged) SyncHeights();
+                };
+            }
 
-            // RowHeader自体の幅が変わったときも同期が必要
-            _rowHeaderListBox.SizeChanged += (s, e) =>
+            if (_rowHeaderDataGrid != null)
             {
-                if (e.WidthChanged) SyncHeights();
-            };
+                _rowHeaderDataGrid.SizeChanged += (s, e) =>
+                {
+                    if (e.WidthChanged) SyncHeights();
+                };
+            }
 
             _chart.OnTimeAxisChanged += Chart_OnTimeAxisChanged;
 
             this.Loaded += (s, e) =>
             {
                 _columnHeaderLayer.InvalidateVisual();
-                if (_rowHeaderListBox == null || _chart == null) return;
+                if (_chart == null) return;
 
                 RebuildFlatTasks();
                 SyncInternalRows();
@@ -594,7 +630,9 @@ namespace FrostNova.TimeRangeChart.Wpf
 
                 horizontalSyncBehavior.SyncTarget = columnHeaderScrollViewer;
 
-                verticalSyncBehavior.SyncTarget = _rowHeaderListBox;
+                // DataGrid モードの場合は DataGrid を同期ターゲットに設定
+                FrameworkElement rowSyncTarget = _rowHeaderDataGrid ?? (FrameworkElement)_rowHeaderListBox;
+                verticalSyncBehavior.SyncTarget = rowSyncTarget;
 
             };
             if (_chart != null)
@@ -658,7 +696,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             if (e.NewValue is INotifyCollectionChanged newRows)
                 newRows.CollectionChanged += self.OnRowsCollectionChanged;
 
-            if (self._rowHeaderListBox == null || self._chart == null) return;
+            if (self._chart == null) return;
 
             self.RebuildFlatTasks();
             self.SyncInternalRows();
@@ -667,7 +705,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         private static void OnTasksSourcePathChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var self = (GridTimeRangeChart)d;
-            if (self._rowHeaderListBox == null || self._chart == null) return;
+            if (self._chart == null) return;
             self.RebuildFlatTasks();
             self.SyncInternalRows();
 
@@ -676,22 +714,22 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         private void SyncInternalRows()
         {
-            if (_rowHeaderListBox == null || _chart == null) return;
+            if (_chart == null) return;
             _internalRows.Clear();
             if (ItemsSource != null)
             {
                 foreach (var item in ItemsSource)
-                {
-                    // ここでRowInternalContainerに包んでRowHeaderのListBoxに流す
                     _internalRows.Add(new RowInternalContainer(item));
-                }
             }
-            _rowHeaderListBox.ItemsSource = _internalRows;
+            if (_rowHeaderListBox != null)
+                _rowHeaderListBox.ItemsSource = _internalRows;
+            if (_rowHeaderDataGrid != null)
+                _rowHeaderDataGrid.ItemsSource = _internalRows;
         }
         // 行リストが変わった（行の追加・削除・入れ替え）
         private void OnRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            if (_rowHeaderListBox == null || _chart == null) return;
+            if (_chart == null) return;
             // 行の順序が変わると全タスクの RowIndex がズレるため、全体を再構築
             RebuildFlatTasks();
             SyncInternalRows();
@@ -700,7 +738,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         // 行の中のタスクリストが変わった
         private void OnTaskCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            if (_rowHeaderListBox == null || _chart == null) return;
+            if (_chart == null) return;
             // 特定の行だけ更新する最適化も可能ですが、
             // 整合性を保つため一旦 RebuildFlatTasks を呼ぶのが安全です
             RebuildFlatTasks();
@@ -708,7 +746,7 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         private void RebuildFlatTasks()
         {
-            if (_rowHeaderListBox == null || _chart == null) return;
+            if (_chart == null) return;
             var flatList = new List<ITimeRangeRowIndex>();
             var rows = ItemsSource as IList;
             if (rows == null) return;
