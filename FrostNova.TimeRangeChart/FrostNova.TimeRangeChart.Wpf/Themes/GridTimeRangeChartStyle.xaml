@@ -76,6 +76,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <!--Corner-->
@@ -146,6 +147,39 @@
                         </Grid>
 
                         <GridSplitter Grid.Row="1" Grid.Column="1" Width="4" HorizontalAlignment="Stretch" />
+
+                        <!--Footer corner-->
+                        <Border Grid.Row="2" Grid.Column="0"
+                                Height="{TemplateBinding FooterHeight}"
+                                BorderBrush="Gray" BorderThickness="0,0,0,0.5">
+                            <ContentPresenter
+                                Content="{TemplateBinding FooterCornerSource}"
+                                ContentTemplate="{TemplateBinding FooterCornerTemplate}"/>
+                        </Border>
+
+                        <!--Footer chart area-->
+                        <Grid Grid.Row="2" Grid.Column="2"
+                              Height="{TemplateBinding FooterHeight}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ScrollViewer x:Name="PART_FooterScrollViewer"
+                                          Grid.Column="0"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Disabled">
+                                <local:FooterRenderLayer x:Name="PART_Footer"
+                                    ItemsSource="{TemplateBinding FooterItemsSource}"
+                                    ItemTemplate="{TemplateBinding FooterTemplate}">
+                                    <local:FooterRenderLayer.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </local:FooterRenderLayer.ItemsPanel>
+                                </local:FooterRenderLayer>
+                            </ScrollViewer>
+                            <Border Grid.Column="1" Width="{Binding Width, ElementName=PART_ColumnRightSpacer}"/>
+                        </Grid>
 
                         <!--Chart-->
                         <local:TimeRangeChart Grid.Row="1" Grid.Column="2"  x:Name="PART_Chart"

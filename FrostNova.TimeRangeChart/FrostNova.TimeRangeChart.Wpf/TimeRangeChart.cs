@@ -102,6 +102,7 @@ public class TimeRangeChart : Control
     #region drag info
 
     private TimeRangeControl? _draggingControl;
+    private object? _recentlyDroppedTask;  // ドラッグ終了直後の SyncVisuals でタスクが除去されるのを防ぐ
     private TimeRangeControl.HitTestMode _dragMode;
     private Point _lastMousePosition;
     private DateTime _originalStartTime;
@@ -1475,7 +1476,8 @@ public class TimeRangeChart : Control
     public void SyncVisuals(IEnumerable<ITimeRangeRowIndex> visibleTasks)
     {
         if (_itemsHost == null || RowOffsets == null) return;
-        var draggingTask = _draggingControl?.DataContext;
+        var draggingTask = _draggingControl?.DataContext ?? _recentlyDroppedTask;
+        _recentlyDroppedTask = null; // 次のSyncVisuals呼び出しでは保護しない
         // 1. 今回表示すべきデータの集合
         var visibleTaskSet = new HashSet<object>(visibleTasks);
         if (draggingTask != null)
@@ -1500,6 +1502,7 @@ public class TimeRangeChart : Control
                     oldNotifiable.PropertyChanged -= OnActiveItemPropertyChanged;
 
                 _itemsHost.Children.Remove(ctrl);
+                ctrl._currentMode = TimeRangeControl.HitTestMode.None; // プール返却時に古い状態をリセット
                 _controlPool.Push(ctrl);
                 _activeControls.Remove(key);
             }
@@ -1621,7 +1624,7 @@ public class TimeRangeChart : Control
             var actualTimeBinding = new Binding(nameof(ITimeRange.ActualSpan))
             {
                 Source = timeRange,
-                Mode = BindingMode.OneWayToSource
+                Mode = BindingMode.OneWay
             };
             BindingOperations.SetBinding(range, TimeRangeControl.ActualSpanProperty, actualTimeBinding);
 
@@ -1828,6 +1831,9 @@ public class TimeRangeChart : Control
 
     }
 
+    // ドラッグと判定する最小移動距離（ピクセル）。これ未満の移動はクリックとして扱い、タスクを動かさない。
+    private const double DragThresholdPixels = 4.0;
+
     protected override void OnMouseMove(MouseEventArgs e)
     {
         if (_draggingControl == null || _draggingControl.DataContext is not ITimeRangeRowIndex task)
@@ -1838,6 +1844,10 @@ public class TimeRangeChart : Control
 
         // 1. 現在のマウス位置を「時間」に変換
         var currentMousePos = e.GetPosition(this);
+
+        // マウスダウン位置からの移動距離が閾値未満はクリックとみなしてタスクを動かさない
+        var dragDelta = currentMousePos - _lastMousePosition;
+        if (!_dragOccured && dragDelta.Length < DragThresholdPixels) return;
         double absoluteX = currentMousePos.X + (_scrollViewer?.HorizontalOffset ?? 0);
         var currentMousePointTime = PointToTime(absoluteX, null);
         var currentMouseTime = PointToTime(absoluteX, _draggingControl.MinSpan ?? MinSpan);
@@ -1865,6 +1875,12 @@ public class TimeRangeChart : Control
                 // 開始時のStartTimeに、マウスの移動時間分を足して移動
 
                 DateTime moveNewStart = TimeHelper.RoundToNearestIncrement(currentMousePointTime - _dragStartOffsetFromStart, _draggingControl.MinSpan ?? MinSpan);
+
+                // チャートの時間範囲外への移動を防ぐ（オートスクロール等で範囲外に出るのを防止）
+                var taskDuration = task.EndTime - task.StartTime;
+                if (moveNewStart < StartTime) moveNewStart = StartTime;
+                if (moveNewStart + taskDuration > EndTime) moveNewStart = EndTime - taskDuration;
+
                 TimeSpan moveDiff = moveNewStart - task.StartTime;
 
                 if (moveDiff != TimeSpan.Zero)
@@ -2072,6 +2088,7 @@ public class TimeRangeChart : Control
 
             }
 
+            _recentlyDroppedTask = _draggingControl.DataContext; // ドラッグ終了直後の保護用
             _draggingControl.ReleaseMouseCapture();
             _draggingControl = null;
             _dragOccured = false;

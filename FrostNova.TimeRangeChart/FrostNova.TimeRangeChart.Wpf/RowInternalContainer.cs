@@ -17,7 +17,7 @@ public class RowInternalContainer : INotifyPropertyChanged
     public double Height
     {
         get => _height;
-        set { _height = value; OnPropertyChanged(); }
+        set { if (_height == value) return; _height = value; OnPropertyChanged(); }
     }
 
     public RowInternalContainer(object rawData) => RawData = rawData;
