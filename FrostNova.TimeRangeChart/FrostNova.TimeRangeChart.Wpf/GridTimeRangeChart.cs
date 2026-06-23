@@ -44,6 +44,8 @@ namespace FrostNova.TimeRangeChart.Wpf
     [TemplatePart(Name = "PART_ColumnScrollViewer", Type = typeof(ScrollViewer))]
     [TemplatePart(Name = "PART_ColumnRightSpacer", Type = typeof(Border))]
     [TemplatePart(Name = "PART_RowBottomSpacer", Type = typeof(Border))]
+    [TemplatePart(Name = "PART_Footer", Type = typeof(FooterRenderLayer))]
+    [TemplatePart(Name = "PART_FooterScrollViewer", Type = typeof(ScrollViewer))]
 
     public class GridTimeRangeChart : Control
     {
@@ -69,6 +71,8 @@ namespace FrostNova.TimeRangeChart.Wpf
         internal ScrollViewer _chartScrollViewer = null!;
         internal Border _columnRightSpacer = null!;
         internal Border _rowBottomSpacer = null!;
+        internal FooterRenderLayer? _footerLayer;
+        internal ScrollViewer? _footerScrollViewer;
 
         #endregion
 
@@ -486,6 +490,66 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         #endregion
 
+        #region Footer
+
+        /// <summary>
+        /// Content shown in the footer corner cell (bottom-left, same column as the row header).
+        /// </summary>
+        public object? FooterCornerSource
+        {
+            get => (object?)GetValue(FooterCornerSourceProperty);
+            set => SetValue(FooterCornerSourceProperty, value);
+        }
+        public static readonly DependencyProperty FooterCornerSourceProperty =
+            DependencyProperty.Register(nameof(FooterCornerSource), typeof(object), typeof(GridTimeRangeChart));
+
+        /// <summary>
+        /// DataTemplate for the footer corner cell.
+        /// </summary>
+        public DataTemplate? FooterCornerTemplate
+        {
+            get => (DataTemplate?)GetValue(FooterCornerTemplateProperty);
+            set => SetValue(FooterCornerTemplateProperty, value);
+        }
+        public static readonly DependencyProperty FooterCornerTemplateProperty =
+            DependencyProperty.Register(nameof(FooterCornerTemplate), typeof(DataTemplate), typeof(GridTimeRangeChart));
+
+        /// <summary>
+        /// DataTemplate applied to each footer cell (one cell per time column).
+        /// The DataContext of each cell is the object from <see cref="FooterItemsSource"/>.
+        /// </summary>
+        public DataTemplate? FooterTemplate
+        {
+            get => (DataTemplate?)GetValue(FooterTemplateProperty);
+            set => SetValue(FooterTemplateProperty, value);
+        }
+        public static readonly DependencyProperty FooterTemplateProperty =
+            DependencyProperty.Register(nameof(FooterTemplate), typeof(DataTemplate), typeof(GridTimeRangeChart));
+
+        /// <summary>
+        /// Items displayed in the footer — one item per time column.
+        /// The consumer is responsible for keeping this list in sync with the time axis tick count.
+        /// </summary>
+        public IList? FooterItemsSource
+        {
+            get => (IList?)GetValue(FooterItemsSourceProperty);
+            set => SetValue(FooterItemsSourceProperty, value);
+        }
+        public static readonly DependencyProperty FooterItemsSourceProperty =
+            DependencyProperty.Register(nameof(FooterItemsSource), typeof(IList), typeof(GridTimeRangeChart));
+
+        /// <summary>
+        /// Height of the footer row. Set to 0 (default) to hide the footer.
+        /// </summary>
+        public double FooterHeight
+        {
+            get => (double)GetValue(FooterHeightProperty);
+            set => SetValue(FooterHeightProperty, value);
+        }
+        public static readonly DependencyProperty FooterHeightProperty =
+            DependencyProperty.Register(nameof(FooterHeight), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(0.0));
+
+        #endregion
 
         #endregion
 
@@ -580,6 +644,10 @@ namespace FrostNova.TimeRangeChart.Wpf
             _columnRightSpacer = (Border)GetTemplateChild("PART_ColumnRightSpacer");
             _rowBottomSpacer = (Border)GetTemplateChild("PART_RowBottomSpacer");
 
+
+            _footerLayer = GetTemplateChild("PART_Footer") as FooterRenderLayer;
+            _footerScrollViewer = GetTemplateChild("PART_FooterScrollViewer") as ScrollViewer;
+
             // ListBox か DataGrid の少なくとも一方と、Chart と ColumnHeader が必須
             if ((_rowHeaderListBox == null && _rowHeaderDataGrid == null) || _chart == null || _columnHeaderLayer == null)
             {
@@ -587,6 +655,7 @@ namespace FrostNova.TimeRangeChart.Wpf
             }
 
             _columnHeaderLayer.ParentChart = this;
+            if (_footerLayer != null) _footerLayer.ParentChart = this;
 
             if (_rowHeaderListBox != null)
             {
@@ -636,6 +705,14 @@ namespace FrostNova.TimeRangeChart.Wpf
                 // DataGrid モードの場合は DataGrid を同期ターゲットに設定
                 FrameworkElement rowSyncTarget = _rowHeaderDataGrid ?? (FrameworkElement)_rowHeaderListBox;
                 verticalSyncBehavior.SyncTarget = rowSyncTarget;
+                if (_footerScrollViewer != null)
+                {
+                    var footerHSyncBehavior = new ScrollSyncBehavior { IsHorizontalSync = true, IsVerticalSync = false };
+                    GeneralHelper.SetBehavior(_chart, footerHSyncBehavior, true);
+                    footerHSyncBehavior.SyncTarget = _footerScrollViewer;
+                }
+
+                verticalSyncBehavior.SyncTarget = _rowHeaderListBox;
 
             };
             if (_chart != null)
@@ -675,7 +752,7 @@ namespace FrostNova.TimeRangeChart.Wpf
         {
             _columnHeaderLayer.InvalidateMeasure();
             _columnHeaderLayer.InvalidateVisual();
-
+            _footerLayer?.InvalidateMeasure();
         }
 
         private readonly List<INotifyCollectionChanged> _trackedTaskCollections = new();
