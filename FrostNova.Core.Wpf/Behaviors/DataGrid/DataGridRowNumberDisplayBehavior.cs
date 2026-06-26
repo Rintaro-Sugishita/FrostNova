@@ -1,4 +1,6 @@
 ﻿using Microsoft.Xaml.Behaviors;
+using System;
+using System.Collections.Specialized;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 
@@ -16,11 +18,12 @@ namespace FrostNova.Core.Wpf.Behaviors
         protected override void OnDetaching()
         {
             base.OnDetaching();
-            AssociatedObject.LoadingRow -= AssociatedObject_LoadingRow;
+            AssociatedObject.LoadingRow -= OnLoadingRow;
+            ((INotifyCollectionChanged)AssociatedObject.Items).CollectionChanged -= OnCollectionChanged;
             AssociatedObject.ItemContainerGenerator.ItemsChanged -= ItemContainerGenerator_ItemsChanged;
         }
 
-        private void AssociatedObject_LoadingRow(object? sender, DataGridRowEventArgs e)
+        private void OnLoadingRow(object? sender, DataGridRowEventArgs e)
         {
             e.Row.Header = (e.Row.GetIndex() + 1).ToString();
         }
