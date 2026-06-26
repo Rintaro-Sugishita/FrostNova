@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/Sample/">
     <Project Path="Sample/FrostNova.Core.ExcelWork.Sample/FrostNova.Core.ExcelWork.Sample.csproj" />
+    <Project Path="Sample/FrostNova.Scheduling.Sample/FrostNova.Scheduling.Sample.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Tests/FrostNova.Core.NativeAOTTest/FrostNova.Core.NativeAOTTest.csproj" Id="b9e30476-736b-45c6-9725-d8732f5b7e00" />

@@ -203,7 +203,7 @@ namespace FrostNova.Core.Wpf.Behaviors
             foreach (DataGridColumn col in e.NewItems)
             {
                 string key = DataGridSaveKeyHelper.GetColumnKey(col);
-                if (!string.IsNullOrEmpty(key) && _savedDataDict.TryGetValue(key, out var saved))
+                if (!string.IsNullOrEmpty(key) && _savedDataDict.TryGetValue(key, out var saved) && saved.Width >= 0)
                     col.Width = saved.Width;
             }
 
@@ -276,7 +276,8 @@ namespace FrostNova.Core.Wpf.Behaviors
 
                 if (!string.IsNullOrEmpty(key) && dataDict.TryGetValue(key, out var saved))
                 {
-                    col.Width = saved.Width;
+                    if (saved.Width >= 0)
+                        col.Width = saved.Width;
                     if (saved.DisplayIndex != -1)
                         withSavedIndex.Add((col, saved.DisplayIndex));
                     else
@@ -311,12 +312,12 @@ namespace FrostNova.Core.Wpf.Behaviors
             foreach (var item in grid.Columns)
             {
                 string key = DataGridSaveKeyHelper.GetColumnKey(item);
-                bool canSave = DataGridColumnEx.GetCanSaveWidth(item);
-                if (!canSave) continue;
                 if (string.IsNullOrEmpty(key)) continue;
+                bool canSave = DataGridColumnEx.GetCanSaveWidth(item);
                 DataGridColumnData columnData = new DataGridColumnData();
                 columnData.Key = key;
-                columnData.Width = item.ActualWidth;
+                // Width=-1 は「幅は復元しない」マーカー（CanSaveWidth=False 列の DisplayIndex を保存するため）
+                columnData.Width = canSave ? item.ActualWidth : -1;
 
                 if (_userHasReordered)
                 {
