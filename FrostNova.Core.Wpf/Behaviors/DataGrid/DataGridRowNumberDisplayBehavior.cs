@@ -1,6 +1,4 @@
 ﻿using Microsoft.Xaml.Behaviors;
-using System;
-using System.Collections.Specialized;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 
@@ -11,7 +9,7 @@ namespace FrostNova.Core.Wpf.Behaviors
         protected override void OnAttached()
         {
             base.OnAttached();
-            AssociatedObject.LoadingRow += AssociatedObject_LoadingRow;
+            AssociatedObject.LoadingRow += OnLoadingRow;
             AssociatedObject.ItemContainerGenerator.ItemsChanged += ItemContainerGenerator_ItemsChanged;
         }
 
@@ -19,7 +17,6 @@ namespace FrostNova.Core.Wpf.Behaviors
         {
             base.OnDetaching();
             AssociatedObject.LoadingRow -= OnLoadingRow;
-            ((INotifyCollectionChanged)AssociatedObject.Items).CollectionChanged -= OnCollectionChanged;
             AssociatedObject.ItemContainerGenerator.ItemsChanged -= ItemContainerGenerator_ItemsChanged;
         }
 
