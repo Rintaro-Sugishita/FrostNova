@@ -16,7 +16,7 @@ public record ScheduleScoreWeights(
     double LeadTimeWeight = 0.001,
     double SetupWeight = 0.01
 );
-*/namespace FrostNova.Scheduling.Engine;
+*/
 
 /// <summary>
 /// スコア計算式の重みパラメータ。

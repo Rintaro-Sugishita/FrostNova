@@ -87,14 +87,14 @@ public class BomScheduleOptimizerTests
     public void Evaluator_ShouldReturnZeroPenalty_WhenNoViolations()
     {
         var step = new MyStep { Id = "S1", LeadTime = TimeSpan.FromHours(1), WorkingSpan = TimeSpan.FromHours(1) };
-        var weights = new ScheduleScoreWeights();
+        var weights = new ScoreWeights();
         var score = ScheduleEvaluator.Evaluate<MyStep, string>(
             new[] { step },
             Array.Empty<ScheduleViolationInfo>(),
             weights);
 
-        Assert.Equal(0, score.DeadlinePenaltyMinutes);
-        Assert.Equal(0, score.TotalScore - score.TotalLeadTimeMinutes * weights.LeadTimeWeight - 0 * weights.SetupWeight, 0.001);
+        Assert.Equal(0, score.TargetDateDeviationHours);
+        Assert.Equal(0, score.TotalScore, 0.001);
     }
 
     [Fact]
@@ -109,14 +109,14 @@ public class BomScheduleOptimizerTests
         );
 
         var step = new MyStep { Id = stepId, LeadTime = TimeSpan.FromHours(2) };
-        var weights = new ScheduleScoreWeights(DeadlineWeight: 1.0);
+        var weights = new ScoreWeights(A: 1.0);
         var score = ScheduleEvaluator.Evaluate<MyStep, string>(
             new[] { step },
             new[] { violation },
             weights);
 
-        // 2時間 = 120分のペナルティ
-        Assert.Equal(120.0, score.DeadlinePenaltyMinutes, 1);
+        // 2時間遅れ
+        Assert.Equal(2.0, score.TargetDateDeviationHours, 1);
         Assert.True(score.TotalScore > 0);
     }
 }
