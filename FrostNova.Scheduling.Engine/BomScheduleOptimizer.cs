@@ -38,7 +38,7 @@ public static class BomScheduleOptimizer
             bool isForward,
             TimeSpan unit,
             Func<IReadOnlyList<TBom>, IReadOnlyList<TBom>> nodeCloner,
-            ScheduleScoreWeights? weights = null,
+            ScoreWeights? weights = null,
             IScheduleOptimizationStrategy<TBom>? strategy = null,
             int iterations = 50,
             Dictionary<BomScheduler.ResourceType, IEqualityComparer<object>>? comparers = null)
@@ -46,7 +46,7 @@ public static class BomScheduleOptimizer
         where TOperation : IProcessStep<TOperationKey>
         where TBomKey : notnull
     {
-        weights ??= new ScheduleScoreWeights();
+        weights ??= new ScoreWeights();
 
         if (strategy == null)
         {
@@ -90,6 +90,6 @@ public static class BomScheduleOptimizer
             }
         }
 
-        return (bestNodes ?? nodeCloner(targetNodes), bestScore ?? new ScheduleScore(0, 0, 0, 0), bestViolations);
+        return (bestNodes ?? nodeCloner(targetNodes), bestScore ?? new ScheduleScore(), bestViolations);
     }
 }

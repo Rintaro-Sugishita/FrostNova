@@ -8,29 +8,31 @@ public static class ScheduleEvaluator
     public static ScheduleScore Evaluate<TOperation, TOperationKey>(
         IEnumerable<TOperation> scheduledSteps,
         IReadOnlyList<ScheduleViolationInfo> violations,
-        ScheduleScoreWeights weights)
+        ScoreWeights weights)
         where TOperation : IProcessStep<TOperationKey>
     {
         var steps = scheduledSteps.ToList();
 
-        // 納期遅れペナルティ（分）
-        double deadlinePenalty = violations
+        // 納期遅れ（時間）
+        double targetDateDeviationHours = violations
             .Where(v => v.Type == ScheduleViolationType.DeadlineMiss)
-            .Sum(v => (v.ActualDate - v.ConstraintDate).TotalMinutes);
+            .Sum(v => (v.ActualDate - v.ConstraintDate).TotalHours);
 
-        // 全工程 WorkingSpan 合計（分）
-        double totalLeadTime = steps
-            .Where(s => s.WorkingSpan.HasValue)
-            .Sum(s => s.WorkingSpan!.Value.TotalMinutes);
-
-        // 段取り工程数
-        int setupCount = steps.Count(s => s.SetupTime > TimeSpan.Zero);
+        // 総段取り時間（時間）
+        double totalSetupHours = steps
+            .Where(s => s.SetupTime > TimeSpan.Zero)
+            .Sum(s => s.SetupTime.TotalHours);
 
         double totalScore =
-            weights.DeadlineWeight * deadlinePenalty +
-            weights.LeadTimeWeight * totalLeadTime +
-            weights.SetupWeight * setupCount;
+            weights.A * targetDateDeviationHours +
+            weights.B * totalSetupHours;
 
-        return new ScheduleScore(deadlinePenalty, totalLeadTime, setupCount, totalScore);
+        return new ScheduleScore
+        {
+            IsHardViolated = false,
+            TargetDateDeviationHours = targetDateDeviationHours,
+            TotalSetupHours = totalSetupHours,
+            TotalScore = totalScore
+        };
     }
 }
