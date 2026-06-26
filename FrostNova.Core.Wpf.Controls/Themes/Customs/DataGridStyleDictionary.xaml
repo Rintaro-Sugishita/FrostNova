@@ -19,7 +19,7 @@
     <Style x:Key="FrostNovaDataGridCellStyle" TargetType="{x:Type DataGridCell}">
         <!--<Setter Property="BorderThickness" Value="0"/>-->
         <Setter Property="BorderThickness" Value="1.5" />
-        <Setter Property="BorderBrush" Value="White" />
+        <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Foreground" Value="Black" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Padding" Value="0" />
@@ -71,13 +71,29 @@
                 <Setter Property="BorderBrush" Value="#f0f0f0" />
                 <Setter Property="Background" Value="#f0f0f0" />
                 <Setter Property="Foreground" Value="Black" />
-
-
             </Trigger>
             <Trigger Property="IsFocused" Value="True">
-                <Setter Property="Background" Value="White" />
                 <Setter Property="BorderBrush" Value="Green" />
             </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="BorderBrush" Value="Green" />
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsSelected" Value="True" />
+                    <Condition Property="IsFocused" Value="True" />
+                </MultiTrigger.Conditions>
+                <Setter Property="Background" Value="#f0f0f0" />
+                <Setter Property="BorderBrush" Value="Green" />
+            </MultiTrigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsSelected" Value="True" />
+                    <Condition Property="IsKeyboardFocusWithin" Value="True" />
+                </MultiTrigger.Conditions>
+                <Setter Property="Background" Value="#f0f0f0" />
+                <Setter Property="BorderBrush" Value="Green" />
+            </MultiTrigger>
         </Style.Triggers>
     </Style>
 

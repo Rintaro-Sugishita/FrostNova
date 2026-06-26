@@ -50,7 +50,26 @@ namespace FrostNova.Core.Wpf.Behaviors
         {
             if (d is UIElement ctrl)
             {
-                GeneralHelper.SetBehavior<DataGridCheckBoxBehavior>(ctrl,e);   
+                GeneralHelper.SetBehavior<DataGridCheckBoxBehavior>(ctrl,e);
+            }
+        }
+
+        public static readonly DependencyProperty EnableCheckBoxOneClickProperty =
+            DependencyProperty.RegisterAttached(
+                "EnableCheckBoxOneClick",
+                typeof(bool?),
+                typeof(DataGridBehaviors),
+                new PropertyMetadata(null, OnEnableCheckBoxOneClickChanged));
+
+        public static bool? GetEnableCheckBoxOneClick(DataGrid element) => (bool?)element.GetValue(EnableCheckBoxOneClickProperty);
+
+        public static void SetEnableCheckBoxOneClick(DataGrid element, bool? value) => element.SetValue(EnableCheckBoxOneClickProperty, value);
+
+        private static void OnEnableCheckBoxOneClickChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DataGrid ctrl)
+            {
+                GeneralHelper.SetBehavior<DataGridCheckBoxOneClickBehavior>(ctrl, e);
             }
         }
 

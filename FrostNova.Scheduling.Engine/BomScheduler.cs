@@ -62,9 +62,57 @@ public static class BomScheduler
         where TBom : class, IBomNode<TBom, TBomKey, TOperationKey, TOperation>
         where TOperation : IProcessStep<TOperationKey>
         where TBomKey : notnull
+        => Schedule<TBom, TBomKey, TOperation, TOperationKey>(
+            targetNodes, referenceNodes, nonWorkingTimes, resourceNonWorkingGetter,
+            baseDateGetter, isForward, unit, leadTimeOverride: null, comparers);
+
+    /// <summary>
+    /// leadTimeOverride を指定するオーバーロード。
+    /// RiskBuffer 等でステップごとに LeadTime を動的に差し替えたい場合に使用する。
+    /// null の場合は step.LeadTime をそのまま使用する。
+    /// </summary>
+    public static IReadOnlyList<ScheduleViolationInfo> Schedule<TBom, TBomKey, TOperation, TOperationKey>
+(
+        IEnumerable<TBom> targetNodes,
+        IEnumerable<TBom> referenceNodes,
+        IEnumerable<IPendingTimeRange> nonWorkingTimes,
+        Func<ResourceKey, IEnumerable<IPendingTimeRange>> resourceNonWorkingGetter,
+        Func<TOperation, BaseDateInfo> baseDateGetter,
+        bool isForward,
+        TimeSpan unit,
+        Func<TOperation, TimeSpan>? leadTimeOverride,
+        Dictionary<ResourceType, IEqualityComparer<object>>? comparers = null
+        )
+        where TBom : class, IBomNode<TBom, TBomKey, TOperationKey, TOperation>
+        where TOperation : IProcessStep<TOperationKey>
+        where TBomKey : notnull
+        => Schedule<TBom, TBomKey, TOperation, TOperationKey>(
+            targetNodes, referenceNodes, nonWorkingTimes, resourceNonWorkingGetter,
+            baseDateGetter, isForward, unit, leadTimeOverride, setupMatrix: null, comparers);
+
+    /// <summary>
+    /// leadTimeOverride と setupMatrix（品番切り替え動的段取り時間）を指定するオーバーロード。
+    /// ISetupMatrix を渡すと、各ラインで直前に処理した品番と次の品番の組み合わせで段取り時間を動的に決定する。
+    /// </summary>
+    public static IReadOnlyList<ScheduleViolationInfo> Schedule<TBom, TBomKey, TOperation, TOperationKey>
+(
+        IEnumerable<TBom> targetNodes,
+        IEnumerable<TBom> referenceNodes,
+        IEnumerable<IPendingTimeRange> nonWorkingTimes,
+        Func<ResourceKey, IEnumerable<IPendingTimeRange>> resourceNonWorkingGetter,
+        Func<TOperation, BaseDateInfo> baseDateGetter,
+        bool isForward,
+        TimeSpan unit,
+        Func<TOperation, TimeSpan>? leadTimeOverride,
+        ISetupMatrix? setupMatrix,
+        Dictionary<ResourceType, IEqualityComparer<object>>? comparers = null
+        )
+        where TBom : class, IBomNode<TBom, TBomKey, TOperationKey, TOperation>
+        where TOperation : IProcessStep<TOperationKey>
+        where TBomKey : notnull
     {
         var violations = new List<ScheduleViolationInfo>();
-        var resourceManager = new ResourceScheduler(unit, resourceNonWorkingGetter, comparers);
+        var resourceManager = new ResourceScheduler(unit, resourceNonWorkingGetter, comparers, setupMatrix);
 
         // 既存予約（referenceNodes）の登録
         // targetNodesに含まれるものは再計算対象なので除外
@@ -109,7 +157,7 @@ public static class BomScheduler
 
         foreach (var item in allStepsWithMeta)
         {
-            var baseLeadTime = item.Step.LeadTime ?? unit;
+            var baseLeadTime = leadTimeOverride?.Invoke(item.Step) ?? item.Step.LeadTime ?? unit;
             var currentStep = item.Step;
             var currentCursor = stepCursors[item.Step];
 
@@ -184,10 +232,11 @@ public static class BomScheduler
                 currentCursor = currentCursor.Subtract(currentStep.PostBuffer);
             }
 
-            // 計算実行
+            // 計算実行（ISetupMatrix が設定されている場合に品番キーを渡して動的段取り時間を使用）
+            object? nodeItemKey = item.Node.Id;
             var result = useForward
-                    ? resourceManager.FindBestSlotForward<TOperation, TOperationKey>(item.Step, currentCursor, baseLeadTime, limit)
-                    : resourceManager.FindBestSlotBackward<TOperation, TOperationKey>(item.Step, currentCursor, baseLeadTime, limit);
+                    ? resourceManager.FindBestSlotForward<TOperation, TOperationKey>(item.Step, currentCursor, baseLeadTime, limit, itemKey: nodeItemKey)
+                    : resourceManager.FindBestSlotBackward<TOperation, TOperationKey>(item.Step, currentCursor, baseLeadTime, limit, itemKey: nodeItemKey);
 
             // 結果を保存
             item.Step.Start = result.Start;
@@ -229,8 +278,8 @@ public static class BomScheduler
             // --- 計算結果を他の全工程へ伝播させる ---
             PropagateConstraints<TBom, TBomKey, TOperation, TOperationKey>(item.Node, item.Step, isForward, stepCursors, useForwardForLinks: useForward);
 
-            // リソース予約の確定
-            resourceManager.Book<TOperation, TOperationKey>(item.Step, result.LineId, result.MemberId, result.EffectiveSetupTime, result.EffectivePostSetupTime);
+            // リソース予約の確定（直前品番の追跡のため itemKey を渡し、段取り・後段取り時間を反映）
+            resourceManager.Book<TOperation, TOperationKey>(item.Step, result.LineId, result.MemberId, itemKey: nodeItemKey, effectiveSetupTime: result.EffectiveSetupTime, effectivePostSetupTime: result.EffectivePostSetupTime);
 
             completedSteps.Add(currentStep);
         }
@@ -552,16 +601,20 @@ public static class BomScheduler
         private readonly Dictionary<ResourceKey, List<IPendingTimeRange>> _resourceUsage = new();
         private readonly Func<ResourceKey, IEnumerable<IPendingTimeRange>> _resNonWorkingGetter;
         private readonly TimeSpan _unit;
+        private readonly ISetupMatrix? _setupMatrix;
+        private readonly Dictionary<object, object?> _lastItemByLine = new();
 
         public ResourceScheduler(
          TimeSpan unit,
          Func<ResourceKey, IEnumerable<IPendingTimeRange>> resNonWorkingGetter,
-         Dictionary<ResourceType, IEqualityComparer<object>>? comparers = null)
+         Dictionary<ResourceType, IEqualityComparer<object>>? comparers = null,
+         ISetupMatrix? setupMatrix = null)
         {
             _unit = unit;
             _resNonWorkingGetter = resNonWorkingGetter;
             var keyComparer = new ResourceKeyComparer(comparers);
             _resourceUsage = new Dictionary<ResourceKey, List<IPendingTimeRange>>(keyComparer);
+            _setupMatrix = setupMatrix;
         }
         /// <summary>
         /// Registers global non-working time intervals.
@@ -582,7 +635,8 @@ public static class BomScheduler
         /// specific line.</param>
         /// <param name="memberId">An optional identifier for the resource member to associate with the booking. Can be null to indicate no
         /// specific member.</param>
-        public void Book<TOperation, TOperationKey>(TOperation step, object? lineId, object? memberId, TimeSpan? effectiveSetupTime = null, TimeSpan? effectivePostSetupTime = null)
+        public void Book<TOperation, TOperationKey>(TOperation step, object? lineId, object? memberId,
+                    object? itemKey = null, TimeSpan? effectiveSetupTime = null, TimeSpan? effectivePostSetupTime = null)
                     where TOperation : IProcessStep<TOperationKey>
         {
             if (step.LeadTime == null || !step.Start.HasValue || !step.End.HasValue) return;
@@ -595,6 +649,8 @@ public static class BomScheduler
                 Start = step.Start - setup,
                 End = step.End + postSetup
             };
+            if (lineId != null && itemKey != null)
+                _lastItemByLine[lineId] = itemKey;
             foreach (var key in GetSelectedResourceKeys(lineId, memberId))
             {
                 if (!_resourceUsage.TryGetValue(key, out var usages))
@@ -622,7 +678,7 @@ public static class BomScheduler
         /// <param name="latestFinish">The latest allowable finish time for the scheduled step, or null if there is no constraint.</param>
         /// <returns>A ScheduleResult representing the best available slot found for the process step. If no suitable resources
         /// are available, returns a result based on default efficiency and the provided start time.</returns>
-        public ScheduleResult FindBestSlotForward<TOperation, TOperationKey>(TOperation step, DateTime startCursor, TimeSpan baseDuration, DateTime? latestFinish = null) where TOperation : IProcessStep<TOperationKey>
+        public ScheduleResult FindBestSlotForward<TOperation, TOperationKey>(TOperation step, DateTime startCursor, TimeSpan baseDuration, DateTime? latestFinish = null, object? itemKey = null) where TOperation : IProcessStep<TOperationKey>
 
         {
             // 効率のデフォルト値 (1.0)
@@ -644,10 +700,13 @@ public static class BomScheduler
                     // 効率を加味した実際の所要時間を計算
                     var actualDuration = CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, totalEfficiency);
 
+                    // 直前品番を考慮した動的段取り時間（ISetupMatrix がなければ step.SetupTime を使用）
+                    var baseSetupTime = GetEffectiveSetupTime(line.Id, step.SetupTime, itemKey);
+
                     // 段取り時間に効率を適用するかどうかに応じて実効段取り時間を算出
                     var effectiveSetup = step.ScaleSetupByEfficiency
-                        ? TimeSpan.FromTicks((long)(step.SetupTime.Ticks / Math.Max(0.01, totalEfficiency)))
-                        : step.SetupTime;
+                        ? TimeSpan.FromTicks((long)(baseSetupTime.Ticks / Math.Max(0.01, totalEfficiency)))
+                        : baseSetupTime;
                     var effectivePostSetup = step.ScaleSetupByEfficiency
                         ? TimeSpan.FromTicks((long)(step.PostSetupTime.Ticks / Math.Max(0.01, totalEfficiency)))
                         : step.PostSetupTime;
@@ -656,7 +715,6 @@ public static class BomScheduler
                     var totalOccupancy = effectiveSetup + actualDuration + effectivePostSetup;
 
                     var (foundStart, foundEnd, violation) = FindFirstAvailableStart(keys, startCursor, totalOccupancy, step.BatchCapacity, latestFinish);
-
 
                     var leadStart = foundStart.Add(effectiveSetup);
                     var leadEnd = foundEnd.Subtract(effectivePostSetup);
@@ -669,7 +727,7 @@ public static class BomScheduler
                 }
 
             // 候補がない場合のフォールバック（効率1.0で計算）
-            return bestResult ?? new ScheduleResult(startCursor, startCursor.Add(CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, 1.0)), null, null, baseDuration);
+            return bestResult ?? new ScheduleResult(startCursor, startCursor.Add(CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, 1.0)), null, null, baseDuration, effectiveSetup: step.SetupTime);
         }
 
         /// <summary>
@@ -688,7 +746,7 @@ public static class BomScheduler
         /// <param name="earliestStart">The earliest allowed start time for the scheduled slot. If null, no lower bound is enforced.</param>
         /// <returns>A ScheduleResult representing the best available time slot found for the process step. If no suitable slot
         /// is found, returns a fallback result using the default efficiency.</returns>
-        public ScheduleResult FindBestSlotBackward<TOperation, TOperationKey>(TOperation step, DateTime endCursor, TimeSpan baseDuration, DateTime? earliestStart = null) where TOperation : IProcessStep<TOperationKey>
+        public ScheduleResult FindBestSlotBackward<TOperation, TOperationKey>(TOperation step, DateTime endCursor, TimeSpan baseDuration, DateTime? earliestStart = null, object? itemKey = null) where TOperation : IProcessStep<TOperationKey>
         {
             const double DefaultEfficiency = 1.0;
 
@@ -707,10 +765,13 @@ public static class BomScheduler
                     // 効率を加味した実際の所要時間を計算
                     var actualDuration = CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, totalEfficiency);
 
+                    // 直前品番を考慮した動的段取り時間（ISetupMatrix がなければ step.SetupTime を使用）
+                    var baseSetupTime = GetEffectiveSetupTime(line.Id, step.SetupTime, itemKey);
+
                     // 段取り時間に効率を適用するかどうかに応じて実効段取り時間を算出
                     var effectiveSetup = step.ScaleSetupByEfficiency
-                        ? TimeSpan.FromTicks((long)(step.SetupTime.Ticks / Math.Max(0.01, totalEfficiency)))
-                        : step.SetupTime;
+                        ? TimeSpan.FromTicks((long)(baseSetupTime.Ticks / Math.Max(0.01, totalEfficiency)))
+                        : baseSetupTime;
                     var effectivePostSetup = step.ScaleSetupByEfficiency
                         ? TimeSpan.FromTicks((long)(step.PostSetupTime.Ticks / Math.Max(0.01, totalEfficiency)))
                         : step.PostSetupTime;
@@ -718,10 +779,9 @@ public static class BomScheduler
                     // リソースを占有すべき全時間を計算 (Setup + Lead + PostSetup)
                     var totalOccupancy = effectiveSetup + actualDuration + effectivePostSetup;
 
-                    // 2. 探索。endCursorから遡って searchDuration 分の空きを探す
+                    // 探索。endCursorから遡って totalOccupancy 分の空きを探す
                     var (foundStart, foundEnd, violation) = FindFirstAvailableEnd(keys, endCursor, totalOccupancy, step.BatchCapacity, earliestStart);
 
-                    // 3. スケジュール結果の算出
                     // LeadTimeの終了 = 見つかった枠の末尾 - PostSetupTime
                     var leadEnd = foundEnd.Subtract(effectivePostSetup);
                     var leadStart = foundStart.Subtract(effectiveSetup);
@@ -737,7 +797,7 @@ public static class BomScheduler
             if (bestResult == null)
             {
                 var fallbackDuration = CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, DefaultEfficiency);
-                return new ScheduleResult(endCursor.Subtract(fallbackDuration), endCursor, null, null, fallbackDuration);
+                return new ScheduleResult(endCursor.Subtract(fallbackDuration), endCursor, null, null, fallbackDuration, effectiveSetup: step.SetupTime);
             }
 
             return bestResult.Value;
@@ -1026,6 +1086,13 @@ public static class BomScheduler
 
         private IEnumerable<(object? Id, double Efficiency)> GetMemberCandidates<TOperation, TOperationKey>(TOperation step) where TOperation : IProcessStep<TOperationKey>
             => (step as IResourceConstraint)?.GetMemberCandidates() ?? Enumerable.Empty<(object?, double)>();
+
+        private TimeSpan GetEffectiveSetupTime(object? lineId, TimeSpan fallback, object? itemKey)
+        {
+            if (_setupMatrix == null || lineId == null || itemKey == null) return fallback;
+            _lastItemByLine.TryGetValue(lineId, out var prevKey);
+            return _setupMatrix.GetSetupTime(prevKey, itemKey);
+        }
         private static bool IsOverlap(IPendingTimeRange r, DateTime s, DateTime e) => r.Start < e && s < r.End;
         private static DateTime RoundUp(DateTime dt, TimeSpan d) => new((dt.Ticks + d.Ticks - 1) / d.Ticks * d.Ticks, dt.Kind);
         private static DateTime RoundDown(DateTime dt, TimeSpan d) => new(dt.Ticks / d.Ticks * d.Ticks, dt.Kind);
