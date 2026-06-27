@@ -100,7 +100,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:ColorPalette}">
-                    <StackPanel Margin="8,6,8,4">
+                    <StackPanel Margin="8,6,8,4" Background="{TemplateBinding Background}">
                         <ListBox ItemsSource="{StaticResource foregroundList}" Style="{StaticResource selectColorListBox}"/>
                         <ListBox ItemsSource="{StaticResource backgroundList}" Style="{StaticResource selectColorListBox}" Margin="0,2,0,0"/>
                         <Border Height="1" Background="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}" Margin="0,5,0,3"/>

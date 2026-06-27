@@ -729,6 +729,17 @@ namespace FrostNova.TimeRangeChart.Wpf
             AddHandler(TimeRangeChart.TaskDragStartEvent, new EventHandler<DragDropRangeEventArgs>(OnTaskDragStart));
             AddHandler(TimeRangeChart.TaskDragEndEvent, new EventHandler<DragDropRangeEventArgs>(OnTaskDragEnd));
 
+            AddHandler(TimeRangeChart.ChartBackgroundLeftClickEvent,
+                new EventHandler<ChartBackgroundClickEventArgs>(OnChartBackgroundLeftClick));
+            AddHandler(TimeRangeChart.ChartBackgroundRightClickEvent,
+                new EventHandler<ChartBackgroundClickEventArgs>(OnChartBackgroundRightClick));
+
+            // Sync DPs that may have been set from XAML before _chart was available
+            _chart.ChartSelectionMode = ChartSelectionMode;
+            if (SelectionFill != null) _chart.SelectionFill = SelectionFill;
+            if (SelectionStroke != null) _chart.SelectionStroke = SelectionStroke;
+            if (!double.IsNaN(SelectionStrokeThickness)) _chart.SelectionStrokeThickness = SelectionStrokeThickness;
+
         }
 
         private void OnChartLoaded(object sender, RoutedEventArgs e)
@@ -966,6 +977,170 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         private ObservableCollection<RowInternalContainer> _internalRows = new();
 
+
+        // ── ChartContextMenu DP ─────────────────────────────────────────────────────────
+
+        public static readonly DependencyProperty ChartContextMenuProperty =
+            DependencyProperty.Register(
+                nameof(ChartContextMenu), typeof(System.Windows.Controls.ContextMenu),
+                typeof(GridTimeRangeChart), new PropertyMetadata(null));
+
+        public System.Windows.Controls.ContextMenu? ChartContextMenu
+        {
+            get => (System.Windows.Controls.ContextMenu?)GetValue(ChartContextMenuProperty);
+            set => SetValue(ChartContextMenuProperty, value);
+        }
+
+        // ── ChartContextMenuArgs DP (read-only) ─────────────────────────────────────────
+
+        private static readonly DependencyPropertyKey ChartContextMenuArgsPropertyKey =
+            DependencyProperty.RegisterReadOnly(
+                nameof(ChartContextMenuArgs), typeof(ChartContextMenuArgs),
+                typeof(GridTimeRangeChart), new PropertyMetadata(null));
+
+        public static readonly DependencyProperty ChartContextMenuArgsProperty =
+            ChartContextMenuArgsPropertyKey.DependencyProperty;
+
+        public ChartContextMenuArgs? ChartContextMenuArgs
+        {
+            get => (ChartContextMenuArgs?)GetValue(ChartContextMenuArgsProperty);
+            private set => SetValue(ChartContextMenuArgsPropertyKey, value);
+        }
+
+        // ── ChartSelectionMode DP ────────────────────────────────────────────────────────
+
+        public static readonly DependencyProperty ChartSelectionModeProperty =
+            DependencyProperty.Register(
+                nameof(ChartSelectionMode), typeof(ChartSelectionMode),
+                typeof(GridTimeRangeChart),
+                new PropertyMetadata(ChartSelectionMode.FullRow, OnChartSelectionModeChanged));
+
+        public ChartSelectionMode ChartSelectionMode
+        {
+            get => (ChartSelectionMode)GetValue(ChartSelectionModeProperty);
+            set => SetValue(ChartSelectionModeProperty, value);
+        }
+
+        private static void OnChartSelectionModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is GridTimeRangeChart self && self._chart != null)
+                self._chart.ChartSelectionMode = (ChartSelectionMode)e.NewValue;
+        }
+
+        // ── SelectedRowItem DP (read-only) ──────────────────────────────────────────────
+
+        private static readonly DependencyPropertyKey SelectedRowItemPropertyKey =
+            DependencyProperty.RegisterReadOnly(
+                nameof(SelectedRowItem), typeof(object),
+                typeof(GridTimeRangeChart), new PropertyMetadata(null));
+
+        public static readonly DependencyProperty SelectedRowItemProperty =
+            SelectedRowItemPropertyKey.DependencyProperty;
+
+        public object? SelectedRowItem
+        {
+            get => GetValue(SelectedRowItemProperty);
+            private set => SetValue(SelectedRowItemPropertyKey, value);
+        }
+
+        // ── SelectedDateTime DP (read-only) ─────────────────────────────────────────────
+
+        private static readonly DependencyPropertyKey SelectedDateTimePropertyKey =
+            DependencyProperty.RegisterReadOnly(
+                nameof(SelectedDateTime), typeof(DateTime),
+                typeof(GridTimeRangeChart), new PropertyMetadata(DateTime.MinValue));
+
+        public static readonly DependencyProperty SelectedDateTimeProperty =
+            SelectedDateTimePropertyKey.DependencyProperty;
+
+        public DateTime SelectedDateTime
+        {
+            get => (DateTime)GetValue(SelectedDateTimeProperty);
+            private set => SetValue(SelectedDateTimePropertyKey, value);
+        }
+
+        // ── SelectionFill / SelectionStroke / SelectionStrokeThickness DPs ───────────────
+        // These forward to TimeRangeChart's corresponding DPs when set (non-null / non-NaN).
+        // Leave unset to keep TimeRangeChart's built-in defaults.
+
+        public static readonly DependencyProperty SelectionFillProperty =
+            DependencyProperty.Register(
+                nameof(SelectionFill), typeof(Brush), typeof(GridTimeRangeChart),
+                new PropertyMetadata(null, OnSelectionAppearanceChanged));
+
+        public Brush? SelectionFill
+        {
+            get => (Brush?)GetValue(SelectionFillProperty);
+            set => SetValue(SelectionFillProperty, value);
+        }
+
+        public static readonly DependencyProperty SelectionStrokeProperty =
+            DependencyProperty.Register(
+                nameof(SelectionStroke), typeof(Brush), typeof(GridTimeRangeChart),
+                new PropertyMetadata(null, OnSelectionAppearanceChanged));
+
+        public Brush? SelectionStroke
+        {
+            get => (Brush?)GetValue(SelectionStrokeProperty);
+            set => SetValue(SelectionStrokeProperty, value);
+        }
+
+        public static readonly DependencyProperty SelectionStrokeThicknessProperty =
+            DependencyProperty.Register(
+                nameof(SelectionStrokeThickness), typeof(double), typeof(GridTimeRangeChart),
+                new PropertyMetadata(double.NaN, OnSelectionAppearanceChanged));
+
+        public double SelectionStrokeThickness
+        {
+            get => (double)GetValue(SelectionStrokeThicknessProperty);
+            set => SetValue(SelectionStrokeThicknessProperty, value);
+        }
+
+        private static void OnSelectionAppearanceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not GridTimeRangeChart self || self._chart == null) return;
+
+            if (e.Property == SelectionFillProperty && e.NewValue is Brush fill)
+                self._chart.SelectionFill = fill;
+            else if (e.Property == SelectionStrokeProperty && e.NewValue is Brush stroke)
+                self._chart.SelectionStroke = stroke;
+            else if (e.Property == SelectionStrokeThicknessProperty
+                     && e.NewValue is double t && !double.IsNaN(t))
+                self._chart.SelectionStrokeThickness = t;
+        }
+
+        // ── Chart background click handlers ──────────────────────────────────────────────
+
+        private void OnChartBackgroundLeftClick(object? sender, ChartBackgroundClickEventArgs e)
+        {
+            var rowItem = (ItemsSource != null && e.RowIndex >= 0 && e.RowIndex < ItemsSource.Count)
+                ? ItemsSource[e.RowIndex]
+                : null;
+            SelectedRowItem = rowItem;
+            SelectedDateTime = e.ClickedDateTime;
+        }
+
+        // ── Chart background right-click handler ─────────────────────────────────────────
+
+        private void OnChartBackgroundRightClick(object? sender, ChartBackgroundClickEventArgs e)
+        {
+            var menu = ChartContextMenu;
+            if (menu == null) return;
+
+            var rowItem = (ItemsSource != null && e.RowIndex >= 0 && e.RowIndex < ItemsSource.Count)
+                ? ItemsSource[e.RowIndex]
+                : null;
+
+            ChartContextMenuArgs = new ChartContextMenuArgs
+            {
+                RowItem         = rowItem,
+                ClickedDateTime = e.ClickedDateTime,
+                RowIndex        = e.RowIndex
+            };
+
+            menu.PlacementTarget = this;
+            menu.IsOpen = true;
+        }
 
         private void SetupScrollSync()
         {
