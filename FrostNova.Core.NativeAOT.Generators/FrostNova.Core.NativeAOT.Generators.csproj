@@ -12,7 +12,7 @@
         <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
         <!--<DevelopmentDependency>true</DevelopmentDependency>-->
         <CompilerVisibleProperty />
-        <Version>1.2.2</Version>
+        <Version>1.2.3</Version>
         <Description>NativeAOT optimized DeepClone source generator.</Description>
         <PackageReadmeFile>readme.md</PackageReadmeFile>
     </PropertyGroup>
