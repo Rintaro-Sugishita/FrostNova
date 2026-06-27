@@ -16,24 +16,28 @@
     <i:Interaction.Behaviors>
         <behaviors:WindowDragMoveBehavior />
     </i:Interaction.Behaviors>
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition />
-            <RowDefinition Height="30"/>
-        </Grid.RowDefinitions>
-        <local:ColorPalette Background="White" Height="80" SelectedColor="{Binding SelectedColor,Mode=TwoWay}"
-                            SetRecentlyUsedColorsFunc="{Binding SetRecentlyUsedColorsFunc}"
-                            RecentlyUsedColors="{Binding RecentlyUsedList}"
-                            />
-        <local:ColorSelector Grid.Row="1" x:Name="colorSelecter" SelectedColor="{Binding SelectedColor, Mode=TwoWay}" OldColor="{Binding OldColor}" >
-        </local:ColorSelector>
-        <Grid Grid.Row="2" 
-                    Background="white">
-            <Button x:Name="okButton" Width="60" Content="OK" Margin="50,0,10,0" HorizontalAlignment="Left" Command="{Binding CloseCommand}"  />
-            <Button x:Name="cancelButton" Width="60" Content="Cancel" Margin="10,0,50,0" HorizontalAlignment="Right" Command="{Binding CloseCancelCommand}" />
+    <Border BorderBrush="#ADADAD"
+            BorderThickness="1"
+            CornerRadius="3">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+                <RowDefinition Height="36"/>
+            </Grid.RowDefinitions>
+            <local:ColorPalette Background="White" Height="80"
+                                SelectedColor="{Binding SelectedColor, Mode=TwoWay}"
+                                SetRecentlyUsedColorsFunc="{Binding SetRecentlyUsedColorsFunc}"
+                                RecentlyUsedColors="{Binding RecentlyUsedList}" />
+            <local:ColorSelector Grid.Row="1" x:Name="colorSelecter"
+                                 SelectedColor="{Binding SelectedColor, Mode=TwoWay}"
+                                 OldColor="{Binding OldColor}" />
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                        VerticalAlignment="Center" Margin="0,0,8,0"
+                        Background="White">
+                <Button x:Name="okButton" Width="70" Content="OK" Margin="0,0,4,0" Command="{Binding CloseCommand}" />
+                <Button x:Name="cancelButton" Width="70" Content="キャンセル" Command="{Binding CloseCancelCommand}" />
+            </StackPanel>
         </Grid>
-
-
-    </Grid>
+    </Border>
 </Window>

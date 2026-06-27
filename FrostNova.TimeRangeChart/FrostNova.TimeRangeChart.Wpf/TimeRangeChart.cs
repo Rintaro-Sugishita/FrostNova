@@ -640,7 +640,114 @@ public class TimeRangeChart : Control
         OnTimeAxisChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    // ── Chart background selection events (internal; consumed by GridTimeRangeChart) ─────
+
+    internal static readonly RoutedEvent ChartBackgroundLeftClickEvent =
+        EventManager.RegisterRoutedEvent(
+            nameof(ChartBackgroundLeftClickEvent), RoutingStrategy.Bubble,
+            typeof(EventHandler<ChartBackgroundClickEventArgs>), typeof(TimeRangeChart));
+
+    internal static readonly RoutedEvent ChartBackgroundRightClickEvent =
+        EventManager.RegisterRoutedEvent(
+            nameof(ChartBackgroundRightClickEvent), RoutingStrategy.Bubble,
+            typeof(EventHandler<ChartBackgroundClickEventArgs>), typeof(TimeRangeChart));
+
     #endregion
+
+    // ── ChartSelectionMode DP ────────────────────────────────────────────────────────────
+
+    public static readonly DependencyProperty ChartSelectionModeProperty =
+        DependencyProperty.Register(
+            nameof(ChartSelectionMode), typeof(ChartSelectionMode), typeof(TimeRangeChart),
+            new PropertyMetadata(ChartSelectionMode.FullRow, OnChartSelectionModeChanged));
+
+    public ChartSelectionMode ChartSelectionMode
+    {
+        get => (ChartSelectionMode)GetValue(ChartSelectionModeProperty);
+        set => SetValue(ChartSelectionModeProperty, value);
+    }
+
+    private static void OnChartSelectionModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TimeRangeChart chart && chart._selectedRowIndex >= 0)
+            chart.UpdateSelectionRect();
+    }
+
+    // ── Selection state ─────────────────────────────────────────────────────────────────
+
+    private int _selectedRowIndex = -1;
+    private DateTime _selectedDateTime;
+
+    // ── Selection appearance DPs ─────────────────────────────────────────────────
+
+    public static readonly DependencyProperty SelectionFillProperty =
+        DependencyProperty.Register(nameof(SelectionFill), typeof(Brush), typeof(TimeRangeChart),
+            new PropertyMetadata(new SolidColorBrush(Color.FromArgb(60, 30, 120, 220))));
+
+    public Brush SelectionFill
+    {
+        get => (Brush)GetValue(SelectionFillProperty);
+        set => SetValue(SelectionFillProperty, value);
+    }
+
+    public static readonly DependencyProperty SelectionStrokeProperty =
+        DependencyProperty.Register(nameof(SelectionStroke), typeof(Brush), typeof(TimeRangeChart),
+            new PropertyMetadata(new SolidColorBrush(Color.FromArgb(180, 30, 120, 220))));
+
+    public Brush SelectionStroke
+    {
+        get => (Brush)GetValue(SelectionStrokeProperty);
+        set => SetValue(SelectionStrokeProperty, value);
+    }
+
+    public static readonly DependencyProperty SelectionStrokeThicknessProperty =
+        DependencyProperty.Register(nameof(SelectionStrokeThickness), typeof(double), typeof(TimeRangeChart),
+            new PropertyMetadata(1.5));
+
+    public double SelectionStrokeThickness
+    {
+        get => (double)GetValue(SelectionStrokeThicknessProperty);
+        set => SetValue(SelectionStrokeThicknessProperty, value);
+    }
+
+    private readonly Rectangle _selectionRect = new Rectangle
+    {
+        IsHitTestVisible = false,
+        Visibility = Visibility.Collapsed,
+    };
+
+    private void UpdateSelectionRect()
+    {
+        if (_selectedRowIndex < 0 || RowOffsets == null || RowOffsets.Length == 0
+            || _selectedRowIndex >= RowOffsets.Length) return;
+
+        double rowTop    = RowOffsets[_selectedRowIndex];
+        double rowHeight = RowHeights[_selectedRowIndex];
+        double left, width;
+
+        if (ChartSelectionMode == ChartSelectionMode.DateOnly)
+        {
+            left  = TimeToPoint(_selectedDateTime);
+            width = TimeToPoint(_selectedDateTime + ScaleIncrement) - left;
+        }
+        else
+        {
+            left  = 0;
+            width = _contentWidth;
+        }
+
+        Canvas.SetLeft(_selectionRect, left);
+        Canvas.SetTop(_selectionRect, rowTop);
+        _selectionRect.Width     = Math.Max(0, width);
+        _selectionRect.Height    = rowHeight;
+        _selectionRect.Visibility = Visibility.Visible;
+    }
+
+    private void ClearSelection()
+    {
+        _selectedRowIndex = -1;
+        _selectionRect.Visibility = Visibility.Collapsed;
+    }
 
     public override void OnApplyTemplate()
     {
@@ -676,6 +783,22 @@ public class TimeRangeChart : Control
         {
             _itemsHost.MouseMove += OnItemsHostMouseMove;
             _itemsHost.MouseLeave += OnItemsHostMouseLeave;
+
+            // Register directly on the canvas so ScrollViewer.OnMouseLeftButtonDown
+            // (which sets e.Handled=true via Focus()) cannot suppress the event.
+            _itemsHost.MouseLeftButtonDown += OnItemsHostBackgroundClick;
+
+            // Bind selection rect appearance to DPs so consumers can style it
+            _selectionRect.SetBinding(Rectangle.FillProperty,
+                new System.Windows.Data.Binding(nameof(SelectionFill)) { Source = this });
+            _selectionRect.SetBinding(Rectangle.StrokeProperty,
+                new System.Windows.Data.Binding(nameof(SelectionStroke)) { Source = this });
+            _selectionRect.SetBinding(Rectangle.StrokeThicknessProperty,
+                new System.Windows.Data.Binding(nameof(SelectionStrokeThickness)) { Source = this });
+
+            // Selection rect sits below all task controls
+            Panel.SetZIndex(_selectionRect, -1);
+            _itemsHost.Children.Add(_selectionRect);
         }
     }
 
@@ -1751,6 +1874,43 @@ public class TimeRangeChart : Control
 
     #endregion
 
+
+    #region Chart background click / selection
+
+    // Registered directly on _itemsHost (Canvas) so that ScrollViewer.OnMouseLeftButtonDown
+    // cannot suppress it.  TimeRangeControl sets e.Handled=true, so this handler is
+    // skipped for task-bar clicks — only background clicks reach here.
+    private void OnItemsHostBackgroundClick(object sender, MouseButtonEventArgs e)
+    {
+        if (ChartSelectionMode == ChartSelectionMode.None) return;
+
+        // _itemsHost coordinates are already in canvas space (no scroll offset needed)
+        var pos = e.GetPosition(_itemsHost);
+
+        int rowIndex = GetRowIndexFromMouse(pos.Y);
+        if (rowIndex < 0) return;
+
+        _selectedRowIndex = rowIndex;
+        _selectedDateTime = PointToTime(pos.X, null);
+
+        UpdateSelectionRect();
+
+        RaiseEvent(new ChartBackgroundClickEventArgs(
+            ChartBackgroundLeftClickEvent, _selectedRowIndex, _selectedDateTime));
+    }
+
+    protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseRightButtonDown(e);
+        if (_selectedRowIndex < 0) return;
+
+        RaiseEvent(new ChartBackgroundClickEventArgs(
+            ChartBackgroundRightClickEvent, _selectedRowIndex, _selectedDateTime));
+
+        e.Handled = true;
+    }
+
+    #endregion
 
     #region Dragging
 
