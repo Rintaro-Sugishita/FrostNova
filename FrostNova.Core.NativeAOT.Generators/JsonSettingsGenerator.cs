@@ -82,7 +82,7 @@ namespace FrostNova.Core.NativeAOT
             context.RegisterSourceOutput(combined, (spc, source) => Execute(spc, source.Left, source.Right));
         }
 
-        private static (INamedTypeSymbol? Symbol, bool isNullable, INamedTypeSymbol? ContextType, string[] customConverters) GetSemanticTarget(GeneratorSyntaxContext context)
+        private static (INamedTypeSymbol? Symbol, bool isNullable, INamedTypeSymbol? ContextType, string[] customConverters, bool isHiding) GetSemanticTarget(GeneratorSyntaxContext context)
         {
             var classDeclaration = (ClassDeclarationSyntax)context.Node;
             var symbol = context.SemanticModel.GetDeclaredSymbol(classDeclaration) as INamedTypeSymbol;
@@ -116,13 +116,22 @@ namespace FrostNova.Core.NativeAOT
                     bool useNullable = nullableContextAtLocation.HasFlag(NullableContext.AnnotationsEnabled) ||
                                        projectNullable.HasFlag(NullableContextOptions.Annotations);
 
-                    return (symbol, useNullable, contextTypeSymbol, converters.ToArray());
+                    bool isHiding = false;
+                    var bt = symbol.BaseType;
+                    while (bt != null && !isHiding)
+                    {
+                        if (bt.GetAttributes().Any(ad => ad.AttributeClass?.ToDisplayString() == ATTRIBUTE_NAME))
+                            isHiding = true;
+                        bt = bt.BaseType;
+                    }
+
+                    return (symbol, useNullable, contextTypeSymbol, converters.ToArray(), isHiding);
                 }
             }
-            return (null, false, null, []);
+            return (null, false, null, [], false);
         }
 
-        private static void Execute(SourceProductionContext context, (INamedTypeSymbol? Symbol, bool isNullable, INamedTypeSymbol? ContextType, string[] customConverters) target, string version)
+        private static void Execute(SourceProductionContext context, (INamedTypeSymbol? Symbol, bool isNullable, INamedTypeSymbol? ContextType, string[] customConverters, bool isHiding) target, string version)
         {
             var classSymbol = target.Symbol!;
 
@@ -190,12 +199,12 @@ namespace FrostNova.Core.NativeAOT
                 }
             }
 
-            var source = ProcessClass(classSymbol, target.isNullable, target.ContextType, serializableTypes, validMethod?.Name, target.customConverters, version);
+            var source = ProcessClass(classSymbol, target.isNullable, target.ContextType, serializableTypes, validMethod?.Name, target.customConverters, target.isHiding, version);
             var hintName = classSymbol.ToDisplayString().Replace(".", "_") + ".JsonSettings.g.cs";
             context.AddSource(hintName, source);
         }
 
-        private static string ProcessClass(INamedTypeSymbol classSymbol, bool isNullable, INamedTypeSymbol? contextType, List<ITypeSymbol> contextTargetTypes, string? getPathMethodName, string[] customConverters, string version)
+        private static string ProcessClass(INamedTypeSymbol classSymbol, bool isNullable, INamedTypeSymbol? contextType, List<ITypeSymbol> contextTargetTypes, string? getPathMethodName, string[] customConverters, bool isHiding, string version)
         {
             var namespaceName = classSymbol.ContainingNamespace.ToDisplayString();
             var accessibility = GetAccessibilityText(classSymbol.DeclaredAccessibility);
@@ -203,6 +212,7 @@ namespace FrostNova.Core.NativeAOT
             var contextTypeName = contextType?.ToDisplayString();
             var q = isNullable ? "?" : string.Empty;
             var genAttr = $"[global::System.CodeDom.Compiler.GeneratedCodeAttribute(\"FrostNova.Core.NativeAOT.JsonSettingsGenerator\", \"{version}\")]";
+            var newKeyword = isHiding ? "new " : "";
 
 
             var interfaceDeclaration = $" : FrostNova.Core.NativeAOT.IJsonSerializable<{className}>";
@@ -327,7 +337,7 @@ namespace FrostNova.Core.NativeAOT
             // 共通の FromJson (ReadOnlySpan版)
             sb.AppendLine($@"
         {genAttr}
-        public static {className}{q} FromJson(ReadOnlySpan<char> json)
+        public static {newKeyword}{className}{q} FromJson(ReadOnlySpan<char> json)
         {{
             if (json.IsWhiteSpace()) return null;
             try {{
@@ -338,7 +348,7 @@ namespace FrostNova.Core.NativeAOT
         }}
 
         {genAttr}
-        public static {className}{q} FromJson(ReadOnlySpan<byte> utf8Json)
+        public static {newKeyword}{className}{q} FromJson(ReadOnlySpan<byte> utf8Json)
         {{
             if (utf8Json.Length == 0) return null;
             try {{
@@ -351,7 +361,7 @@ namespace FrostNova.Core.NativeAOT
             // string版の FromJson は共通して Span版を呼ぶ
             sb.AppendLine($@"
         {genAttr}
-        public static {className}{q} FromJson(string json) => FromJson(json.AsSpan());");
+        public static {newKeyword}{className}{q} FromJson(string json) => FromJson(json.AsSpan());");
 
 
             // --- Serialization Methods (ToJson部分) ---
@@ -363,7 +373,7 @@ namespace FrostNova.Core.NativeAOT
                 sb.AppendLine($@"
         /// <summary>Serializes the current instance to a JSON string.</summary>
         {genAttr}
-        public string ToJson(bool isIndented = true)
+        public {newKeyword}string ToJson(bool isIndented = true)
         {{BeforeSerialize();
             // インデントの有無に応じて TypeInfo を切り替えて最速で実行
             var typeInfo = isIndented ? _indentedContext.{className} : _defaultContext.{className};
@@ -381,7 +391,7 @@ namespace FrostNova.Core.NativeAOT
                 sb.AppendLine($@"
         /// <summary>Serializes the current instance to a JSON string.</summary>
         {genAttr}
-        public string ToJson(bool isIndented = true)
+        public {newKeyword}string ToJson(bool isIndented = true)
         {{BeforeSerialize();
             // 既存の JsonSerializerOptions を選択して実行
             var options = {optionSelection};
@@ -485,8 +495,8 @@ namespace FrostNova.Core.NativeAOT
         partial void AfterDeserialize();
         ");
 
-            GenerateFileIOMethods(sb, q, className, contextTypeName, customConverters, genAttr);
-            if (getPathMethodName != null) GenerateSettingsMethods(sb, className, getPathMethodName, genAttr);
+            GenerateFileIOMethods(sb, q, className, contextTypeName, customConverters, isHiding, genAttr);
+            if (getPathMethodName != null) GenerateSettingsMethods(sb, className, getPathMethodName, isHiding, genAttr);
 
             sb.AppendLine("    }");
 
@@ -497,18 +507,19 @@ namespace FrostNova.Core.NativeAOT
             return sb.ToString();
         }
 
-        private static void GenerateFileIOMethods(StringBuilder sb, string q, string className, string? contextTypeName, string[] customConverters, string genAttr)
+        private static void GenerateFileIOMethods(StringBuilder sb, string q, string className, string? contextTypeName, string[] customConverters, bool isHiding, string genAttr)
         {
+            var newKeyword = isHiding ? "new " : "";
             sb.AppendLine($@"
         {genAttr}
-        public static {className}{q} LoadFromFile(string path)
+        public static {newKeyword}{className}{q} LoadFromFile(string path)
         {{
             if (!File.Exists(path)) return new {className}();
             try {{ return FromJson(File.ReadAllText(path)); }}
             catch (Exception ex) {{ Debug.WriteLine(ex.ToString()); return null; }}
         }}
         {genAttr}
-        public void SaveToFile(string path)
+        public {newKeyword}void SaveToFile(string path)
         {{
             try {{
                 var dir = Path.GetDirectoryName(path);
@@ -534,7 +545,7 @@ namespace FrostNova.Core.NativeAOT
 
             sb.AppendLine($@"
         {genAttr}
-        public static async Task<{className}{q}> LoadFromFileAsync(string path)
+        public static {newKeyword}async Task<{className}{q}> LoadFromFileAsync(string path)
         {{
             if (!File.Exists(path)) return new {className}();
             try {{
@@ -543,7 +554,7 @@ namespace FrostNova.Core.NativeAOT
             }} catch (Exception ex) {{ Debug.WriteLine(ex.ToString()); return null; }}
         }}
         {genAttr}
-        public async Task SaveToFileAsync(string path)
+        public {newKeyword}async Task SaveToFileAsync(string path)
         {{
             try {{
                 var dir = Path.GetDirectoryName(path);
@@ -554,17 +565,18 @@ namespace FrostNova.Core.NativeAOT
         }}");
         }
 
-        private static void GenerateSettingsMethods(StringBuilder sb, string className, string methodName, string genAttr)
+        private static void GenerateSettingsMethods(StringBuilder sb, string className, string methodName, bool isHiding, string genAttr)
         {
+            var newKeyword = isHiding ? "new " : "";
             sb.AppendLine($@"
         {genAttr}
-        public static {className} LoadSettings() => LoadFromFile({methodName}()) ?? new {className}();
+        public static {newKeyword}{className} LoadSettings() => LoadFromFile({methodName}()) ?? new {className}();
         {genAttr}
-        public void SaveSettings() => SaveToFile({methodName}());
+        public {newKeyword}void SaveSettings() => SaveToFile({methodName}());
         {genAttr}
-        public static async Task<{className}> LoadSettingsAsync() => await LoadFromFileAsync({methodName}()) ?? new {className}();
+        public static {newKeyword}async Task<{className}> LoadSettingsAsync() => await LoadFromFileAsync({methodName}()) ?? new {className}();
         {genAttr}
-        public Task SaveSettingsAsync() => SaveToFileAsync({methodName}());");
+        public {newKeyword}Task SaveSettingsAsync() => SaveToFileAsync({methodName}());");
 
 
             if (methodName != "GetSavePath")
