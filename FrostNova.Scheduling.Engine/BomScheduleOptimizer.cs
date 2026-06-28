@@ -1,33 +1,35 @@
 namespace FrostNova.Scheduling.Engine;
 
 /// <summary>
-/// BomScheduler.Schedule を複数回実行し、最もスコアの良いスケジュール結果を探索する最適化ループ。
+/// Optimization loop that calls <see cref="BomScheduler.Schedule"/> repeatedly with different node orderings
+/// and returns the run with the best score.
 /// </summary>
 public static class BomScheduleOptimizer
 {
     /// <summary>
-    /// ノードを複数順序でスケジュールし、最良のスコアを持つ結果のノードコレクションを返す。
+    /// Schedules nodes in multiple orderings and returns the node collection whose result has the lowest score.
     /// </summary>
-    /// <typeparam name="TBom">BOM ノード型</typeparam>
-    /// <typeparam name="TBomKey">BOM ノードキー型</typeparam>
-    /// <typeparam name="TOperation">工程ステップ型</typeparam>
-    /// <typeparam name="TOperationKey">工程ステップキー型</typeparam>
-    /// <param name="targetNodes">スケジュール対象ノード</param>
-    /// <param name="referenceNodes">既存予約ノード</param>
-    /// <param name="nonWorkingTimes">全体の非稼働時間</param>
-    /// <param name="resourceNonWorkingGetter">リソース固有の非稼働時間取得関数</param>
-    /// <param name="baseDateGetter">各工程の基準日情報取得関数</param>
-    /// <param name="isForward">true: 順算、false: 逆算</param>
-    /// <param name="unit">最小時間単位</param>
+    /// <typeparam name="TBom">BOM node type.</typeparam>
+    /// <typeparam name="TBomKey">BOM node key type.</typeparam>
+    /// <typeparam name="TOperation">Process step type.</typeparam>
+    /// <typeparam name="TOperationKey">Process step key type.</typeparam>
+    /// <param name="targetNodes">Nodes to schedule.</param>
+    /// <param name="referenceNodes">Already-confirmed reservation nodes.</param>
+    /// <param name="nonWorkingTimes">Global non-working time ranges.</param>
+    /// <param name="resourceNonWorkingGetter">Returns resource-specific non-working time ranges.</param>
+    /// <param name="baseDateGetter">Returns base-date information for each operation.</param>
+    /// <param name="isForward"><see langword="true"/> for forward scheduling; <see langword="false"/> for backward.</param>
+    /// <param name="unit">Minimum scheduling time unit.</param>
     /// <param name="nodeCloner">
-    /// ノードグラフの複製ファクトリ。各イテレーション前に呼び出してクリーンな状態を得る。
-    /// 返すコレクションは元のノードと同じ順序・構造を持ちつつ、Start/End/LineId/MemberId がリセットされていること。
+    /// Factory that deep-copies the node graph before each iteration.
+    /// The returned collection must have the same order and structure as the input but with
+    /// Start, End, LineId, and MemberId reset to <see langword="null"/>.
     /// </param>
-    /// <param name="weights">スコア計算の重み</param>
-    /// <param name="strategy">探索戦略（null の場合は HillClimbing を使用）</param>
-    /// <param name="iterations">最大イテレーション数</param>
-    /// <param name="comparers">リソースキーの比較器</param>
-    /// <returns>最良スケジュール結果（ノードコレクション、スコア、違反情報）</returns>
+    /// <param name="weights">Weighting coefficients for the score formula.</param>
+    /// <param name="strategy">Search strategy; defaults to <see cref="HillClimbingStrategy{TBom}"/> when <see langword="null"/>.</param>
+    /// <param name="iterations">Maximum number of iterations.</param>
+    /// <param name="comparers">Equality comparers keyed by resource type.</param>
+    /// <returns>A tuple of the best node collection, its score, and any constraint violations.</returns>
     public static (IReadOnlyList<TBom> BestNodes, ScheduleScore BestScore, IReadOnlyList<ScheduleViolationInfo> BestViolations)
         Optimize<TBom, TBomKey, TOperation, TOperationKey>(
             IReadOnlyList<TBom> targetNodes,

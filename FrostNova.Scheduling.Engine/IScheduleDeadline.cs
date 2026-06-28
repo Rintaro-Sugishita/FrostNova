@@ -1,36 +1,39 @@
 namespace FrostNova.Scheduling.Engine;
 
 /// <summary>
-/// 希望納期・絶対納期・在庫許容限界を BOM ノードに付与するオプションインターフェース。
-/// IBomNode の実装クラスがこのインターフェースを実装することで、
-/// SimulationEngine によるスコア評価の対象となる。
+/// Optional interface that adds desired-date, hard-deadline, and earliest-start constraints to a BOM node.
+/// When an <c>IBomNode</c> implementation also implements this interface, the simulation engine includes
+/// it in score evaluation.
 /// </summary>
 public interface IScheduleDeadline
 {
-    /// <summary>希望納期。ここからのズレが評価スコアのペナルティになる。</summary>
+    /// <summary>Desired completion date. Deviations from this date contribute a penalty to the evaluation score.</summary>
     DateTime TargetDate { get; }
 
-    /// <summary>絶対納期。最終工程の終了がこの日時を超えたシナリオはハード違反として評価から除外される。</summary>
+    /// <summary>
+    /// Absolute deadline. Any scenario where the last operation finishes after this date is treated as a
+    /// hard violation and excluded from optimization.
+    /// </summary>
     DateTime Deadline { get; }
 
     /// <summary>
-    /// 在庫許容限界（前倒し禁止日）。
-    /// いずれかの工程の開始がこの日時より前になると在庫ペナルティが発生する。
-    /// 倉庫キャパシティやキャッシュフローの制約を表す。
+    /// Earliest allowable start date (inventory floor).
+    /// An inventory penalty is incurred when any operation is scheduled before this date.
+    /// Represents warehouse capacity or cash-flow constraints.
     /// </summary>
     DateTime EarliestStart { get; }
 
     /// <summary>
-    /// 製品・顧客の重要度係数（デフォルト 1.0）。
-    /// 希望納期ズレのペナルティにこの係数を乗算する。
-    /// 例: 2.0 なら同じ1時間遅れでも重要度1.0の製品の2倍のペナルティになる。
+    /// Importance multiplier for this product or customer (default 1.0).
+    /// The target-date deviation penalty is scaled by this factor.
+    /// For example, a value of 2.0 means one hour late incurs twice the penalty of an item with weight 1.0.
     /// </summary>
     double ImportanceWeight { get; }
 
     /// <summary>
-    /// LeadTime のリスクバッファ係数（デフォルト 0.0）。
-    /// スケジュール計算時に LeadTime を (1 + RiskBuffer) 倍して余裕を持たせる。
-    /// 例: 0.2 なら2時間作業を2.4時間として計算し、実作業後に余裕ができる。
+    /// Risk buffer coefficient applied to lead time during scheduling (default 0.0).
+    /// The effective lead time is computed as <c>LeadTime × (1 + RiskBuffer)</c>.
+    /// For example, 0.2 extends a 2-hour task to 2.4 hours, leaving slack after the actual work.
     /// </summary>
     double RiskBuffer { get; }
 }

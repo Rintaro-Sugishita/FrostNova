@@ -43,13 +43,13 @@ public interface IProcessStep<TKey> : IPendingTimeRange
     /// </summary>
     int StepOrder { get; }
 
-    /// <summary>数量（バッチサイズ計算用）</summary>
+    /// <summary>Production quantity used for batch-size calculations.</summary>
     double Quantity { get; }
 
-    /// <summary>単位数量あたりの時間か、固定時間か</summary>
+    /// <summary><see langword="true"/> if <see cref="LeadTime"/> is a fixed duration; <see langword="false"/> if it scales per unit of quantity.</summary>
     bool IsFixedTime { get; }
 
-    /// <summary>一度に処理できる最大数量（1なら個別、10なら10個まで同時）</summary>
+    /// <summary>Maximum quantity that can be processed simultaneously (1 = one-at-a-time; 10 = up to 10 units in one batch).</summary>
     double BatchCapacity { get; }
 
 
@@ -58,8 +58,8 @@ public interface IProcessStep<TKey> : IPendingTimeRange
     public object? MemberId { get; set; }
 
     /// <summary>
-    /// SetupTime と PostSetupTime にもリソース効率を適用するかどうか。
-    /// true の場合、段取り時間も LeadTime と同様に効率で割り算される。
+    /// When <see langword="true"/>, resource efficiency is also applied to <see cref="SetupTime"/> and
+    /// <see cref="PostSetupTime"/> (divided by efficiency, same as <see cref="LeadTime"/>).
     /// </summary>
     bool ScaleSetupByEfficiency => false;
 }

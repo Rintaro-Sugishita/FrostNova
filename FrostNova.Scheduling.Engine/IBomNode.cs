@@ -27,8 +27,8 @@ public interface IBomNode<TSelf, TNodeKey, TStepKey, TOperation>
     int Priority { get; set; }
 
     /// <summary>
-    /// ノード内の工程間のリンク（SS/FF/SF 依存）。
-    /// デフォルトは空（FinishToStart のみ使用する場合は実装不要）。
+    /// Links between process steps within this node (SS / FF / SF dependencies).
+    /// Default is empty; no implementation needed when only Finish-to-Start ordering is used.
     /// </summary>
     IEnumerable<IStepLink<TStepKey>> StepLinks => Enumerable.Empty<IStepLink<TStepKey>>();
 

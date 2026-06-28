@@ -1,8 +1,8 @@
 namespace FrostNova.Scheduling.Engine;
 
 /// <summary>
-/// 全探索戦略。Heap's Algorithm で全順列を生成し、最小スコアを選定する。
-/// 品目数 N ≤ 8 程度での使用を推奨（9! = 362880 回、10! = 3628800 回）。
+/// Exhaustive search strategy. Generates all permutations using Heap's Algorithm and returns the one
+/// with the minimum score. Recommended for N ≤ 8 items (9! = 362,880 calls; 10! = 3,628,800 calls).
 /// </summary>
 public sealed class ExhaustiveStrategy : IOptimizationStrategy
 {

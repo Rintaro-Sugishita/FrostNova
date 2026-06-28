@@ -1,8 +1,8 @@
 namespace FrostNova.Scheduling.Engine;
 
 /// <summary>
-/// スケジュール最適化における探索戦略のインターフェース。
-/// 与えられたノードリストに対して、異なる優先順位付け（候補順序）を生成する。
+/// Search strategy for schedule optimization. Generates candidate orderings (different priority assignments)
+/// for the given node list so the optimizer can evaluate each one.
 /// </summary>
 public interface IScheduleOptimizationStrategy<TBom>
 {

@@ -1,6 +1,6 @@
 namespace FrostNova.Scheduling.Engine;
 
-/// <summary>IProcessStep の計算結果スナップショット。</summary>
+/// <summary>Immutable snapshot of the computed schedule for a single <c>IProcessStep</c>.</summary>
 public record StepSnapshot(
     DateTime? Start,
     DateTime? End,
@@ -10,17 +10,18 @@ public record StepSnapshot(
 );
 
 /// <summary>
-/// 1 回のシミュレーション結果を IProcessStep への書き込みとは分離して保持するスナップショット。
-/// SimulationEngine が複数回のシミュレーション結果を比較するために使用する。
+/// Holds the results of one simulation run as an in-memory snapshot, decoupled from the
+/// <c>IProcessStep</c> objects. The simulation engine uses multiple variants to compare orderings
+/// and only writes the best result back via <see cref="Apply{TOperation, TKey}"/>.
 /// </summary>
 public class ScheduleVariant
 {
     internal Dictionary<object, StepSnapshot> Snapshots { get; }
 
-    /// <summary>このバリアントが使用した品目処理順のインデックス順列（デバッグ・再現用）。</summary>
+    /// <summary>The index permutation used to order items in this variant (for debugging and reproducibility).</summary>
     public IReadOnlyList<int>? OrderPermutation { get; init; }
 
-    /// <summary>評価スコア。SimulationEngine が Evaluate() 呼び出し後に設定する。</summary>
+    /// <summary>Evaluation score set by the simulation engine after calling <c>Evaluate()</c>.</summary>
     public ScheduleScore? Score { get; set; }
 
     internal ScheduleVariant(Dictionary<object, StepSnapshot> snapshots)
@@ -29,8 +30,8 @@ public class ScheduleVariant
     }
 
     /// <summary>
-    /// このバリアントの計算結果を IProcessStep に書き戻す。
-    /// 最良解が確定したときにのみ呼ぶこと。
+    /// Writes this variant's computed schedule back into the <c>IProcessStep</c> objects.
+    /// Call this only once the best solution has been identified.
     /// </summary>
     public void Apply<TOperation, TKey>(IEnumerable<TOperation> steps)
         where TOperation : IProcessStep<TKey>

@@ -1,8 +1,8 @@
 namespace FrostNova.Scheduling.Engine;
 
 /// <summary>
-/// 山登り法による最適化戦略。
-/// Priority の getter/setter を受け取り、ランダムに2ノードの優先度をスワップして近傍解を生成する。
+/// Hill-climbing optimization strategy. Accepts priority getter / setter functions and generates
+/// neighbor solutions by randomly swapping the priority values of two BOM nodes.
 /// </summary>
 public class HillClimbingStrategy<TBom> : IScheduleOptimizationStrategy<TBom>
 {

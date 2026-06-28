@@ -8,8 +8,8 @@ using System.Windows.Media;
 namespace FrostNova.Core.Wpf.Behaviors
 {
     /// <summary>
-    /// DataGridTemplateColumn 内の CheckBox を 1 クリックでトグルするビヘイビア。
-    /// DataGridEditOnEnterBehavior との組み合わせで 2 クリック必要になる問題を解消する。
+    /// Behavior that toggles a <c>CheckBox</c> inside a <c>DataGridTemplateColumn</c> with a single click.
+    /// Resolves the two-click requirement that arises when combined with <c>DataGridEditOnEnterBehavior</c>.
     /// </summary>
     public class DataGridCheckBoxOneClickBehavior : Behavior<DataGrid>
     {

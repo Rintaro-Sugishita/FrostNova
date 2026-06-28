@@ -8,6 +8,11 @@ using System.Threading.Tasks;
 
 namespace FrostNova.Core.TableWork
 {
+    /// <summary>
+    /// <see cref="ITableObject"/> implementation backed by a <see cref="System.Data.DataTable"/>.
+    /// Provides row/column count access, row insertion, and value get/set operations through
+    /// the common table interface consumed by <c>TableDataProcessor</c>.
+    /// </summary>
     public class TableContainerBase : ITableObject
     {
         protected object tableInstance;

@@ -15,7 +15,7 @@ using System.Windows.Shapes;
 namespace FrostNova.Core.Wpf.Views
 {
     /// <summary>
-    /// ProgressWindow.xaml の相互作用ロジック
+    /// Code-behind for <c>ProgressWindow.xaml</c>. Displays a progress bar and status message.
     /// </summary>
     public partial class ProgressWindow : Window
     {

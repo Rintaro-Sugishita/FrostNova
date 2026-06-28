@@ -1,7 +1,7 @@
 namespace FrostNova.Scheduling.Engine;
 
 /// <summary>
-/// 遺伝的アルゴリズムのパラメータ。
+/// Tuning parameters for <see cref="GeneticAlgorithmStrategy"/>.
 /// </summary>
 public record GaParameters(
     int PopulationSize = 50,
@@ -11,9 +11,9 @@ public record GaParameters(
 );
 
 /// <summary>
-/// OX 交叉（Order Crossover）と 2 点 swap 突然変異を用いた遺伝的アルゴリズム探索戦略。
-/// エリート保存により最良個体は必ず次世代に引き継がれる。
-/// 製品数が多く（目安 10 品以上）全探索が困難な場合に使用する。
+/// Optimization strategy that uses a genetic algorithm with OX (Order Crossover) and 2-point swap mutation.
+/// Elite preservation guarantees that the best individual always survives to the next generation.
+/// Recommended when the number of products is large (roughly 10 or more) and exhaustive search is infeasible.
 /// </summary>
 public sealed class GeneticAlgorithmStrategy : IOptimizationStrategy
 {

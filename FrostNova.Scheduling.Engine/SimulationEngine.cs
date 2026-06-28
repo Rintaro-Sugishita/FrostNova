@@ -3,9 +3,10 @@ using static FrostNova.Scheduling.Engine.BomScheduler;
 namespace FrostNova.Scheduling.Engine;
 
 /// <summary>
-/// BomScheduler を繰り返し呼び出し、評価関数と最適化戦略によって最良のスケジュール結果を返すエンジン。
-/// IProcessStep への直接書き込みとシミュレーション結果を分離し、
-/// Backup → ApplyPriority → Schedule → Snapshot → Restore のサイクルで動作する。
+/// Drives repeated calls to <see cref="BomScheduler"/>, evaluates each result with an
+/// <see cref="IScheduleEvaluator"/>, and returns the best <see cref="ScheduleVariant"/> found by the
+/// chosen <see cref="IOptimizationStrategy"/>. Decouples direct writes to <c>IProcessStep</c> from
+/// simulation results by running a Backup → ApplyPriority → Schedule → Snapshot → Restore cycle.
 /// </summary>
 public static class SimulationEngine
 {
@@ -19,8 +20,9 @@ public static class SimulationEngine
     // ────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// ScoreWeights を使ってデフォルト評価器を構築し、最適化を実行する。
-    /// BOM ノードが IScheduleDeadline を実装している場合のみ希望納期ズレ・在庫ペナルティが計算される。
+    /// Builds a <see cref="DefaultScheduleEvaluator"/> from the supplied <see cref="ScoreWeights"/> and
+    /// runs the optimization. Target-date deviation and inventory penalty are computed only when BOM nodes
+    /// also implement <see cref="IScheduleDeadline"/>.
     /// </summary>
     public static ScheduleVariant Optimize<TBom, TBomKey, TOperation, TOperationKey>(
         IReadOnlyList<TBom> targetNodes,
