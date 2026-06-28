@@ -19,8 +19,8 @@ public record ScheduleScoreWeights(
 */
 
 /// <summary>
-/// スコア計算式の重みパラメータ。
-/// TotalScore = A × 希望納期ズレ[h] + B × 総段取り時間[h] + C × 平均在庫日数 + D × ライン稼働バランス[h]
+/// Weighting coefficients for the schedule score formula:
+/// <c>TotalScore = A × target-date deviation [h] + B × total setup time [h] + C × average inventory days + D × line-balance std-dev [h]</c>
 /// </summary>
 public record ScoreWeights(
     double A = 1.0,
@@ -30,29 +30,38 @@ public record ScoreWeights(
 );
 
 /// <summary>
-/// 1 回のシミュレーション結果のスコア内訳。TotalScore が小さいほど良い解。
+/// Detailed score breakdown for a single simulation run. Lower <see cref="TotalScore"/> is better.
 /// </summary>
 public record ScheduleScore
 {
-    /// <summary>絶対納期（Deadline）を超えたシナリオは true。この場合 TotalScore は double.MaxValue 扱い。</summary>
+    /// <summary>
+    /// <see langword="true"/> when the absolute deadline (Deadline) was exceeded.
+    /// In this case <see cref="TotalScore"/> is treated as <see cref="double.MaxValue"/>.
+    /// </summary>
     public bool IsHardViolated { get; init; }
 
-    /// <summary>希望納期（TargetDate）からのズレ時間の合計（時間）。A × この値がスコアに加算される。</summary>
+    /// <summary>Sum of deviations from the desired completion date (TargetDate), in hours. Multiplied by weight A.</summary>
     public double TargetDateDeviationHours { get; init; }
 
-    /// <summary>総段取り時間（時間）。B × この値がスコアに加算される。</summary>
+    /// <summary>Total setup time across all operations, in hours. Multiplied by weight B.</summary>
     public double TotalSetupHours { get; init; }
 
-    /// <summary>在庫ペナルティ：EarliestStart より前倒しになった工程のズレ平均（日）。C × この値がスコアに加算される。</summary>
+    /// <summary>
+    /// Inventory penalty: average days by which operations were scheduled earlier than their EarliestStart.
+    /// Multiplied by weight C.
+    /// </summary>
     public double AverageInventoryDays { get; init; }
 
-    /// <summary>ライン稼働時間の標準偏差（時間）。D × この値がスコアに加算される。値が小さいほど均等に稼働している。</summary>
+    /// <summary>
+    /// Standard deviation of line utilization hours across resources. Multiplied by weight D.
+    /// Smaller values indicate more even load balancing.
+    /// </summary>
     public double LineBalanceStdDevHours { get; init; }
 
-    /// <summary>加重和スコア。IsHardViolated == true の場合は double.MaxValue。小さいほど良い。</summary>
+    /// <summary>Weighted composite score. <see cref="double.MaxValue"/> when <see cref="IsHardViolated"/> is <see langword="true"/>.</summary>
     public double TotalScore { get; init; }
 
-    /// <summary>絶対納期違反のシングルトン。TotalScore = double.MaxValue として評価から除外される。</summary>
+    /// <summary>Singleton representing a hard deadline violation. Excluded from optimization by its <see cref="double.MaxValue"/> score.</summary>
     public static readonly ScheduleScore HardViolated =
         new() { IsHardViolated = true, TotalScore = double.MaxValue };
 }

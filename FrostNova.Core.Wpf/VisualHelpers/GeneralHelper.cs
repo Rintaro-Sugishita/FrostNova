@@ -17,11 +17,8 @@ namespace FrostNova.Core.Wpf.VisualHelpers
 
         #region find visual child
         /// <summary>
-        /// ビジュアルツリーを再帰的に探索して最初の子要素を返します。
+        /// Recursively walks the visual tree and returns the first descendant of type <typeparamref name="T"/>.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="parent"></param>
-        /// <returns></returns>
         public static T? FindVisualChild<T>(this DependencyObject? parent) where T : DependencyObject
         {
             if (parent == null) return null;

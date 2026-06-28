@@ -1,25 +1,27 @@
 namespace FrostNova.Scheduling.Engine;
 
 /// <summary>
-/// 直前の品番と次の品番の組み合わせに応じた動的な段取り時間を提供するインターフェース。
-/// 同品番連続なら段取り不要、異品番は洗浄・治具交換が必要といったシナリオで使用する。
+/// Provides dynamic setup times based on the combination of the previous and next item.
+/// Typical scenarios: no setup required for the same item in sequence; cleaning or fixture change
+/// required when switching to a different item.
 /// </summary>
 public interface ISetupMatrix
 {
     /// <summary>
-    /// 指定したラインで直前に処理した品番（from）から次の品番（to）への段取り時間を返す。
-    /// fromItemKey が null の場合はラインの初回投入（前品番なし）を意味する。
+    /// Returns the setup time on a line when transitioning from <paramref name="fromItemKey"/> to
+    /// <paramref name="toItemKey"/>. A <see langword="null"/> <paramref name="fromItemKey"/> means
+    /// this is the first item scheduled on the line (no predecessor).
     /// </summary>
     TimeSpan GetSetupTime(object? fromItemKey, object? toItemKey);
 }
 
 /// <summary>
-/// 型安全な段取りマトリクスのジェネリック拡張インターフェース。
-/// TKey 型のキーで品番を扱いたい場合はこちらを実装する。
+/// Type-safe generic extension of <see cref="ISetupMatrix"/>. Implement this when item keys are
+/// strongly typed as <typeparamref name="TKey"/>.
 /// </summary>
 public interface ISetupMatrix<TKey> : ISetupMatrix
 {
-    /// <summary>型安全な段取り時間取得。</summary>
+    /// <summary>Type-safe variant of <see cref="ISetupMatrix.GetSetupTime"/>.</summary>
     TimeSpan GetSetupTime(TKey? fromItemKey, TKey? toItemKey);
 
     TimeSpan ISetupMatrix.GetSetupTime(object? fromItemKey, object? toItemKey)

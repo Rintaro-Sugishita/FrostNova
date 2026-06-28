@@ -9,14 +9,19 @@ using System.Windows.Input;
 
 namespace FrostNova.WindowEventPickers
 {
+    /// <summary>
+    /// System-wide low-level keyboard hook (<c>WH_KEYBOARD_LL</c>). Captures key events regardless of
+    /// which window has focus. Distinguishes numpad Enter from the main Enter key.
+    /// Must be installed from a thread that pumps a Win32 message loop (e.g. the WPF UI thread).
+    /// </summary>
     public static class KeyEventPicker
     {
         private static LowLevelKeyboardProc _callback = HookCallback;
 
         public delegate void KeyPressedHandler(object? sender, KeyEventData e);
-        private static KeyPressedHandler? keyDelegate;        
-        private static KeyPressedHandler? keyDownDelegate;        
-        private static KeyPressedHandler? keyUpDelegate;        
+        private static KeyPressedHandler? keyDelegate;
+        private static KeyPressedHandler? keyDownDelegate;
+        private static KeyPressedHandler? keyUpDelegate;
         private const int WH_KEYBOARD_LL = 13;
         private const int WM_KEYDOWN = 0x0100;
         private const int WM_SYSKEYDOWN = 0x0104;
@@ -25,12 +30,14 @@ namespace FrostNova.WindowEventPickers
 
         private static IntPtr hookID = IntPtr.Zero;
 
+        /// <summary>Installs the hook and calls <paramref name="handler"/> on every key event (down and up).</summary>
         public static void SetHook(KeyPressedHandler handler)
         {
             keyDelegate = handler;
             SetHook();
         }
 
+        /// <summary>Installs the hook with separate handlers for key-down and key-up events.</summary>
         public static void SetHook(KeyPressedHandler downHandler, KeyPressedHandler upHandler)
         {
             keyDownDelegate = downHandler;
@@ -38,13 +45,13 @@ namespace FrostNova.WindowEventPickers
             SetHook();
         }
 
-
+        /// <summary>Installs the low-level keyboard hook without registering any handlers.</summary>
         public static void SetHook()
         {
             hookID = SetWindowsHookEx(WH_KEYBOARD_LL, _callback, IntPtr.Zero, 0);
         }
 
-
+        /// <summary>Removes the low-level keyboard hook.</summary>
         public static void Unhook()
         {
             UnhookWindowsHookEx(hookID);

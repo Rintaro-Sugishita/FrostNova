@@ -15,7 +15,7 @@ using System.Windows.Shapes;
 namespace FrostNova.Core.Wpf.Views
 {
     /// <summary>
-    /// MessageWindow.xaml の相互作用ロジック
+    /// Code-behind for <c>MessageWindow.xaml</c>. Custom message-box window used by <c>FrostNovaMessageBox</c>.
     /// </summary>
     public partial class MessageWindow : Window
     {

@@ -88,9 +88,7 @@ namespace FrostNova.Core.Wpf.Behaviors
         public static readonly DependencyProperty SelectedItemsCountProperty =
             DependencyProperty.Register(nameof(SelectedItemsCount), typeof(int), typeof(ListBoxIsSelectedBehavior), new PropertyMetadata(null));
 
-        /// <summary>
-        /// 選択されたアイテムリスト
-        /// </summary>
+        /// <summary>Gets or sets the list of currently selected items, bindable to a ViewModel collection.</summary>
         public IList SelectedItems
         {
             get { return (IList)GetValue(SelectedItemsProperty); }

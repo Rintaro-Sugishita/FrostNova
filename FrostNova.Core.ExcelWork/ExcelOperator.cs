@@ -9,6 +9,12 @@ using OfficeOpenXml;
 
 namespace FrostNova.Core.ExcelWork
 {
+    /// <summary>
+    /// Entry point for reading and writing Excel (.xlsx) files via EPPlus.
+    /// Open a workbook with one of the constructors or <see cref="Open"/>, access sheets through the
+    /// returned <see cref="Sheet"/> objects, then call <see cref="Save"/> or <see cref="SaveAs"/>.
+    /// Implements <see cref="IDisposable"/>; use in a <c>using</c> statement to release the underlying package.
+    /// </summary>
     public class ExcelOperator : IDisposable
     {
 

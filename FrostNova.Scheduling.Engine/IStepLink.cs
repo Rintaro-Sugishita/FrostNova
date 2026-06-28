@@ -2,15 +2,15 @@ namespace FrostNova.Scheduling.Engine;
 
 public interface IStepLink<TStepKey>
 {
-    /// <summary>依存元（先行）工程のID</summary>
+    /// <summary>ID of the predecessor (upstream) step.</summary>
     TStepKey FromStepId { get; }
 
-    /// <summary>依存先（後続）工程のID</summary>
+    /// <summary>ID of the successor (downstream) step.</summary>
     TStepKey ToStepId { get; }
 
-    /// <summary>依存の種別</summary>
+    /// <summary>Dependency type (FinishToStart, StartToStart, FinishToFinish, etc.).</summary>
     StepDependencyType Type { get; }
 
-    /// <summary>遅延時間（ラグ）</summary>
+    /// <summary>Lag time added after the dependency constraint is satisfied.</summary>
     TimeSpan Lag { get; }
 }

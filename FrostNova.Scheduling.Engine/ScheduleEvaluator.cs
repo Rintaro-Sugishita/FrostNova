@@ -3,7 +3,7 @@ namespace FrostNova.Scheduling.Engine;
 public static class ScheduleEvaluator
 {
     /// <summary>
-    /// スケジュール結果をマルチクライテリアスコアに変換する。
+    /// Converts a schedule result into a multi-criteria <see cref="ScheduleScore"/>.
     /// </summary>
     public static ScheduleScore Evaluate<TOperation, TOperationKey>(
         IEnumerable<TOperation> scheduledSteps,

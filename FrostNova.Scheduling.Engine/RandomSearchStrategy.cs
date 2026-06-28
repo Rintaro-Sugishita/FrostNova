@@ -1,17 +1,17 @@
 namespace FrostNova.Scheduling.Engine;
 
 /// <summary>
-/// 指定した回数だけランダムに順列をシャッフルしてシミュレーションを実行する探索戦略。
-/// 製品数が多く全探索が現実的でない場合に使用する。
-/// Fisher-Yates シャッフルで各試行の順列を生成し、最小スコアの結果を返す。
+/// Optimization strategy that shuffles the item permutation randomly for a fixed number of iterations
+/// and returns the result with the lowest score. Uses Fisher-Yates shuffle for each trial.
+/// Suitable when the product count is too large for exhaustive search.
 /// </summary>
 public sealed class RandomSearchStrategy : IOptimizationStrategy
 {
     private readonly int _iterations;
     private readonly int? _seed;
 
-    /// <param name="iterations">シミュレーションを実行する回数。</param>
-    /// <param name="seed">乱数シード。null の場合は非決定的。テスト再現性のために指定する。</param>
+    /// <param name="iterations">Number of simulation runs to execute.</param>
+    /// <param name="seed">Random seed. Pass <see langword="null"/> for non-deterministic behavior; specify a value for test reproducibility.</param>
     public RandomSearchStrategy(int iterations, int? seed = null)
     {
         _iterations = iterations > 0 ? iterations : throw new ArgumentOutOfRangeException(nameof(iterations), "1 以上を指定してください。");

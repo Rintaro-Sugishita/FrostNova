@@ -9,74 +9,32 @@ using System.Windows.Input;
 
 namespace FrostNova.Core.Common
 {
+    /// <summary>
+    /// A dictionary that implements <see cref="INotifyCollectionChanged"/> and <see cref="INotifyPropertyChanged"/>,
+    /// enabling WPF bindings to react to add, remove, and replace operations.
+    /// </summary>
     public class ObservableDictionary<TKey, TValue> : CollectionBasedDictionary<TKey, TValue?>, INotifyCollectionChanged, INotifyPropertyChanged, ICloneable where TKey : notnull
     {
         #region Constructor
-        /// <summary>
-        ///   空で、既定の初期量を備え、キーの型の既定の等値比較子を使用する、
-        ///   <see cref="T:System.Collections.Generic.ObservableDictionary`2" /> クラスの
-        ///   新しいインスタンスを初期化します。
-        /// </summary>
+        /// <summary>Initializes an empty dictionary with the default equality comparer for <typeparamref name="TKey"/>.</summary>
         public ObservableDictionary()
             : base()
         {
         }
 
-        /// <summary>
-        ///   指定した <see cref="T:System.Collections.Generic.IDictionary`2" /> から要素をコピーして格納し、
-        ///   キーの型の既定の等値比較子を使用する、
-        ///   <see cref="T:System.Collections.Generic.ObservableDictionary`2" /> クラスの
-        ///   新しいインスタンスを初期化します。
-        /// </summary>
-        /// <param name="dictionary">
-        ///   新しい <see cref="T:System.Collections.Generic.ObservableDictionary`2" /> に要素がコピーされた 
-        ///   <see cref="T:System.Collections.Generic.IDictionary`2" />。
-        /// </param>
-        /// <exception cref="T:System.ArgumentNullException">
-        ///   <paramref name="dictionary" /> が null です。
-        /// </exception>
-        /// <exception cref="T:System.ArgumentException">
-        ///   <paramref name="dictionary" /> に、1 つ以上の重複するキーが格納されています。
-        /// </exception>
+        /// <summary>Initializes a dictionary copied from <paramref name="dictionary"/> using the default equality comparer.</summary>
         public ObservableDictionary(IDictionary<TKey, TValue?> dictionary)
             : base(dictionary)
         {
         }
 
-        /// <summary>
-        ///   空で、既定の初期量を備え、指定した <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> を使用する、
-        ///   <see cref="T:System.Collections.Generic.ObservableDictionary`2" /> クラスの
-        ///   新しいインスタンスを初期化します。
-        /// </summary>
-        /// <param name="comparer">
-        ///   キーの比較時に使用する <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> 実装。
-        ///   キーの型の既定の <see cref="T:System.Collections.Generic.EqualityComparer`1" /> を使用する場合は null。
-        /// </param>
+        /// <summary>Initializes an empty dictionary using the specified <paramref name="comparer"/>.</summary>
         public ObservableDictionary(IEqualityComparer<TKey> comparer)
             : base(comparer)
         {
         }
 
-        /// <summary>
-        ///   指定した <see cref="T:System.Collections.Generic.IDictionary`2" /> から要素をコピーして格納し、
-        ///   指定した <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> を使用する、
-        ///   <see cref="T:System.Collections.Generic.ObservableDictionary`2" /> クラスの
-        ///   新しいインスタンスを初期化します。
-        /// </summary>
-        /// <param name="dictionary">
-        ///   新しい <see cref="T:System.Collections.Generic.ObservableDictionary`2" /> に要素がコピーされた
-        ///   <see cref="T:System.Collections.Generic.IDictionary`2" />。
-        /// </param>
-        /// <param name="comparer">
-        ///   キーの比較時に使用する <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> 実装。
-        ///   キーの型の既定の <see cref="T:System.Collections.Generic.EqualityComparer`1" /> を使用する場合は null。
-        /// </param>
-        /// <exception cref="T:System.ArgumentNullException">
-        ///   <paramref name="dictionary" /> が null です。
-        /// </exception>
-        /// <exception cref="T:System.ArgumentException">
-        ///   <paramref name="dictionary" /> に、1 つ以上の重複するキーが格納されています。
-        /// </exception>
+        /// <summary>Initializes a dictionary copied from <paramref name="dictionary"/> using the specified <paramref name="comparer"/>.</summary>
         public ObservableDictionary(IDictionary<TKey, TValue?> dictionary, IEqualityComparer<TKey> comparer)
             : base(dictionary, comparer)
         {
@@ -92,14 +50,10 @@ namespace FrostNova.Core.Common
         #endregion // Field
 
         #region Event
-        /// <summary>
-        ///   項目が追加、削除、変更、移動された場合、またはリスト全体が更新されたときに発生します。
-        /// </summary>
+        /// <summary>Raised when an item is added, removed, changed, or the entire list is refreshed.</summary>
         public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
-        /// <summary>
-        ///   プロパティ値が変更されたときに発生します。
-        /// </summary>
+        /// <summary>Raised when a property value changes.</summary>
         protected virtual event PropertyChangedEventHandler? PropertyChanged;
 
         event PropertyChangedEventHandler? INotifyPropertyChanged.PropertyChanged

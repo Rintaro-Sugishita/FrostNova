@@ -1,7 +1,7 @@
 namespace FrostNova.Scheduling.Engine;
 
 /// <summary>
-/// シミュレーション結果（ScheduleVariant）を評価してスコアを返すインターフェース。
+/// Evaluates a <see cref="ScheduleVariant"/> and returns a <see cref="ScheduleScore"/>.
 /// </summary>
 public interface IScheduleEvaluator
 {
@@ -9,9 +9,9 @@ public interface IScheduleEvaluator
 }
 
 /// <summary>
-/// デフォルト評価実装。
-/// TotalScore = A × 希望納期ズレ[h] + B × 総段取り時間[h] + C × 平均在庫日数 + D × ライン稼働バランス[h]
-/// 絶対納期（Deadline）を超えた場合は ScheduleScore.HardViolated を返す。
+/// Default evaluator that computes a weighted composite score:
+/// <c>TotalScore = A × target-date deviation [h] + B × total setup time [h] + C × average inventory days + D × line-balance std-dev [h]</c>.
+/// Returns <see cref="ScheduleScore.HardViolated"/> when any absolute deadline is exceeded.
 /// </summary>
 public sealed class DefaultScheduleEvaluator : IScheduleEvaluator
 {

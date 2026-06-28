@@ -12,6 +12,12 @@ using System.Windows.Media;
 
 namespace FrostNova.Core.Wpf.Controls
 {
+    /// <summary>
+    /// Button-style control that opens a color selection popup or dialog.
+    /// Bind <see cref="SelectedColor"/> two-way to receive the chosen color.
+    /// Set <see cref="IsDialogMode"/> to <see langword="true"/> to open a modal
+    /// <c>ColorSelectDialog</c> instead of an inline popup.
+    /// </summary>
     public class ColorPicker : Control
     {
         static ColorPicker()
@@ -19,9 +25,7 @@ namespace FrostNova.Core.Wpf.Controls
             DefaultStyleKeyProperty.OverrideMetadata(typeof(ColorPicker), new FrameworkPropertyMetadata(typeof(ColorPicker)));
         }
 
-        /// <summary>
-        /// selectedColor
-        /// </summary>
+        /// <summary>Gets or sets the color confirmed by the user.</summary>
         public Color? SelectedColor
         {
             get { return (Color?)GetValue(SelectedColorProperty); }
@@ -30,9 +34,7 @@ namespace FrostNova.Core.Wpf.Controls
         public static DependencyProperty SelectedColorProperty = DependencyProperty.Register(nameof(SelectedColor), typeof(Color?), typeof(ColorPicker), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
 
-        /// <summary>
-        /// string
-        /// </summary>
+        /// <summary>Gets or sets the in-progress color shown inside the open popup (not yet confirmed).</summary>
         public Color? CurrentPopupColor
         {
             get { return (Color?)GetValue(CurrentPopupColorProperty); }
@@ -40,9 +42,7 @@ namespace FrostNova.Core.Wpf.Controls
         }
         public static DependencyProperty CurrentPopupColorProperty = DependencyProperty.Register(nameof(CurrentPopupColor), typeof(Color?), typeof(ColorPicker));
 
-        /// <summary>
-        /// string
-        /// </summary>
+        /// <summary>Gets or sets the color that was selected before the popup opened (used to restore on cancel).</summary>
         public Color? OldPopupColor
         {
             get { return (Color?)GetValue(OldPopupColorProperty); }

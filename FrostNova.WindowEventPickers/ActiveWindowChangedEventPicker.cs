@@ -12,6 +12,10 @@ using System.Windows.Threading;
 
 namespace FrostNova.WindowEventPickers
 {
+    /// <summary>
+    /// Monitors the system foreground window and fires a callback whenever the active application changes.
+    /// Uses <c>GetForegroundWindow</c> polling on a background timer rather than a WinEvent hook.
+    /// </summary>
     public class ActiveWindowChangedEventPicker
     {
         

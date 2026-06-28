@@ -10,6 +10,11 @@ using System.Windows.Input;
 namespace FrostNova.WindowEventPickers
 {
 
+    /// <summary>
+    /// System-wide low-level mouse hook (<c>WH_MOUSE_LL</c>). Captures click, down, up, wheel, and move
+    /// events regardless of which window has focus.
+    /// Must be installed from a thread that pumps a Win32 message loop (e.g. the WPF UI thread).
+    /// </summary>
     public static class MouseEventPicker
     {
         private const int WH_MOUSE_LL = 14;

@@ -7,6 +7,11 @@ using System.Threading.Tasks;
 
 namespace FrostNova.Core.JsonData
 {
+    /// <summary>
+    /// Base class for JSON-backed settings or data models. Override <see cref="GetSavePath"/> to specify the
+    /// file path and call <see cref="Load"/> / <see cref="Save"/> to read and write the JSON file.
+    /// </summary>
+    /// <typeparam name="T">The concrete settings type; must be a reference type with a parameterless constructor.</typeparam>
     public abstract class AbstractDataModel<T> where T: class, new()
     {
         public abstract string GetSavePath();
