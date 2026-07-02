@@ -45,7 +45,9 @@ namespace FrostNova.Core.Wpf.Messages
                 }
                 else
                 {
-                    return Show(Application.Current.MainWindow, messageBoxText, caption, button, icon, defaultResult);
+                    var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+                                ?? Application.Current.MainWindow;
+                    return Show(owner, messageBoxText, caption, button, icon, defaultResult);
                 }
             }
 
