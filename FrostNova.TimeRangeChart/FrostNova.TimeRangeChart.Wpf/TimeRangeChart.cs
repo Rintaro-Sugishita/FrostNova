@@ -1383,8 +1383,11 @@ public class TimeRangeChart : Control
         int maxRowFromNonWorking = NonWorkingTimes?.Any() == true ? NonWorkingTimes.Max(t => t.RowIndex) : -1;
         int maxRowFromBackground = BackgroundTimes?.Any() == true ? BackgroundTimes.Max(t => t.RowIndex) : -1;
         int rowCount = Math.Max(Math.Max(maxRowFromTasks, maxRowFromNonWorking), maxRowFromBackground) + 1;
-        // 画面上に表示すべき最低限の行数がある場合は、大きい方を取る
-        // int rowCount = Math.Max(calculatedRowCount, this.MinimumRowCount); 
+        // 画面上に表示すべき最低限の行数がある場合は、大きい方を取る。
+        // タスク/背景/非稼働のいずれも持たない行（末尾の空行など）は最大RowIndexに現れず
+        // 行数から漏れてしまうため、明示指定された RowCount を下限として採用する。
+        // これを行わないと空行の高さが確保されず、RowHeader 側とスクロールがずれる。
+        rowCount = Math.Max(rowCount, RowCount);
 
         var tempRowHeights = new double[rowCount];
         var tempRowOffsets = new double[rowCount];
