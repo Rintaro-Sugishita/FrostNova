@@ -36,6 +36,13 @@ namespace FrostNova.Core.Wpf.Behaviors
             //AssociatedObject.LoadingRow -= AssociatedObject_LoadingRow;
             //AssociatedObject.UnloadingRow -= AssociatedObject_UnloadingRow;
             AssociatedObject.RemoveHandler(ButtonBase.ClickEvent, new RoutedEventHandler(RowHeader_Click));
+
+            // OnLoaded で各列ヘッダーに張った Click を解除する
+            foreach (var header in AssociatedObject
+                     .FindVisualChildren<DataGridColumnHeader>())
+            {
+                header.Click -= OnHeaderClick;
+            }
         }
 
 
@@ -44,6 +51,8 @@ namespace FrostNova.Core.Wpf.Behaviors
             foreach (var header in AssociatedObject
                      .FindVisualChildren<DataGridColumnHeader>())
             {
+                // Loaded は複数回発火しうるため、二重購読を防いでから購読する
+                header.Click -= OnHeaderClick;
                 header.Click += OnHeaderClick;
             }
         }

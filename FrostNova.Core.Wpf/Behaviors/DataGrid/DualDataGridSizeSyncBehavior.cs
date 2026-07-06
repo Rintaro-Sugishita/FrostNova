@@ -28,8 +28,16 @@ namespace FrostNova.Core.Wpf.Behaviors
         protected override void OnDetaching()
         {
             base.OnDetaching();
-            DataGrid1.LoadingRow -= DataGrid1_LoadingRow;
-            DataGrid2.LoadingRow -= DataGrid1_LoadingRow;
+            if (DataGrid1 != null)
+            {
+                DataGrid1.LoadingRow -= DataGrid1_LoadingRow;
+                // SetDatagrid1 で張った SizeChanged が未解除だったため追加
+                DataGrid1.SizeChanged -= DataGird1_SizeChanged;
+            }
+            if (DataGrid2 != null)
+            {
+                DataGrid2.LoadingRow -= DataGrid1_LoadingRow;
+            }
         }
 
 

@@ -1905,12 +1905,38 @@ public class TimeRangeChart : Control
     protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseRightButtonDown(e);
-        if (_selectedRowIndex < 0) return;
+
+        // 右クリックがタスク(TimeRangeControl)上のときは、行(空欄)用メニューを開かず
+        // タスク自身のコンテキストメニューに委ねる。
+        // （以前は左クリックで設定された古い _selectedRowIndex を使っていたため、
+        //   一度行を選択するとタスク右クリックでも行メニューが開いてしまっていた）
+        if (IsWithinTask(e.OriginalSource as DependencyObject)) return;
+        if (_itemsHost == null) return;
+
+        // 現在のマウス位置から行を判定する（古い _selectedRowIndex は使わない）
+        var pos = e.GetPosition(_itemsHost);
+        int rowIndex = GetRowIndexFromMouse(pos.Y);
+        if (rowIndex < 0) return;
+
+        var clickedTime = PointToTime(pos.X, null);
 
         RaiseEvent(new ChartBackgroundClickEventArgs(
-            ChartBackgroundRightClickEvent, _selectedRowIndex, _selectedDateTime));
+            ChartBackgroundRightClickEvent, rowIndex, clickedTime));
 
         e.Handled = true;
+    }
+
+    private static bool IsWithinTask(DependencyObject? source)
+    {
+        while (source != null)
+        {
+            if (source is TimeRangeControl) return true;
+
+            source = (source is Visual || source is System.Windows.Media.Media3D.Visual3D)
+                ? VisualTreeHelper.GetParent(source)
+                : LogicalTreeHelper.GetParent(source);
+        }
+        return false;
     }
 
     #endregion

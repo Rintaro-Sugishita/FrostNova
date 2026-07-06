@@ -30,6 +30,12 @@ namespace FrostNova.Core.Wpf.Behaviors
             base.OnDetaching();
             AssociatedObject.Initialized -= AssociatedObject_Initialized;
             AssociatedObject.PreviewKeyDown -= AssociatedObject_PreviewKeyDown;
+
+            // Initialized 時に各列へ張った PastingCellClipboardContent を解除する
+            foreach (var item in AssociatedObject.Columns)
+            {
+                item.PastingCellClipboardContent -= Item_PastingCellClipboardContent;
+            }
         }
 
 

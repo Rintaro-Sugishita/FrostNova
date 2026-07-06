@@ -16,6 +16,12 @@ namespace FrostNova.Core.Wpf.Behaviors
             AssociatedObject.GotFocus += AssociatedObject_GotFocus;
         }
 
+        protected override void OnDetaching()
+        {
+            base.OnDetaching();
+            AssociatedObject.GotFocus -= AssociatedObject_GotFocus;
+        }
+
         private void AssociatedObject_GotFocus(object sender, System.Windows.RoutedEventArgs e)
         {
             var textbox = sender as TextBox;
