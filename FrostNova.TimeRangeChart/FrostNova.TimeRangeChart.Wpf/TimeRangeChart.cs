@@ -419,6 +419,10 @@ public class TimeRangeChart : Control
             // 自身の再描画をトリガーする
             chart.CalclateTimeAxis();
             chart.RefreshCall();
+            // 時間軸の幅(WidthPerRuledLine)やStart/End変更で_contentWidthが変わるため、
+            // 既存タスク(TimeRangeControl)の位置も再計算する。InvalidateVisualだけでは
+            // 罫線は再描画されるがタスクの位置は更新されない。
+            chart.UpdateAllControlPositions();
             chart.InvokeOnTimeAxisChanged();
         }
     }
@@ -1769,6 +1773,19 @@ public class TimeRangeChart : Control
         this.InvalidateVisual();
     }
 
+    /// <summary>
+    /// 表示中の全タスク(TimeRangeControl)の位置を現在の時間軸幅に合わせて再計算する。
+    /// 時間軸の幅(WidthPerRuledLine)やStart/EndTime変更後に呼ぶ。
+    /// </summary>
+    private void UpdateAllControlPositions()
+    {
+        if (RowOffsets == null || RowOffsets.Length == 0) return;
+        foreach (var kvp in _activeControls)
+        {
+            UpdateControlPosition(kvp.Value, (ITimeRangeRowIndex)kvp.Key);
+        }
+    }
+
     private void UpdateControlPosition(TimeRangeControl ctrl, ITimeRangeRowIndex task)
     {
         SetTimeAxisPosition(this, ctrl, task);
@@ -1894,7 +1911,11 @@ public class TimeRangeChart : Control
         if (rowIndex < 0) return;
 
         _selectedRowIndex = rowIndex;
-        _selectedDateTime = PointToTime(pos.X, null);
+
+        // クリック位置以下で最も近い(左側の)RuledLineに揃える。
+        // PointToTime(...).Date は1目盛り=1日のときしか正しく揃わないため、
+        // 目盛り(TimeTicks)基準で左隣のラインの時刻を求める。
+        _selectedDateTime = FindColumnAtOffset(pos.X);
 
         UpdateSelectionRect();
 

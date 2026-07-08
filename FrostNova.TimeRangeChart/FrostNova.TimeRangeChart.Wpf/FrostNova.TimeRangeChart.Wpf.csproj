@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
       <UseSharedCompilation>false</UseSharedCompilation>
-      <Version>1.1.13</Version>
+      <Version>1.1.14</Version>
   </PropertyGroup>
   
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
