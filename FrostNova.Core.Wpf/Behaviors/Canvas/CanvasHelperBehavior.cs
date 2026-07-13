@@ -24,6 +24,12 @@ namespace FrostNova.Core.Wpf.Behaviors
         {
             base.OnDetaching();
             this.AssociatedObject.Loaded -= AssociatedObject_Loaded;
+
+            if (this.AssociatedObject is FrameworkElement fe)
+            {
+                fe.Loaded -= OnElementLoaded;
+                fe.SizeChanged -= OnElementSizeChanged;
+            }
         }
 
         private ContentPresenter? _presenter;
@@ -44,22 +50,9 @@ namespace FrostNova.Core.Wpf.Behaviors
                     Canvas.SetTop(_presenter, BindTop);
                 }
 
-
-                // Canvas.Leftが変わったらViewModelに書き戻す処理を仕込む
-                AssociatedObject.LayoutUpdated += (s, _) =>
-                {
-                    //double canvasLeft = Canvas.GetLeft(_presenter);
-                    //double canvasTop = Canvas.GetTop(_presenter);
-
-                    //if (double.IsNaN(BindLeft) == false && canvasLeft != BindLeft)
-                    //{
-                    //    Canvas.SetLeft(_presenter, BindLeft);
-                    //}
-                    //if (double.IsNaN(BindTop) == false && canvasTop != BindTop)
-                    //{
-                    //    Canvas.SetTop(_presenter, BindTop);
-                    //}
-                };
+                // 以前はここで LayoutUpdated に空のラムダを購読していたが、
+                // 処理が無く Loaded 毎に購読が積み上がって解除もされないため削除した。
+                // 書き戻しは BindLeft の PropertyChanged (OnBindLeftChanged) で行う。
             }
         }
 
@@ -131,9 +124,28 @@ namespace FrostNova.Core.Wpf.Behaviors
         {
             if (d is CanvasHelperBehavior b && b.AssociatedObject is FrameworkElement fe && fe.Parent is Canvas canvas)
             {
-                fe.Loaded += (_, __) => UpdateTop(fe, canvas);
-                fe.SizeChanged += (_, __) => UpdateTop(fe, canvas);
+                // 以前はラムダを購読しており、DP変更のたびに購読が積み上がって
+                // UpdateTop が多重呼び出しされていた。名前付きハンドラにして
+                // 「解除してから購読」することで二重購読を防ぐ。
+                fe.Loaded -= OnElementLoaded;
+                fe.Loaded += OnElementLoaded;
+                fe.SizeChanged -= OnElementSizeChanged;
+                fe.SizeChanged += OnElementSizeChanged;
 
+                UpdateTop(fe, canvas);
+            }
+        }
+
+        // Loaded (RoutedEventHandler) と SizeChanged (SizeChangedEventHandler) は
+        // デリゲート型が異なるためハンドラを分ける。canvas は送信元から導出する。
+        private static void OnElementLoaded(object sender, RoutedEventArgs e) => ApplyTop(sender);
+
+        private static void OnElementSizeChanged(object sender, SizeChangedEventArgs e) => ApplyTop(sender);
+
+        private static void ApplyTop(object sender)
+        {
+            if (sender is FrameworkElement fe && fe.Parent is Canvas canvas)
+            {
                 UpdateTop(fe, canvas);
             }
         }

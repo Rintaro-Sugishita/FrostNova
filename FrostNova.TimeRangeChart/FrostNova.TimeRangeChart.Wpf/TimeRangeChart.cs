@@ -180,7 +180,45 @@ public class TimeRangeChart : Control
         get { return (double)GetValue(WidthPerRuledLineProperty); }
         set { SetValue(WidthPerRuledLineProperty, value); }
     }
-    public static DependencyProperty WidthPerRuledLineProperty = DependencyProperty.Register(nameof(WidthPerRuledLine), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(100.0d, OnTimeUnitChanged));
+    public static DependencyProperty WidthPerRuledLineProperty = DependencyProperty.Register(nameof(WidthPerRuledLine), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(100.0d, OnTimeUnitChanged, CoerceWidthPerRuledLine));
+
+    /// <summary>
+    /// 画面幅に合わせて時間軸を自動計算するか（true=自動フィット, false=手動固定）。
+    /// 自動時は WidthPerRuledLine を可視幅(ViewportWidth)から算出した値に強制する。
+    /// </summary>
+    public bool AutoFitWidth
+    {
+        get { return (bool)GetValue(AutoFitWidthProperty); }
+        set { SetValue(AutoFitWidthProperty, value); }
+    }
+    public static readonly DependencyProperty AutoFitWidthProperty = DependencyProperty.Register(
+        nameof(AutoFitWidth), typeof(bool), typeof(TimeRangeChart),
+        new PropertyMetadata(false, (d, e) => ((TimeRangeChart)d).CoerceValue(WidthPerRuledLineProperty)));
+
+    // 自動フィット時は可視幅から算出した値を強制する（バインド/ズームの値より優先）。
+    private static object CoerceWidthPerRuledLine(DependencyObject d, object baseValue)
+    {
+        if (d is TimeRangeChart c && c.AutoFitWidth)
+        {
+            double fit = c.CalcFitWidthPerRuledLine();
+            if (fit > 0) return fit;
+        }
+        return baseValue;
+    }
+
+    // 現在の時間範囲がチャート可視幅(ViewportWidth)にちょうど収まる WidthPerRuledLine を返す（不能時は現在値）。
+    private double CalcFitWidthPerRuledLine()
+    {
+        if (_scrollViewer == null) return WidthPerRuledLine;
+        double vp = _scrollViewer.ViewportWidth;
+        if (vp <= 0 || double.IsNaN(vp)) return WidthPerRuledLine;
+        var ticks = TimeUnit == TimeUnitType.Normal
+            ? TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement, SubScaleIncrement)
+            : TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1, MonthSubTickType.None);
+        int intervals = ticks.mainTicks.Count - 1;
+        return intervals > 0 ? vp / intervals : WidthPerRuledLine;
+    }
+
     public TimeUnitType TimeUnit
     {
         get { return (TimeUnitType)GetValue(TimeUnitProperty); }
@@ -416,9 +454,18 @@ public class TimeRangeChart : Control
     {
         if (d is TimeRangeChart chart)
         {
+            // 自動フィット中に範囲(Start/End/ScaleIncrement等)が変わったら幅を再計算する。
+            // WidthPerRuledLine自身の変更では再コアースしない(無限ループ防止)。
+            if (chart.AutoFitWidth && e.Property != WidthPerRuledLineProperty)
+                chart.CoerceValue(WidthPerRuledLineProperty);
+
             // 自身の再描画をトリガーする
             chart.CalclateTimeAxis();
             chart.RefreshCall();
+            // 時間軸の幅(WidthPerRuledLine)やStart/End変更で_contentWidthが変わるため、
+            // 既存タスク(TimeRangeControl)の位置も再計算する。InvalidateVisualだけでは
+            // 罫線は再描画されるがタスクの位置は更新されない。
+            chart.UpdateAllControlPositions();
             chart.InvokeOnTimeAxisChanged();
         }
     }
@@ -765,6 +812,8 @@ public class TimeRangeChart : Control
         if (_scrollViewer != null)
         {
             _scrollViewer.ScrollChanged += OnScrollViewerScrollChanged;
+            // 自動フィット時、ビューポート幅の変化(リサイズ・初回確定)で幅を再計算する
+            _scrollViewer.SizeChanged += (s, e) => { if (AutoFitWidth) CoerceValue(WidthPerRuledLineProperty); };
             _scrollViewer.SizeChanged += OnScrollViewerSizeChanged;
 
             GeneralHelper.SetBehavior<ScrollGestureBehavior>(_scrollViewer, true);
@@ -1383,8 +1432,11 @@ public class TimeRangeChart : Control
         int maxRowFromNonWorking = NonWorkingTimes?.Any() == true ? NonWorkingTimes.Max(t => t.RowIndex) : -1;
         int maxRowFromBackground = BackgroundTimes?.Any() == true ? BackgroundTimes.Max(t => t.RowIndex) : -1;
         int rowCount = Math.Max(Math.Max(maxRowFromTasks, maxRowFromNonWorking), maxRowFromBackground) + 1;
-        // 画面上に表示すべき最低限の行数がある場合は、大きい方を取る
-        // int rowCount = Math.Max(calculatedRowCount, this.MinimumRowCount); 
+        // 画面上に表示すべき最低限の行数がある場合は、大きい方を取る。
+        // タスク/背景/非稼働のいずれも持たない行（末尾の空行など）は最大RowIndexに現れず
+        // 行数から漏れてしまうため、明示指定された RowCount を下限として採用する。
+        // これを行わないと空行の高さが確保されず、RowHeader 側とスクロールがずれる。
+        rowCount = Math.Max(rowCount, RowCount);
 
         var tempRowHeights = new double[rowCount];
         var tempRowOffsets = new double[rowCount];
@@ -1766,6 +1818,19 @@ public class TimeRangeChart : Control
         this.InvalidateVisual();
     }
 
+    /// <summary>
+    /// 表示中の全タスク(TimeRangeControl)の位置を現在の時間軸幅に合わせて再計算する。
+    /// 時間軸の幅(WidthPerRuledLine)やStart/EndTime変更後に呼ぶ。
+    /// </summary>
+    private void UpdateAllControlPositions()
+    {
+        if (RowOffsets == null || RowOffsets.Length == 0) return;
+        foreach (var kvp in _activeControls)
+        {
+            UpdateControlPosition(kvp.Value, (ITimeRangeRowIndex)kvp.Key);
+        }
+    }
+
     private void UpdateControlPosition(TimeRangeControl ctrl, ITimeRangeRowIndex task)
     {
         SetTimeAxisPosition(this, ctrl, task);
@@ -1891,7 +1956,11 @@ public class TimeRangeChart : Control
         if (rowIndex < 0) return;
 
         _selectedRowIndex = rowIndex;
-        _selectedDateTime = PointToTime(pos.X, null);
+
+        // クリック位置以下で最も近い(左側の)RuledLineに揃える。
+        // PointToTime(...).Date は1目盛り=1日のときしか正しく揃わないため、
+        // 目盛り(TimeTicks)基準で左隣のラインの時刻を求める。
+        _selectedDateTime = FindColumnAtOffset(pos.X);
 
         UpdateSelectionRect();
 
@@ -1902,12 +1971,38 @@ public class TimeRangeChart : Control
     protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseRightButtonDown(e);
-        if (_selectedRowIndex < 0) return;
+
+        // 右クリックがタスク(TimeRangeControl)上のときは、行(空欄)用メニューを開かず
+        // タスク自身のコンテキストメニューに委ねる。
+        // （以前は左クリックで設定された古い _selectedRowIndex を使っていたため、
+        //   一度行を選択するとタスク右クリックでも行メニューが開いてしまっていた）
+        if (IsWithinTask(e.OriginalSource as DependencyObject)) return;
+        if (_itemsHost == null) return;
+
+        // 現在のマウス位置から行を判定する（古い _selectedRowIndex は使わない）
+        var pos = e.GetPosition(_itemsHost);
+        int rowIndex = GetRowIndexFromMouse(pos.Y);
+        if (rowIndex < 0) return;
+
+        var clickedTime = PointToTime(pos.X, null);
 
         RaiseEvent(new ChartBackgroundClickEventArgs(
-            ChartBackgroundRightClickEvent, _selectedRowIndex, _selectedDateTime));
+            ChartBackgroundRightClickEvent, rowIndex, clickedTime));
 
         e.Handled = true;
+    }
+
+    private static bool IsWithinTask(DependencyObject? source)
+    {
+        while (source != null)
+        {
+            if (source is TimeRangeControl) return true;
+
+            source = (source is Visual || source is System.Windows.Media.Media3D.Visual3D)
+                ? VisualTreeHelper.GetParent(source)
+                : LogicalTreeHelper.GetParent(source);
+        }
+        return false;
     }
 
     #endregion

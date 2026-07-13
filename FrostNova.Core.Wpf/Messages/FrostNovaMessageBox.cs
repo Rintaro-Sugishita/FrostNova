@@ -45,7 +45,9 @@ namespace FrostNova.Core.Wpf.Messages
                 }
                 else
                 {
-                    return Show(Application.Current.MainWindow, messageBoxText, caption, button, icon, defaultResult);
+                    var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+                                ?? Application.Current.MainWindow;
+                    return Show(owner, messageBoxText, caption, button, icon, defaultResult);
                 }
             }
 
@@ -63,7 +65,7 @@ namespace FrostNova.Core.Wpf.Messages
             {
                 var w = CreateMessageVm(messageBoxText, caption, button, icon, defaultResult);
                 var r = AbstractWindowService.ShowDialogWindow(w, typeof(MessageWindow), w.WindowService!, null, WindowStartupLocation.CenterScreen);
-                Application.Current.MainWindow.Activate();
+                ForceActivate(Application.Current.MainWindow);
                 return w?.Result ?? MessageBoxResult.None;
             }
             else
@@ -77,12 +79,36 @@ namespace FrostNova.Core.Wpf.Messages
             {
                 var w = CreateMessageVm(messageBoxText, caption, button, icon, defaultResult);
                 var r = AbstractWindowService.ShowDialogWindow(w, typeof(MessageWindow), w.WindowService!, owner, WindowStartupLocation.CenterOwner);
-                owner.Activate();
+                ForceActivate(owner);
 
                 return w?.Result ?? MessageBoxResult.None;
             }
             else
             { return defaultResult; }
+        }
+
+
+        /// <summary>
+        /// モーダルなメッセージウィンドウを閉じた後、Activate() 単体では前面復帰に失敗して
+        /// アプリ全体が背面に落ちることがあるため、確実に最前面・アクティブへ戻す。
+        /// </summary>
+        private static void ForceActivate(Window? owner)
+        {
+            if (owner == null) return;
+
+            if (owner.WindowState == WindowState.Minimized)
+            {
+                owner.WindowState = WindowState.Normal;
+            }
+
+            owner.Activate();
+
+            // 同一プロセス内で確実に最前面へ持ち上げるための Topmost トグル
+            bool prevTopmost = owner.Topmost;
+            owner.Topmost = true;
+            owner.Topmost = prevTopmost;
+
+            owner.Focus();
         }
 
 

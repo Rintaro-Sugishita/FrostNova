@@ -305,11 +305,17 @@ namespace FrostNova.Core.Wpf.Controls
 
         #region click events
 
+        // Shift 押下時は MinuteSpan に依らず一律 1 分刻みにする（細かい値の調整用）。
+        private int GetStepMinutes()
+            => (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) == System.Windows.Input.ModifierKeys.Shift
+                ? 1 : MinuteSpan;
+
         private void UpTime()
         {
+            int span = GetStepMinutes();
             if (TimeValue is DateTime dtValue)
             {
-                var newTime = dtValue.TimeOfDay + TimeSpan.FromMinutes(MinuteSpan);
+                var newTime = dtValue.TimeOfDay + TimeSpan.FromMinutes(span);
                 TimeValue = MaxValue.HasValue && MaxValue.Value < newTime
                     ? dtValue.Date.Add(MaxValue.Value)
                     : dtValue.Date.Add(newTime);
@@ -317,16 +323,17 @@ namespace FrostNova.Core.Wpf.Controls
             else
             {
                 TimeSpan newValue = (TimeValue as TimeSpan?) ?? TimeSpan.Zero;
-                newValue += TimeSpan.FromMinutes(MinuteSpan);
+                newValue += TimeSpan.FromMinutes(span);
                 TimeValue = MaxValue.HasValue && MaxValue.Value < newValue ? MaxValue.Value : newValue;
             }
         }
 
         private void DownTime()
         {
+            int span = GetStepMinutes();
             if (TimeValue is DateTime dtValue)
             {
-                var newTime = dtValue.TimeOfDay - TimeSpan.FromMinutes(MinuteSpan);
+                var newTime = dtValue.TimeOfDay - TimeSpan.FromMinutes(span);
                 TimeValue = MinValue.HasValue && newTime < MinValue.Value
                     ? dtValue.Date.Add(MinValue.Value)
                     : dtValue.Date.Add(newTime);
@@ -334,7 +341,7 @@ namespace FrostNova.Core.Wpf.Controls
             else
             {
                 TimeSpan newValue = (TimeValue as TimeSpan?) ?? TimeSpan.Zero;
-                newValue -= TimeSpan.FromMinutes(MinuteSpan);
+                newValue -= TimeSpan.FromMinutes(span);
                 TimeValue = MinValue.HasValue && newValue < MinValue.Value ? MinValue.Value : newValue;
             }
         }

@@ -183,7 +183,8 @@ namespace FrostNova.Core.Wpf.Behaviors
             string path = SavePath;
             if (string.IsNullOrEmpty(path))
             {
-                path = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
+                // 単一ファイル発行では Assembly.Location が空になるため AppContext.BaseDirectory を使う
+                path = AppContext.BaseDirectory;
             }
             if (!System.IO.Directory.Exists(path))
             {

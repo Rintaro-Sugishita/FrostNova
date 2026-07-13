@@ -106,7 +106,8 @@ namespace FrostNova.Core.Wpf.Behaviors
 
             if (SavePath == WindowLocationMemoryPath.StartUpDirectory)
             {
-                basicPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()?.Location) ?? "";
+                // 単一ファイル発行では Assembly.Location が空になるため AppContext.BaseDirectory を使う
+                basicPath = AppContext.BaseDirectory;
             }
             else if (SavePath == WindowLocationMemoryPath.UserDirectory)
             {

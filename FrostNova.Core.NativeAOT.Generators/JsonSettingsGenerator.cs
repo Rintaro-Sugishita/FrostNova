@@ -213,6 +213,7 @@ namespace FrostNova.Core.NativeAOT
             var q = isNullable ? "?" : string.Empty;
             var genAttr = $"[global::System.CodeDom.Compiler.GeneratedCodeAttribute(\"FrostNova.Core.NativeAOT.JsonSettingsGenerator\", \"{version}\")]";
             var newKeyword = isHiding ? "new " : "";
+            var instanceMethodKeyword = isHiding ? "override " : "virtual ";
 
 
             var interfaceDeclaration = $" : FrostNova.Core.NativeAOT.IJsonSerializable<{className}>";
@@ -373,7 +374,7 @@ namespace FrostNova.Core.NativeAOT
                 sb.AppendLine($@"
         /// <summary>Serializes the current instance to a JSON string.</summary>
         {genAttr}
-        public {newKeyword}string ToJson(bool isIndented = true)
+        public {instanceMethodKeyword}string ToJson(bool isIndented = true)
         {{BeforeSerialize();
             // インデントの有無に応じて TypeInfo を切り替えて最速で実行
             var typeInfo = isIndented ? _indentedContext.{className} : _defaultContext.{className};
@@ -391,7 +392,7 @@ namespace FrostNova.Core.NativeAOT
                 sb.AppendLine($@"
         /// <summary>Serializes the current instance to a JSON string.</summary>
         {genAttr}
-        public {newKeyword}string ToJson(bool isIndented = true)
+        public {instanceMethodKeyword}string ToJson(bool isIndented = true)
         {{BeforeSerialize();
             // 既存の JsonSerializerOptions を選択して実行
             var options = {optionSelection};
