@@ -239,7 +239,8 @@ namespace FrostNova.Core.Wpf.Behaviors
             var key = DataGridSaveKeyHelper.GetGridKey(AssociatedObject);
             if (string.IsNullOrEmpty(key)) return string.Empty;
 
-            string path = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
+            // 単一ファイル発行では Assembly.Location が空になるため AppContext.BaseDirectory を使う
+            string path = AppContext.BaseDirectory;
             if (!System.IO.Directory.Exists(path))
                 System.IO.Directory.CreateDirectory(path);
 

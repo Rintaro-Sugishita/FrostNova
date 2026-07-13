@@ -463,6 +463,16 @@ namespace FrostNova.TimeRangeChart.Wpf
         }
         public static DependencyProperty WidthPerRuledLineProperty = DependencyProperty.Register(nameof(WidthPerRuledLine), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(100.0));
 
+        /// <summary>
+        /// 画面幅に合わせて時間軸を自動計算するか（true=自動フィット, false=手動固定）。PART_Chart へ委譲する。
+        /// </summary>
+        public bool AutoFitWidth
+        {
+            get { return (bool)GetValue(AutoFitWidthProperty); }
+            set { SetValue(AutoFitWidthProperty, value); }
+        }
+        public static readonly DependencyProperty AutoFitWidthProperty = DependencyProperty.Register(nameof(AutoFitWidth), typeof(bool), typeof(GridTimeRangeChart), new PropertyMetadata(false));
+
         public Brush RuledLineFill
         {
             get { return (Brush)GetValue(RuledLineFillProperty); }

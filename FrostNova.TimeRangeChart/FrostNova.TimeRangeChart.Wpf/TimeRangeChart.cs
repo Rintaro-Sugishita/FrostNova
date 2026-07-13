@@ -180,7 +180,45 @@ public class TimeRangeChart : Control
         get { return (double)GetValue(WidthPerRuledLineProperty); }
         set { SetValue(WidthPerRuledLineProperty, value); }
     }
-    public static DependencyProperty WidthPerRuledLineProperty = DependencyProperty.Register(nameof(WidthPerRuledLine), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(100.0d, OnTimeUnitChanged));
+    public static DependencyProperty WidthPerRuledLineProperty = DependencyProperty.Register(nameof(WidthPerRuledLine), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(100.0d, OnTimeUnitChanged, CoerceWidthPerRuledLine));
+
+    /// <summary>
+    /// 画面幅に合わせて時間軸を自動計算するか（true=自動フィット, false=手動固定）。
+    /// 自動時は WidthPerRuledLine を可視幅(ViewportWidth)から算出した値に強制する。
+    /// </summary>
+    public bool AutoFitWidth
+    {
+        get { return (bool)GetValue(AutoFitWidthProperty); }
+        set { SetValue(AutoFitWidthProperty, value); }
+    }
+    public static readonly DependencyProperty AutoFitWidthProperty = DependencyProperty.Register(
+        nameof(AutoFitWidth), typeof(bool), typeof(TimeRangeChart),
+        new PropertyMetadata(false, (d, e) => ((TimeRangeChart)d).CoerceValue(WidthPerRuledLineProperty)));
+
+    // 自動フィット時は可視幅から算出した値を強制する（バインド/ズームの値より優先）。
+    private static object CoerceWidthPerRuledLine(DependencyObject d, object baseValue)
+    {
+        if (d is TimeRangeChart c && c.AutoFitWidth)
+        {
+            double fit = c.CalcFitWidthPerRuledLine();
+            if (fit > 0) return fit;
+        }
+        return baseValue;
+    }
+
+    // 現在の時間範囲がチャート可視幅(ViewportWidth)にちょうど収まる WidthPerRuledLine を返す（不能時は現在値）。
+    private double CalcFitWidthPerRuledLine()
+    {
+        if (_scrollViewer == null) return WidthPerRuledLine;
+        double vp = _scrollViewer.ViewportWidth;
+        if (vp <= 0 || double.IsNaN(vp)) return WidthPerRuledLine;
+        var ticks = TimeUnit == TimeUnitType.Normal
+            ? TimeHelper.GenerateTicks(StartTime, EndTime, ScaleIncrement, SubScaleIncrement)
+            : TimeHelper.GenerateTicksMonth(StartTime, EndTime, 1, MonthSubTickType.None);
+        int intervals = ticks.mainTicks.Count - 1;
+        return intervals > 0 ? vp / intervals : WidthPerRuledLine;
+    }
+
     public TimeUnitType TimeUnit
     {
         get { return (TimeUnitType)GetValue(TimeUnitProperty); }
@@ -416,6 +454,11 @@ public class TimeRangeChart : Control
     {
         if (d is TimeRangeChart chart)
         {
+            // 自動フィット中に範囲(Start/End/ScaleIncrement等)が変わったら幅を再計算する。
+            // WidthPerRuledLine自身の変更では再コアースしない(無限ループ防止)。
+            if (chart.AutoFitWidth && e.Property != WidthPerRuledLineProperty)
+                chart.CoerceValue(WidthPerRuledLineProperty);
+
             // 自身の再描画をトリガーする
             chart.CalclateTimeAxis();
             chart.RefreshCall();
@@ -769,6 +812,8 @@ public class TimeRangeChart : Control
         if (_scrollViewer != null)
         {
             _scrollViewer.ScrollChanged += OnScrollViewerScrollChanged;
+            // 自動フィット時、ビューポート幅の変化(リサイズ・初回確定)で幅を再計算する
+            _scrollViewer.SizeChanged += (s, e) => { if (AutoFitWidth) CoerceValue(WidthPerRuledLineProperty); };
             _scrollViewer.SizeChanged += OnScrollViewerSizeChanged;
 
             GeneralHelper.SetBehavior<ScrollGestureBehavior>(_scrollViewer, true);

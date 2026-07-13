@@ -188,6 +188,7 @@
                                               MinSpan="{TemplateBinding MinSpan}"
                                               ChartHeight="{TemplateBinding ChartHeight}"
                                               WidthPerRuledLine="{TemplateBinding WidthPerRuledLine}"
+                                              AutoFitWidth="{TemplateBinding AutoFitWidth}"
                                               BackgroundTimes="{TemplateBinding BackgroundTimes}"
                                               BackgroundTimeRangePopupTemplate="{TemplateBinding BackgroundTimeRangePopupTemplate}"
                                               Background="{TemplateBinding Background}"
