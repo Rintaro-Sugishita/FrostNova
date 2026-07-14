@@ -25,9 +25,21 @@ public class FooterRenderLayer : ItemsControl
         if (double.IsNaN(contentWidth) || double.IsInfinity(contentWidth) || contentWidth <= 0)
             contentWidth = availableSize.Width;
 
+        // データがほぼ無いと ContentWidth<=0 で availableSize.Width にフォールバックするが、
+        // これが Infinity(初期測定や無限幅コンテナ)だと DesiredSize に Infinity を返して
+        // WPF が例外を投げるため 0 に丸める。
+        if (double.IsNaN(contentWidth) || double.IsInfinity(contentWidth))
+            contentWidth = 0;
+
         // Measure children so they lay out correctly, but always return ContentWidth
         // to ensure this control's ScrollableWidth matches the chart's ScrollableWidth exactly.
-        base.MeasureOverride(new Size(contentWidth, availableSize.Height));
-        return new Size(contentWidth, availableSize.Height);
+        Size baseSize = base.MeasureOverride(new Size(contentWidth, availableSize.Height));
+
+        // 高さも Infinity のまま返すと例外になるので、その場合は子要素の希望高さを使う。
+        double height = availableSize.Height;
+        if (double.IsNaN(height) || double.IsInfinity(height))
+            height = baseSize.Height;
+
+        return new Size(contentWidth, height);
     }
 }

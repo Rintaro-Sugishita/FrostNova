@@ -590,6 +590,11 @@ public class TimeRangeChart : Control
 
     private void OnScrollViewerScrollChanged(object sender, ScrollChangedEventArgs e)
     {
+        // 自動フィット中、ビューポート幅が変わったら(ウィンドウのリサイズ等)幅を再計算する。
+        // SizeChangedと違い ViewportWidthChange はこの時点で確定した値なので、古い幅で計算されない。
+        if (AutoFitWidth && e.ViewportWidthChange != 0)
+            CoerceValue(WidthPerRuledLineProperty);
+
         // スクロール位置が変わったら表示を更新
         UpdateVisibleRange();
         InvalidateVisual();
@@ -811,9 +816,8 @@ public class TimeRangeChart : Control
 
         if (_scrollViewer != null)
         {
+            // 自動フィットのビューポート追従は OnScrollViewerScrollChanged(ViewportWidthChange) で行う
             _scrollViewer.ScrollChanged += OnScrollViewerScrollChanged;
-            // 自動フィット時、ビューポート幅の変化(リサイズ・初回確定)で幅を再計算する
-            _scrollViewer.SizeChanged += (s, e) => { if (AutoFitWidth) CoerceValue(WidthPerRuledLineProperty); };
             _scrollViewer.SizeChanged += OnScrollViewerSizeChanged;
 
             GeneralHelper.SetBehavior<ScrollGestureBehavior>(_scrollViewer, true);
@@ -2348,6 +2352,14 @@ public class TimeRangeChart : Control
             _draggingControl = null;
             _dragOccured = false;
             _dropBetweenRowsOccured = false;
+
+            // ドロップ/クリック直後に一度だけ同期し、保護フラグ(_recentlyDroppedTask)を
+            // その場で消費しておく。これを怠ると次にデータが変わったとき(例:このタスクを
+            // 削除)のSyncVisualsで直近操作したタスクが保護され、削除しても画面から
+            // 消えない不具合になる。ここで同期すればタスクはまだデータ上に存在するため
+            // 保護されたまま維持され、以降のSyncVisualsでは通常どおり扱われる。
+            _forceSyncVisuals = true;
+            UpdateVisibleRange();
         }
     }
 
