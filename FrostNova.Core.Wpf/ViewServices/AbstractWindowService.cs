@@ -34,10 +34,25 @@ namespace FrostNova.Core.Wpf.ViewServices
             var window = windowType.Assembly.CreateInstance(windowType.FullName!) as Window;
             if (window == null) { return null; }
 
+            // ダイアログは既定で呼び出し元(アクティブ)ウィンドウの中央に表示する。
+            // 呼び出し側が明示指定した場合はそれを優先する。
+            ownerWindow ??= GetDefaultOwnerWindow();
+            location ??= WindowStartupLocation.CenterOwner;
+
             SetVm(vm, window, windowSerVice, ownerWindow, location);
             window.DataContext = vm;
 
             return window.ShowDialog();
+        }
+
+        /// <summary>
+        /// ダイアログの既定オーナー(アクティブウィンドウ、無ければ MainWindow)を返す。
+        /// </summary>
+        private static Window? GetDefaultOwnerWindow()
+        {
+            if (Application.Current == null) return null;
+            var active = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+            return active ?? Application.Current.MainWindow;
         }
 
 

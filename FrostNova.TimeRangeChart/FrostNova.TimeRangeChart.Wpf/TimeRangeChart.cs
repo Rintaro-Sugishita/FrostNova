@@ -917,6 +917,13 @@ public class TimeRangeChart : Control
             _lastLastTime = lastDate;
 
             // 見えている行のタスクだけを集める（全件スキャンしない！）
+            // 可視判定は「列の開始時刻に切り捨てた firstDate/lastDate」ではなく、
+            // タスクの実ピクセル位置で行う。列単位の時刻で判定すると、右端の部分表示列で
+            // 始まるタスク(StartTime > lastDate)が画面内なのにカリングされて消えてしまう。
+            // さらに前後へ1列分の余裕を持たせ、スクロール追従を滑らかにする。
+            double margin = WidthPerRuledLine > 0 ? WidthPerRuledLine : 0;
+            double visLeft = left - margin;
+            double visRight = right + margin;
             var visibleTasks = new List<ITimeRangeRowIndex>();
             for (int i = firstRow; i <= lastRow; i++)
             {
@@ -925,9 +932,11 @@ public class TimeRangeChart : Control
                     foreach (var task in tasks)
                     {
                         // 横方向の可視判定：
-                        // タスクがドラッグ中、または画面の左右の範囲に重なっているか
+                        // タスクがドラッグ中、または画面の左右の範囲(余裕込み)にピクセルで重なるか
                         bool isDragging = (_draggingControl?.DataContext == task);
-                        bool isVisibleX = task.StartTime <= lastDate && task.EndTime >= firstDate;
+                        double taskLeft = TimeToPoint(task.StartTime);
+                        double taskRight = TimeToPoint(task.EndTime);
+                        bool isVisibleX = taskLeft <= visRight && taskRight >= visLeft;
 
                         if (isDragging || isVisibleX)
                         {
