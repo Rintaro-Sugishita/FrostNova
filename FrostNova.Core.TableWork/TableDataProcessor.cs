@@ -1,18 +1,15 @@
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq.Expressions;
 using System.Net;
 using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
-using FrostNova.Core.ExcelWork;
 using FrostNova.Core.TypeToolkit;
-using OfficeOpenXml.Drawing.Chart.ChartEx;
 using Microsoft.VisualBasic.FileIO;
 using System.Windows;
-using HorizontalAlignment = FrostNova.Core.ExcelWork.HorizontalAlignment;
-using VerticalAlignment = FrostNova.Core.ExcelWork.VerticalAlignment;
 
 namespace FrostNova.Core.TableWork;
 
@@ -551,86 +548,16 @@ public class TableDataProcessor
     /// <param name="nullText">The text to display for null/empty values.</param>
     /// <param name="isBoldColumnText">Whether to use bold font for header cells.</param>
     /// <param name="rowHeight">The height of the rows.</param>
+    [Obsolete("Moved to the FrostNova.Core.TableWork.Excel package as an ITableObject extension method. " +
+        "Add that package and call tableObject.OutputToExcel(...). This keeps FrostNova.Core.TableWork free of any Excel-engine (EPPlus) dependency.", error: false)]
     public static void OutputToExcel(
         ITableObject tableObject, string fileName, string fontFamily, float fontSize,
         bool withHeader,
         Color borderColor, Color columnBackColor, Color columnForeColor,
         string nullText, bool isBoldColumnText, float rowHeight = 25)
-    {
-        if (tableObject.ColumnCount == 0) return;
-
-        using (ExcelOperator xls = new ExcelOperator())
-        {
-            xls.Open();
-            var sheet = xls.GetSheet(1);
-            int columnCount = tableObject.ColumnCount;
-            int rowCount = tableObject.RowCount;
-
-            // 1. ヘッダーの生成
-            if (withHeader)
-            {
-                var headers = tableObject.GetColumnCaptions().ToArray();
-                for (int j = 0; j < headers.Length; j++)
-                {
-                    sheet.SetValue(1, j + 1, headers[j]);
-                }
-
-                var headerCells = sheet.GetRange(1, 1, 1, headers.Length);
-                headerCells.SetHorizontalContentAlignment(HorizontalAlignment.Left);
-                headerCells.SetVerticalContentAlignment(VerticalAlignment.Center);
-                headerCells.SetBackground(columnBackColor);
-                headerCells.SetForeground(columnForeColor);
-                if (isBoldColumnText) headerCells.SetFontStyle(System.Drawing.FontStyle.Bold);
-            }
-
-            // 2. 列ごとの書式設定
-            int bodyStartRow = withHeader ? 2 : 1;
-            for (int j = 0; j < columnCount; j++)
-            {
-                var columnData = tableObject.TargetColumns[j];
-                if (!string.IsNullOrEmpty(columnData.Format))
-                {
-                    // データが存在する全行に対して書式を一括適用
-                    var columnRange = sheet.GetRange(bodyStartRow, j + 1, bodyStartRow + rowCount - 1, j + 1);
-                    columnRange.SetFormat(columnData.Format);
-                }
-            }
-
-            // 3. データの生成
-            for (int i = 0; i < rowCount; i++)
-            {
-                int excelRowIndex = bodyStartRow + i;
-
-                for (int j = 0; j < columnCount; j++)
-                {
-                    // ここで TableObject 内の Converter 適用済みの値を取得
-                    var row = tableObject.GetRowInstance(excelRowIndex - 1);
-                    var column = tableObject.TargetColumns[j];
-                    object? oneData = column.GetExcelValue(row);
-
-                    if (oneData == null || oneData == DBNull.Value)
-                    {
-                        sheet.SetValue(excelRowIndex, j + 1, nullText);
-                    }
-                    else
-                    {
-                        // 数値や日付はそのまま渡すことで Excel 側で正しく認識される
-                        sheet.SetValue(excelRowIndex, j + 1, oneData);
-                    }
-                }
-            }
-
-            // 4. 全体仕上げ
-            var range = sheet.GetUsedRange();
-            range.Height = rowHeight;
-            range.SetFontFamily(fontFamily);
-            range.SetFontSize(fontSize);
-            range.DrawBorder(borderColor);
-
-            sheet.AutoFit();
-            xls.SaveAs(fileName);
-        }
-    }
+        => throw new NotSupportedException(
+            "TableDataProcessor.OutputToExcel has moved to the FrostNova.Core.TableWork.Excel package. " +
+            "Add that package and call the ITableObject.OutputToExcel(...) extension method instead.");
 
     /// <summary>
     /// Opens an Excel file and imports data into the table object by mapping columns based on header text.
@@ -640,90 +567,17 @@ public class TableDataProcessor
     /// <param name="startRow">The starting row index in the table.</param>
     /// <param name="sheetIndex">The index of the sheet to read from (1-based).</param>
     /// <param name="hasHeader">Whether to use the first row of the Excel sheet to map columns by name.</param>
+    [Obsolete("Moved to the FrostNova.Core.TableWork.Excel package as an ITableObject extension method. " +
+        "Add that package and call tableObject.ImportFromExcel(...). This keeps FrostNova.Core.TableWork free of any Excel-engine (EPPlus) dependency.", error: false)]
     public static void ImportFromExcel(
         ITableObject tableObject,
         string fileName,
         int startRow,
         int sheetIndex = 1,
         bool hasHeader = true)
-    {
-        using (ExcelOperator xls = new ExcelOperator())
-        {
-            xls.Open(fileName);
-            var sheet = xls.GetSheet(sheetIndex);
-
-            var usedRange = sheet.GetUsedRange();
-            int lastRow = usedRange.RowCount;
-            int lastCol = usedRange.ColumnCount;
-
-            // --- 1. ヘッダーマッピングの作成 ---
-            // key: Excelの列インデックス(1～), value: 対応する TableColumn
-            var columnMap = new Dictionary<int, TableColumn>();
-
-            int dataStartRow = 1;
-
-            if (hasHeader)
-            {
-                var tableColumns = tableObject.TargetColumns;
-                for (int j = 1; j <= lastCol; j++)
-                {
-                    object? headerValue = sheet.GetValue(1, j);
-                    string headerText = headerValue?.ToString() ?? "";
-
-                    // TableColumnの中からヘッダーテキストが一致するものを探す
-                    var matchedColumn = tableColumns.FirstOrDefault(c => c.HeaderText == headerText);
-                    if (matchedColumn != null)
-                    {
-                        columnMap.Add(j, matchedColumn);
-                    }
-                }
-                dataStartRow = 2; // ヘッダーがある場合は2行目からデータ
-            }
-            else
-            {
-                // ヘッダーがない場合は、左から順番にマッピング（従来の挙動）
-                for (int j = 1; j <= Math.Min(lastCol, tableObject.ColumnCount); j++)
-                {
-                    columnMap.Add(j, tableObject.TargetColumns[j - 1]);
-                }
-            }
-
-            if (columnMap.Count == 0) return; // 一致する列が一つもない場合は終了
-
-            // --- 2. データのインポート ---
-            int currentRow = startRow;
-            for (int i = dataStartRow; i <= lastRow; i++)
-            {
-                // 行の準備
-                object? rowInstance;
-                if (currentRow < tableObject.RowCount)
-                {
-                    rowInstance = tableObject.GetRowInstance(currentRow);
-                }
-                else if (tableObject.CanAddRow)
-                {
-                    rowInstance = tableObject.AddRow();
-                }
-                else break;
-
-                if (rowInstance == null) break;
-
-                // マッピングされた列のみ値をセット
-                foreach (var kvp in columnMap)
-                {
-                    int excelColIndex = kvp.Key;
-                    var column = kvp.Value;
-
-                    object? excelValue = sheet.GetValue(i, excelColIndex);
-
-                    // Excel専用の逆変換・セット関数を呼び出す
-                    column.SetValueFromExcel(rowInstance, excelValue);
-                }
-
-                currentRow++;
-            }
-        }
-    }
+        => throw new NotSupportedException(
+            "TableDataProcessor.ImportFromExcel has moved to the FrostNova.Core.TableWork.Excel package. " +
+            "Add that package and call the ITableObject.ImportFromExcel(...) extension method instead.");
 
     #endregion
 

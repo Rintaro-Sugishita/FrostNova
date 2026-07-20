@@ -75,7 +75,7 @@ namespace FrostNova.Core.TableWork
             var list = new List<object?>();
             foreach (var item in TargetColumns)
             {
-                var val = item.GetRawValue(item);
+                var val = item.GetRawValue(rowValue);
                 list.Add(val);
             }
 

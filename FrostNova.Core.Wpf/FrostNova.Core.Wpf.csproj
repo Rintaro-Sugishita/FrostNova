@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-      <Version>1.4.7</Version>
+      <Version>1.4.8</Version>
       <UseSharedCompilation>false</UseSharedCompilation>
   </PropertyGroup>
 
@@ -19,7 +19,7 @@
     <ProjectReference Include="..\FrostNova.Core\FrostNova.Core.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="FrostNova.Core" Version="1.1.1" />
+    <PackageReference Include="FrostNova.Core" Version="1.1.2" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />

@@ -419,8 +419,15 @@ namespace FrostNova.Core.TypeToolkit
 
         public static T? ConvToAnyNull<T>(object? value, T? defaultValue = default)
         {
-            Type propertyType = typeof(T);
+            return (T?)ConvToTypeNull(value, typeof(T), defaultValue);
+        }
 
+        /// <summary>
+        /// 値を実行時に指定した <paramref name="propertyType"/> へ変換します。
+        /// ジェネリック版 <see cref="ConvToAnyNull{T}(object?, T?)"/> の型を実行時に決めたい場合に使用します。
+        /// </summary>
+        public static object? ConvToTypeNull(object? value, Type propertyType, object? defaultValue = null)
+        {
             var nullableType = Nullable.GetUnderlyingType(propertyType);
             if (nullableType != null)
             {
@@ -429,47 +436,47 @@ namespace FrostNova.Core.TypeToolkit
 
             if (propertyType == typeof(string))
             {
-                return (T?)(object?)ConvToStrNull(value, (string?)(object?)defaultValue);
+                return ConvToStrNull(value, (string?)defaultValue);
             }
             else if (propertyType == typeof(int))
             {
-                return (T?)(object?)ConvToIntNull(value, (int?)(object?)defaultValue);
+                return ConvToIntNull(value, (int?)defaultValue);
             }
             else if (propertyType == typeof(decimal))
             {
-                return (T?)(object?)ConvToDecNull(value, (decimal?)(object?)defaultValue);
+                return ConvToDecNull(value, (decimal?)defaultValue);
             }
             else if (propertyType == typeof(double))
             {
-                return (T?)(object?)ConvToDblNull(value, (double?)(object?)defaultValue);
+                return ConvToDblNull(value, (double?)defaultValue);
             }
             else if (propertyType == typeof(DateTime))
             {
-                return (T?)(object?)ConvToDateTimeNull(value, (DateTime?)(object?)defaultValue);
+                return ConvToDateTimeNull(value, (DateTime?)defaultValue);
             }
             else if (propertyType == typeof(TimeSpan))
             {
-                return (T?)(object?)ConvToTimeSpanNull(value, (TimeSpan?)(object?)defaultValue);
+                return ConvToTimeSpanNull(value, (TimeSpan?)defaultValue);
             }
             else if (propertyType == typeof(bool))
             {
-                return (T?)(object?)ConvToBoolNull(value, (bool?)(object?)defaultValue);
+                return ConvToBoolNull(value, (bool?)defaultValue);
             }
             else if (propertyType == typeof(IPAddress))
             {
-                return (T?)(object?)ConvToIpAddress(value, (IPAddress?)(object?)defaultValue);
+                return ConvToIpAddress(value, (IPAddress?)defaultValue);
             }
             else if (propertyType == typeof(PhysicalAddress))
             {
-                return (T?)(object?)ConvToPhysicalAddress(value, (PhysicalAddress?)(object?)defaultValue);
+                return ConvToPhysicalAddress(value, (PhysicalAddress?)defaultValue);
             }
             else if (propertyType == typeof(long))
             {
-                return (T?)(object?)ConvToLongNull(value, (long?)(object?)defaultValue);
+                return ConvToLongNull(value, (long?)defaultValue);
             }
             else if (propertyType.IsEnum)
             {
-                return (T?)(object?)ConvToEnum(propertyType, ConvToInt(value));
+                return ConvToEnum(propertyType, ConvToInt(value));
             }
 
             throw new NotImplementedException($"the type {propertyType.Name} is not implemented");

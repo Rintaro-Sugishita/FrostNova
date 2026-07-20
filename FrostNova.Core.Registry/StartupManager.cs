@@ -27,10 +27,11 @@ namespace FrostNova.Core.Registry
                 appPath = System.Diagnostics.Process.GetCurrentProcess()?.MainModule?.FileName ?? "";
             }
 
-            string command = $"\"{appPath}\""; 
-            if (arguments!= "")
+            // パスをクォートで囲み、引数があれば後ろに付加する。
+            string command = $"\"{appPath}\"";
+            if (arguments != "")
             {
-                command = " {arguments}"; // パスをクォートで囲み、引数を追加
+                command = $"\"{appPath}\" {arguments}";
             }
 
             using (RegistryKey? key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(StartupKeyPath, writable: true))

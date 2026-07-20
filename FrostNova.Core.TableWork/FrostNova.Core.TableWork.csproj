@@ -1,21 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0-windows7.0;net9.0-windows7.0</TargetFrameworks>
+    <TargetFrameworks>net8.0-windows7.0;net9.0-windows7.0;net10.0-windows7.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-      <Version>1.1.2</Version>
+      <Version>1.2.0</Version>
       <PackageReadmeFile>readme.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-    <ProjectReference Include="..\FrostNova.Core.ExcelWork\FrostNova.Core.ExcelWork.csproj" />
     <ProjectReference Include="..\FrostNova.Core\FrostNova.Core.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="FrostNova.Core" Version="1.1.1" />
-    <PackageReference Include="FrostNova.Core.ExcelWork" Version="0.0.9" />
+    <PackageReference Include="FrostNova.Core" Version="1.1.2" />
   </ItemGroup>
     <ItemGroup>
         <None Include="readme.md">

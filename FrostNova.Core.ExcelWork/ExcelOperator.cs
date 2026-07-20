@@ -15,15 +15,17 @@ namespace FrostNova.Core.ExcelWork
     /// returned <see cref="Sheet"/> objects, then call <see cref="Save"/> or <see cref="SaveAs"/>.
     /// Implements <see cref="IDisposable"/>; use in a <c>using</c> statement to release the underlying package.
     /// </summary>
+    /// <remarks>
+    /// EPPlus 8 requires a license to be declared once, at application startup, before any Excel
+    /// operation runs. This library intentionally does not declare it on your behalf: the consuming
+    /// application must choose and set the appropriate EPPlus license, e.g.
+    /// <c>ExcelPackage.License.SetNonCommercialPersonal("Your Name");</c>,
+    /// <c>ExcelPackage.License.SetNonCommercialOrganization("Your Org");</c>, or
+    /// <c>ExcelPackage.License.SetCommercial("&lt;license key&gt;");</c>.
+    /// See https://epplussoftware.com/developers/licenseexception for details.
+    /// </remarks>
     public class ExcelOperator : IDisposable
     {
-
-        static ExcelOperator()
-        {
-            ExcelPackage.License.SetNonCommercialPersonal("r-sugishita");       
-        }
-
-
 
         ExcelPackage? package;
         ExcelWorkbook? book;
@@ -98,7 +100,7 @@ namespace FrostNova.Core.ExcelWork
                 {
                     FileName = fileName;
                     package = new ExcelPackage(fileName);
-                    Console.WriteLine($"opened: {fileName}");
+                    System.Diagnostics.Trace.WriteLine($"opened: {fileName}");
                 }
                 else
                 {

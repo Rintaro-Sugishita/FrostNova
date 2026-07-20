@@ -184,14 +184,14 @@ namespace FrostNova.Core.Expressions
             object? convertedValue = null;
             if (value != null && lastProp.PropertyType.IsAssignableFrom(value.GetType()) == false)
             {
-                convertedValue = ConvertHelper.ConvToAnyNull(value, lastProp.PropertyType);
+                convertedValue = ConvertHelper.ConvToTypeNull(value, lastProp.PropertyType);
             }
             else
             {
                 convertedValue = value;
             }
 
-            lastProp.SetValue(obj, value);
+            lastProp.SetValue(obj, convertedValue);
         }
 
         /// <summary>

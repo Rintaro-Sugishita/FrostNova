@@ -56,7 +56,7 @@ namespace FrostNova.Core.Wpf.Behaviors
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine(ex);
+                            System.Diagnostics.Trace.WriteLine(ex);
                         }
                     }
                 }));
@@ -202,7 +202,7 @@ namespace FrostNova.Core.Wpf.Behaviors
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ColumnVisibilityMenuBehavior] Save error: {ex}");
+                System.Diagnostics.Trace.WriteLine($"[ColumnVisibilityMenuBehavior] Save error: {ex}");
             }
         }
 
@@ -230,7 +230,7 @@ namespace FrostNova.Core.Wpf.Behaviors
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ColumnVisibilityMenuBehavior] Load error: {ex}");
+                System.Diagnostics.Trace.WriteLine($"[ColumnVisibilityMenuBehavior] Load error: {ex}");
             }
         }
 

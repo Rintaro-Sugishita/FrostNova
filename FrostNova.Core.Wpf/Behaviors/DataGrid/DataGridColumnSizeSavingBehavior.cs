@@ -71,7 +71,7 @@ namespace FrostNova.Core.Wpf.Behaviors
                                         }
                                         catch (Exception ex)
                                         {
-                                            Console.WriteLine(ex);
+                                            System.Diagnostics.Trace.WriteLine(ex);
                                         }
                                     }
                                 }));

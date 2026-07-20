@@ -12,8 +12,10 @@ All packages are distributed via [nuget.org](https://www.nuget.org/packages?q=Fr
 | `FrostNova.Core` | net8.0 / net9.0 | Platform-agnostic utilities (MVVM base, JSON, text, type helpers) |
 | `FrostNova.Core.Wpf` | net8.0-windows+ | WPF behaviors, converters, view services, and attached properties |
 | `FrostNova.Core.Wpf.Controls` | net8.0-windows+ | Custom WPF controls (ColorPicker, TimePicker, NumericUpDown, …) |
-| `FrostNova.Core.TableWork` | net8.0-windows+ | Tabular data abstraction with CSV / clipboard / JSON / Excel I/O |
+| `FrostNova.Core.TableWork` | net8.0-windows+ | Tabular data abstraction with CSV / clipboard / JSON I/O (no Excel-engine dependency) |
+| `FrostNova.Core.TableWork.Excel` | net8.0-windows+ | Excel (.xlsx) I/O for TableWork as `ITableObject` extension methods (NPOI, Apache-2.0) |
 | `FrostNova.Core.ExcelWork` | net8.0-windows+ | EPPlus-based Excel file operations and template engine |
+| `FrostNova.Core.ExcelWork.Npoi` | net8.0-windows+ | Drop-in NPOI-based alternative to `FrostNova.Core.ExcelWork` (Apache-2.0; EPPlus-free) |
 | `FrostNova.Core.Registry` | net8.0-windows+ | Windows Registry helpers (startup registration, file associations) |
 | `FrostNova.Core.NativeAOT.Abstractions` | netstandard2.0+ | Marker attributes consumed by the NativeAOT source generator |
 | `FrostNova.Scheduling.Engine` | net8.0 / net9.0 | BOM-based production scheduler (forward / backward) |
@@ -105,24 +107,53 @@ xmlns:fnc="clr-namespace:FrostNova.Core.Wpf.Controls;assembly=FrostNova.Core.Wpf
 
 ## FrostNova.Core.TableWork
 
-Abstraction layer over tabular data (`DataTable` or custom collections) with unified import / export.
+Define your columns once with lambda selectors, then move that data to CSV, JSON, and the
+clipboard from the same definition. Excel I/O is a separate opt-in package (see below), so the
+core package carries **no Excel-engine dependency**.
 
 **Key types**
 
-- `ITableObject` — common interface implemented by all table containers
-- `TableContainerBase` — `DataTable`-backed implementation of `ITableObject`
-- `TableColumn` / `TableColumn<T>` — column descriptor with type information
-- `TableDataProcessor` — static methods for clipboard paste (TSV), CSV read/write, JSON import/export, and Excel sheet I/O
+- `ITableObject` — the row/column container interface
+- `ClassTableObject<T>` — wraps an `IList<T>` of POCOs; `TableContainerBase` wraps a `DataTable`
+- `TableColumn<TModel, TProperty>` — a column: lambda selector + optional `HeaderText`, `Format`, and per-channel converters (text vs Excel). Get/set use compiled expression delegates, not reflection
+- `TableDataProcessor` — static engine for clipboard (TSV / HTML), CSV, and JSON
 
 ```csharp
-var table = new TableContainerBase(myDataTable);
+var table = new ClassTableObject<Product>(products);
+table.TargetColumns.AddRange(new TableColumn[]
+{
+    new TableColumn<Product, string>(x => x.Name,  "Name"),
+    new TableColumn<Product, int>(x => x.Qty,      "Qty", format: "#,##0"),
+    // "Yes"/"No" as text, native bool in Excel:
+    new TableColumn<Product, bool>(x => x.InStock, "In Stock",
+        converter: v => v ? "Yes" : "No", excelConverter: v => v),
+});
 
-// Paste TSV from clipboard
-TableDataProcessor.PasteFromClipboard(table, Clipboard.GetText(), 0, 0);
-
-// Export to CSV
-TableDataProcessor.ExportToCsv(table, "output.csv");
+TableDataProcessor.OutputToCsv(table, "output.csv");
+string json = TableDataProcessor.ToJson(table, indented: true);
 ```
+
+---
+
+## FrostNova.Core.TableWork.Excel
+
+Excel (.xlsx) import/export for `TableWork`, provided as `ITableObject` extension methods and built
+on **NPOI (Apache-2.0)**. Kept separate so table handling never pulls in an Excel engine (or EPPlus's
+non-commercial license). Import maps columns **by header name**, so it tolerates reordered / extra columns.
+
+```csharp
+using FrostNova.Core.TableWork.Excel;
+
+table.OutputToExcel("report.xlsx", "Segoe UI", 10f, withHeader: true,
+    borderColor: Color.Gray, columnBackColor: Color.LightSteelBlue,
+    columnForeColor: Color.Black, nullText: "-", isBoldColumnText: true);
+
+table.CanAddRow = true;
+table.ImportFromExcel("user-edited.xlsx", startRow: 0, hasHeader: true);
+```
+
+> The former `TableDataProcessor.OutputToExcel` / `ImportFromExcel` static methods are `[Obsolete]`
+> and now throw; use the extension methods above.
 
 ---
 
@@ -146,26 +177,81 @@ sheet.SetValue(2, 1, DateTime.Today);
 excel.Save();
 ```
 
+> ### ⚠️ EPPlus licensing — read before use
+>
+> `FrostNova.Core.ExcelWork` is MIT-licensed, but it **depends on [EPPlus](https://epplussoftware.com/),
+> which is not**. From version 5 onward EPPlus is dual-licensed under the
+> [Polyform Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)
+> and a paid commercial license. The MIT license here covers **FrostNova's own code only** — it does
+> **not** grant any right to use EPPlus. In particular:
+>
+> - **Non-commercial use** (personal, or a non-profit / educational organization) is free under Polyform NC.
+> - **Commercial use requires a paid EPPlus commercial license** — the MIT badge on this package does *not* make commercial use free.
+>
+> EPPlus 8 also requires the **consuming application** to declare its license once at startup, before any
+> Excel operation runs. FrostNova does not declare it on your behalf — pick the one that matches your use:
+>
+> ```csharp
+> // At application startup, choose exactly one:
+> ExcelPackage.License.SetNonCommercialPersonal("Your Name");
+> ExcelPackage.License.SetNonCommercialOrganization("Your Org");
+> ExcelPackage.License.SetCommercial("<commercial license key>");
+> ```
+>
+> See the [EPPlus license FAQ](https://epplussoftware.com/developers/licenseexception).
+
+---
+
+## FrostNova.Core.ExcelWork.Npoi
+
+A **drop-in alternative** to `FrostNova.Core.ExcelWork`, built on **NPOI (Apache-2.0)** instead of
+EPPlus — so both non-commercial and commercial use are free, with no startup license declaration.
+
+The public API (`ExcelOperator`, `Sheet`, `Range`, drawings/charts, `TemplateFramework`) shares the
+**same namespace** `FrostNova.Core.ExcelWork` as the EPPlus version, so migrating is a matter of
+swapping the package reference — do **not** reference both packages in one project (duplicate types).
+
+```csharp
+// same code as FrostNova.Core.ExcelWork — only the PackageReference changes
+using var excel = new ExcelOperator("template.xlsx");
+var sheet = excel.GetSheet("Report");
+sheet.SetValue(1, 1, "Sales Summary");
+excel.Save();
+```
+
+> **NPOI limitations** (throw `NotSupportedException`): column insert/delete, gradient fill/border on
+> shapes, R1C1 formulas, password-protected save.
+
 ---
 
 ## FrostNova.Core.Registry
 
-Helpers for common Windows Registry operations.
+Helpers for common Windows Registry / shell-integration tasks. File associations and context menus
+are **per-user** (`HKCU\Software\Classes`) and need **no administrator rights**; each has a separate
+`...ForAllUsers` method for machine-wide registration (requires elevation).
 
 **Key types**
 
-- `StartupManager` — register or unregister an application in `HKCU\…\Run` (auto-start on login)
-- `FileAssociationManager` — associate a file extension with an application via `HKEY_CLASSES_ROOT`
+- `StartupManager` — register / unregister an application in `HKCU\…\Run` (auto-start on login)
+- `FileAssociationManager` — associate an extension with an app (`Register` / `Unregister` / `IsRegistered`, plus `...ForAllUsers`); calls `SHChangeNotify` so Explorer refreshes icons immediately
+- `ContextMenuManager` — add / remove Explorer right-click verbs on files, folders, or the folder background (`Register` / … plus `...ForAllUsers`)
 
 ```csharp
-// Register this app to start with Windows
-StartupManager.RegisterStartup("MyApp");
+// Auto-start with Windows
+StartupManager.RegisterStartup("MyApp");                 // current exe
+StartupManager.RegisterStartup("MyApp", arguments: "--minimized");
 
-// Check if already registered
-bool isRegistered = StartupManager.IsRegistered("MyApp");
+// File association (per-user, no admin) + immediate shell refresh
+FileAssociationManager.Register(".myext", "MyApp.Document", exePath, "MyApp document");
+bool ok = FileAssociationManager.IsRegistered(".myext", "MyApp.Document");
+FileAssociationManager.Unregister(".myext", "MyApp.Document");
+// Machine-wide (all users) — requires administrator:
+FileAssociationManager.RegisterForAllUsers(".myext", "MyApp.Document", exePath, "MyApp document");
 
-// Remove from startup
-StartupManager.UnregisterStartup("MyApp");
+// "Open with MyApp" on the folder-background right-click menu (passes the folder path via %V)
+ContextMenuManager.Register(ContextMenuTarget.DirectoryBackground,
+    verb: "OpenWithMyApp", menuText: "Open with MyApp", exePath: exePath);
+ContextMenuManager.Unregister(ContextMenuTarget.DirectoryBackground, "OpenWithMyApp");
 ```
 
 ---

@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0-windows7.0;net9.0-windows7.0</TargetFrameworks>
+    <TargetFrameworks>net8.0-windows7.0;net9.0-windows7.0;net10.0-windows7.0</TargetFrameworks>
     <Nullable>enable</Nullable>
-    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>0.0.9</Version>
+    <Version>0.0.10</Version>
+    <Description>EPPlus-based Excel (.xlsx) read/write helpers for FrostNova. NOTE: this package is MIT-licensed but depends on EPPlus, which is licensed under the Polyform Noncommercial License 1.0.0 (v5+). Non-commercial use is free; commercial use requires a paid EPPlus commercial license. The MIT license covers FrostNova's own code only and does not grant any right to use EPPlus. The consuming application must declare its EPPlus license once at startup (e.g. ExcelPackage.License.SetNonCommercialPersonal / SetCommercial). See https://epplussoftware.com/developers/licenseexception</Description>
+    <PackageReleaseNotes>Depends on EPPlus (Polyform Noncommercial License) — commercial use requires a paid EPPlus commercial license. EPPlus license must be declared by the consuming application at startup.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,7 +19,7 @@
     <ProjectReference Include="..\FrostNova.Core\FrostNova.Core.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="FrostNova.Core" Version="1.1.1" />
+    <PackageReference Include="FrostNova.Core" Version="1.1.2" />
   </ItemGroup>
 
 </Project>
