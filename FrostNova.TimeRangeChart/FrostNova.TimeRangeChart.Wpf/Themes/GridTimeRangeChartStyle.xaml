@@ -103,7 +103,7 @@
                                 ScrollViewer.CanContentScroll="False"
                                 HorizontalScrollBarVisibility="Hidden"
                                 VerticalScrollBarVisibility="Disabled">
-                                <local:ColumnHeaderRenderLayer Height="20"
+                                <local:ColumnHeaderRenderLayer
                                   x:Name="PART_ColumnGrid"
                                   >
                                 </local:ColumnHeaderRenderLayer >

@@ -4,21 +4,26 @@
                      xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
                     xmlns:bProxy="clr-namespace:FrostNova.Core.Wpf.Common;assembly=FrostNova.Core.Wpf"
                     xmlns:behaviors="clr-namespace:FrostNova.Core.Wpf.Behaviors;assembly=FrostNova.Core.Wpf"
+                    xmlns:att="clr-namespace:FrostNova.Core.Wpf.AttachedProperties;assembly=FrostNova.Core.Wpf"
                     xmlns:local="clr-namespace:FrostNova.TimeRangeChart.Wpf"
                     >
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="/FrostNova.TimeRangeChart.Wpf;component/Themes/TimeRangeControlStyle.xaml" />
+        <!-- 半透明オーバーレイ・スクロールバー（罫線・背景・タスクをスクロールバー帯まで貫通描画するため） -->
+        <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/Customs/ScrollViewerStyleDictionary.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <Style TargetType="{x:Type local:TimeRangeChart}" x:Key="defaultTimeRangeChartStyle">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:TimeRangeChart}">
-                        <ScrollViewer x:Name="PART_ChartScrollViewer" 
-                                  HorizontalScrollBarVisibility="Auto" 
+                        <ScrollViewer x:Name="PART_ChartScrollViewer"
+                                  HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalContentAlignment="Left"
                                   VerticalContentAlignment="Top"
+                                  Style="{StaticResource FrostNovaScrollViewerStyle}"
+                                  att:ScrollViewerEx.IsTransparentBar="True"
                                       >
                         <Canvas x:Name="PART_ItemsHost" Background="Transparent" ClipToBounds="True"
                                 VerticalAlignment="Top" HorizontalAlignment="Left"

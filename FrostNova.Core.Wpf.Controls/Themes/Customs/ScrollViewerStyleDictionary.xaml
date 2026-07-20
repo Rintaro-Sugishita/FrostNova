@@ -185,10 +185,11 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type ScrollViewer}">
                             <Grid>
+                                <!-- スクロールバーはコンテンツ領域を縮めず、右端／下端に半透明で重ねる（オーバーレイ） -->
                                 <ScrollContentPresenter Grid.Column="0" Grid.Row="0" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
 
-                                <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="1" Grid.Row="0" Orientation="Vertical" Width="8" Value="{TemplateBinding VerticalOffset}" Maximum="{TemplateBinding ScrollableHeight}" ViewportSize="{TemplateBinding ViewportHeight}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Style="{StaticResource FrostNovaScrollBarStyle}"/>
-                                <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Value="{TemplateBinding HorizontalOffset}" Maximum="{TemplateBinding ScrollableWidth}" ViewportSize="{TemplateBinding ViewportWidth}" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Style="{StaticResource FrostNovaScrollBarStyle}"/>
+                                <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="1" Grid.Row="0" Orientation="Vertical" Width="8" HorizontalAlignment="Right" Value="{TemplateBinding VerticalOffset}" Maximum="{TemplateBinding ScrollableHeight}" ViewportSize="{TemplateBinding ViewportHeight}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Style="{StaticResource FrostNovaScrollBarStyle}"/>
+                                <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Column="0" Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Bottom" Value="{TemplateBinding HorizontalOffset}" Maximum="{TemplateBinding ScrollableWidth}" ViewportSize="{TemplateBinding ViewportWidth}" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Style="{StaticResource FrostNovaScrollBarStyle}"/>
                             </Grid>
                         </ControlTemplate>
                     </Setter.Value>

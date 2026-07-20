@@ -500,6 +500,84 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         #endregion
 
+        #region Column header (summary tier)
+
+        /// <summary>
+        /// 列ヘッダを2段にし、上段に粗単位（例: 時間軸=日、日軸=年月）のサマリラベルを表示するか。
+        /// 上段ラベルは、そのグループが表示中はビューポート左端に貼り付く（スティッキー）ため、
+        /// 目盛りが1巡（年またぎ・日またぎ）しても現在位置が分かる。
+        /// </summary>
+        public bool ShowSummaryHeader
+        {
+            get => (bool)GetValue(ShowSummaryHeaderProperty);
+            set => SetValue(ShowSummaryHeaderProperty, value);
+        }
+        public static readonly DependencyProperty ShowSummaryHeaderProperty =
+            DependencyProperty.Register(nameof(ShowSummaryHeader), typeof(bool), typeof(GridTimeRangeChart),
+                new PropertyMetadata(true, OnColumnHeaderLayoutChanged));
+
+        /// <summary>
+        /// 上段サマリラベルの日時書式。空のときはスケールから自動決定
+        /// （月単位=yyyy / 日単位=yyyy/MM / 時間単位=yyyy/MM/dd）。
+        /// 隣接する目盛りのうち、この書式で同じ文字列になるものが1グループになる。
+        /// </summary>
+        public string SummaryHeaderFormat
+        {
+            get => (string)GetValue(SummaryHeaderFormatProperty);
+            set => SetValue(SummaryHeaderFormatProperty, value);
+        }
+        public static readonly DependencyProperty SummaryHeaderFormatProperty =
+            DependencyProperty.Register(nameof(SummaryHeaderFormat), typeof(string), typeof(GridTimeRangeChart),
+                new PropertyMetadata(string.Empty, OnColumnHeaderLayoutChanged));
+
+        /// <summary>
+        /// 上段（サマリ）の高さ。
+        /// </summary>
+        public double SummaryHeaderHeight
+        {
+            get => (double)GetValue(SummaryHeaderHeightProperty);
+            set => SetValue(SummaryHeaderHeightProperty, value);
+        }
+        public static readonly DependencyProperty SummaryHeaderHeightProperty =
+            DependencyProperty.Register(nameof(SummaryHeaderHeight), typeof(double), typeof(GridTimeRangeChart),
+                new PropertyMetadata(20.0, OnColumnHeaderLayoutChanged));
+
+        /// <summary>
+        /// 下段（各目盛りラベル）の高さ。列ヘッダ全体の高さは 上段+下段。
+        /// DataGrid モードで行ヘッダと整列させる場合は RowHeaderDataGridColumnHeaderHeight を合計値に合わせること。
+        /// </summary>
+        public double ColumnHeaderHeight
+        {
+            get => (double)GetValue(ColumnHeaderHeightProperty);
+            set => SetValue(ColumnHeaderHeightProperty, value);
+        }
+        public static readonly DependencyProperty ColumnHeaderHeightProperty =
+            DependencyProperty.Register(nameof(ColumnHeaderHeight), typeof(double), typeof(GridTimeRangeChart),
+                new PropertyMetadata(20.0, OnColumnHeaderLayoutChanged));
+
+        /// <summary>
+        /// 上段サマリラベルの文字色。
+        /// </summary>
+        public Brush SummaryHeaderForeground
+        {
+            get => (Brush)GetValue(SummaryHeaderForegroundProperty);
+            set => SetValue(SummaryHeaderForegroundProperty, value);
+        }
+        public static readonly DependencyProperty SummaryHeaderForegroundProperty =
+            DependencyProperty.Register(nameof(SummaryHeaderForeground), typeof(Brush), typeof(GridTimeRangeChart),
+                new PropertyMetadata(Brushes.Black, OnColumnHeaderLayoutChanged));
+
+        private static void OnColumnHeaderLayoutChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is GridTimeRangeChart self && self._columnHeaderLayer != null)
+            {
+                self._columnHeaderLayer.InvalidateMeasure();
+                self._columnHeaderLayer.InvalidateVisual();
+            }
+        }
+
+        #endregion
+
         #region Footer
 
         /// <summary>
@@ -650,6 +728,15 @@ namespace FrostNova.TimeRangeChart.Wpf
             _chartScrollViewer = (ScrollViewer)GetTemplateChild("PART_ChartScrollViewer");
             var columnHeaderScrollViewer = (ScrollViewer)GetTemplateChild("PART_ColumnScrollViewer");
             var rowHeaderScrollViewer = (ScrollViewer)GetTemplateChild("PART_RowScrollViewer");
+
+            // 横スクロールに追従して上段サマリラベルを再配置（スティッキー）するため再描画する。
+            if (columnHeaderScrollViewer != null)
+            {
+                columnHeaderScrollViewer.ScrollChanged += (s, e) =>
+                {
+                    if (e.HorizontalChange != 0) _columnHeaderLayer?.InvalidateVisual();
+                };
+            }
 
             _columnRightSpacer = (Border)GetTemplateChild("PART_ColumnRightSpacer");
             _rowBottomSpacer = (Border)GetTemplateChild("PART_RowBottomSpacer");
@@ -1158,24 +1245,12 @@ namespace FrostNova.TimeRangeChart.Wpf
 
             if (_chartScrollViewer == null) return;
 
-            // スクロールバーの可視性が変わったとき、またはサイズが変わったときに同期
-            _chartScrollViewer.LayoutUpdated += (s, e) =>
-            {
-                // 縦スクロールバーの幅を ColumnHeader の Spacer に適用
-                if (_columnRightSpacer != null)
-                {
-                    // ScrollViewer.ComputedVerticalScrollBarVisibility が Visible の時だけ幅を持つ
-                    _columnRightSpacer.Width = (_chartScrollViewer.ComputedVerticalScrollBarVisibility == Visibility.Visible)
-                        ? SystemParameters.VerticalScrollBarWidth : 0;
-                }
-
-                // 横スクロールバーの高さを RowHeader の Spacer に適用
-                if (_rowBottomSpacer != null)
-                {
-                    _rowBottomSpacer.Height = (_chartScrollViewer.ComputedHorizontalScrollBarVisibility == Visibility.Visible)
-                        ? SystemParameters.HorizontalScrollBarHeight : 0;
-                }
-            };
+            // Chart 側 ScrollViewer は「オーバーレイ・スクロールバー」テンプレートを使用しており、
+            // スクロールバーはコンテンツ領域を縮めず半透明で上に重なる（罫線・背景・タスクを
+            // スクロールバー帯まで貫通描画するため）。したがって列/行ヘッダ・フッタ側で
+            // スクロールバー幅ぶんのスペーサを確保する必要はなく、常に 0 にして全幅/全高で整列させる。
+            if (_columnRightSpacer != null) _columnRightSpacer.Width = 0;
+            if (_rowBottomSpacer != null) _rowBottomSpacer.Height = 0;
         }
 
     }
