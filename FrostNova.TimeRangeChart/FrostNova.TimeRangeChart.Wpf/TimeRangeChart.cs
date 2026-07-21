@@ -440,6 +440,31 @@ public class TimeRangeChart : Control
     public static DependencyProperty StackMarginProperty = DependencyProperty.Register(nameof(StackMargin), typeof(double), typeof(TimeRangeChart), new PropertyMetadata(0.0));
 
 
+    /// <summary>
+    /// スタック段（重なり順）の割当順を制御する Comparer。null のときは従来（開始時刻→終了時刻降順）。
+    /// この Comparer で先に来るタスクほど小さい段(Level0=上段)に配置される。
+    /// </summary>
+    public IComparer<ITimeRangeRowIndex>? StackPriorityComparer
+    {
+        get { return (IComparer<ITimeRangeRowIndex>?)GetValue(StackPriorityComparerProperty); }
+        set { SetValue(StackPriorityComparerProperty, value); }
+    }
+    public static readonly DependencyProperty StackPriorityComparerProperty =
+        DependencyProperty.Register(nameof(StackPriorityComparer), typeof(IComparer<ITimeRangeRowIndex>), typeof(TimeRangeChart),
+            new PropertyMetadata(null, OnStackPriorityComparerChanged));
+
+    private static void OnStackPriorityComparerChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TimeRangeChart chart)
+        {
+            // 割当順が変わるので全行のスタックを再計算し、再配置・再描画する。
+            chart._forceSyncVisuals = true;
+            chart.UpdateLayoutMetrics();
+            chart.UpdateVisibleRange();
+        }
+    }
+
+
 
     #endregion
 
@@ -1608,11 +1633,12 @@ public class TimeRangeChart : Control
         foreach (var rowGroup in groupedByRow)
         {
             // 1. スタックするタスクだけを抽出して計算
-            var stackableTasks = rowGroup
-                .Where(t => CanStackRange && t.CanStack)
-                .OrderBy(x => x.StartTime)
-                .ThenByDescending(x => x.EndTime)
-                .ToList();
+            // 並び順が「どのタスクが小さい段(Level0=上段)を取るか」を決める。
+            // StackPriorityComparer 指定時は呼び出し側が完全制御、未指定時は従来（段数最小の詰め方）。
+            var stackable = rowGroup.Where(t => CanStackRange && t.CanStack);
+            var stackableTasks = (StackPriorityComparer != null)
+                ? stackable.OrderBy(t => t, StackPriorityComparer).ToList()
+                : stackable.OrderBy(x => x.StartTime).ThenByDescending(x => x.EndTime).ToList();
 
             var levelEnds = new List<DateTime>();
 
@@ -1732,12 +1758,67 @@ public class TimeRangeChart : Control
         }
     }
 
+    // 外部からの Model 時刻変更でスタック再計算を要求された行を溜める（Dispatcher で1回に合体する）。
+    private readonly HashSet<int> _pendingStackRows = new();
+    private bool _stackRecalcScheduled;
+
     private void OnActiveItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (sender == null) return;
         if (e.PropertyName != nameof(ITimeRange.StartTime) && e.PropertyName != nameof(ITimeRange.EndTime)) return;
         if (_activeControls.TryGetValue(sender, out var ctrl) && sender is ITimeRangeRowIndex task)
+        {
+            // 位置(X/幅)は即時反映。
             UpdateControlPosition(ctrl, task);
+
+            // ドラッグ中は OnMouseMove 側でスタック・行高を再計算するのでここでは何もしない。
+            if (_draggingControl != null) return;
+
+            // 外部変更で重なりが変わるため、その行のスタック段数・行高を再計算する。
+            // 複数タスクを連続変更しても Dispatcher で1回に合体させる（都度再計算しない）。
+            ScheduleStackRecalc(task.RowIndex);
+        }
+    }
+
+    /// <summary>
+    /// 指定行のスタック再計算を予約する。連続呼び出しは Dispatcher(Background) で1回に合体される。
+    /// </summary>
+    private void ScheduleStackRecalc(int rowIndex)
+    {
+        _pendingStackRows.Add(rowIndex);
+        if (_stackRecalcScheduled) return;
+        _stackRecalcScheduled = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(FlushStackRecalc));
+    }
+
+    private void FlushStackRecalc()
+    {
+        _stackRecalcScheduled = false;
+
+        // ドラッグ中はドラッグ側の再計算を優先し、溜めた行は保持したまま次のアイドルへ持ち越す。
+        if (_draggingControl != null)
+        {
+            if (_pendingStackRows.Count > 0)
+            {
+                _stackRecalcScheduled = true;
+                Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(FlushStackRecalc));
+            }
+            return;
+        }
+
+        if (_pendingStackRows.Count == 0) return;
+
+        // ItemsSource 差替え等で無効化した行番号は除外する。
+        int rowCount = RowOffsets?.Length ?? 0;
+        var rows = _pendingStackRows.Where(r => r >= 0 && r < rowCount).ToArray();
+        _pendingStackRows.Clear();
+        if (rows.Length == 0) return;
+
+        // その行のスタック段数・行高を再計算し、全 activeControls を再配置（UpdateMetricsForRows 内で実施）。
+        UpdateMetricsForRows(rows);
+
+        // 行ヘッダ(GridTimeRangeChart)の高さ同期のため。
+        RaiseEvent(new RoutedEventArgs(RowHeightsChangedEvent, this));
     }
 
     private TimeRangeControl CreateTimeRangeControl()

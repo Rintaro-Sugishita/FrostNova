@@ -202,6 +202,18 @@ namespace FrostNova.TimeRangeChart.Wpf
         public static DependencyProperty StackHeightProperty = DependencyProperty.Register(nameof(StackHeight), typeof(double), typeof(GridTimeRangeChart), new PropertyMetadata(24.0));
 
         /// <summary>
+        /// スタック段（重なり順）の割当順を制御する Comparer。PART_Chart へ委譲。
+        /// null のときは従来（開始時刻→終了時刻降順）。先に来るタスクほど小さい段(Level0=上段)に配置される。
+        /// </summary>
+        public IComparer<ITimeRangeRowIndex>? StackPriorityComparer
+        {
+            get => (IComparer<ITimeRangeRowIndex>?)GetValue(StackPriorityComparerProperty);
+            set => SetValue(StackPriorityComparerProperty, value);
+        }
+        public static readonly DependencyProperty StackPriorityComparerProperty =
+            DependencyProperty.Register(nameof(StackPriorityComparer), typeof(IComparer<ITimeRangeRowIndex>), typeof(GridTimeRangeChart), new PropertyMetadata(null));
+
+        /// <summary>
         /// Gets or sets a value indicating whether multiple items can be selected simultaneously.
         /// </summary>
         /// <remarks>Set this property to <see langword="true"/> to allow users to select more than one item at a

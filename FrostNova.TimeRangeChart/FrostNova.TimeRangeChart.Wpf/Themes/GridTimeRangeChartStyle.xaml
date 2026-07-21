@@ -203,6 +203,7 @@
                                               TimeUnit="{TemplateBinding TimeUnit}"
                                               MonthSpan="{TemplateBinding MonthSpan}"
                                               CanStackRange="{TemplateBinding CanStackRange}"
+                                              StackPriorityComparer="{TemplateBinding StackPriorityComparer}"
                                               HeaderFormat="{TemplateBinding HeaderFormat}"
                                               StackHeight="{TemplateBinding StackHeight}"
                                               HeaderBrushSelector="{TemplateBinding HeaderBrushSelector}"
