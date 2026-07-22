@@ -1,0 +1,3 @@
+- Gridでの行間移動
+- Controlの真ん中配置 Height制御
+- 月、年モード

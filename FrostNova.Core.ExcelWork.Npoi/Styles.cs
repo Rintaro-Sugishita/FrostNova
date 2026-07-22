@@ -7,6 +7,7 @@ using NPOI.XSSF.UserModel;
 using NpoiBorderStyle = NPOI.SS.UserModel.BorderStyle;
 using NpoiHAlign = NPOI.SS.UserModel.HorizontalAlignment;
 using NpoiVAlign = NPOI.SS.UserModel.VerticalAlignment;
+using IIndexedColorMap = NPOI.OOXML.XSSF.UserModel.IIndexedColorMap;
 
 namespace FrostNova.Core.ExcelWork
 {
@@ -14,7 +15,9 @@ namespace FrostNova.Core.ExcelWork
     {
         public static XSSFColor ToXssf(System.Drawing.Color color)
         {
-            return new XSSFColor(new byte[] { color.R, color.G, color.B });
+            // NPOI 2.8.0 replaced XSSFColor(byte[]) with XSSFColor(byte[], IIndexedColorMap);
+            // a null color map is fine for plain RGB colors.
+            return new XSSFColor(new byte[] { color.R, color.G, color.B }, (IIndexedColorMap?)null);
         }
 
         public static int ToRgb(System.Drawing.Color color)
@@ -24,7 +27,7 @@ namespace FrostNova.Core.ExcelWork
 
         public static XSSFColor RgbToXssf(int rgb)
         {
-            return new XSSFColor(new byte[] { (byte)((rgb >> 16) & 0xFF), (byte)((rgb >> 8) & 0xFF), (byte)(rgb & 0xFF) });
+            return new XSSFColor(new byte[] { (byte)((rgb >> 16) & 0xFF), (byte)((rgb >> 8) & 0xFF), (byte)(rgb & 0xFF) }, (IIndexedColorMap?)null);
         }
     }
 

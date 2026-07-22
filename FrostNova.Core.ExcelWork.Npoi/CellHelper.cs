@@ -26,7 +26,6 @@ namespace FrostNova.Core.ExcelWork
                 case CellType.Formula:
                     return GetFormulaValue(cell);
                 case CellType.Blank:
-                case CellType.Unknown:
                 case CellType.Error:
                 default:
                     return null;

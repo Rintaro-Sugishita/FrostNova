@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <RootNamespace>FrostNova.Core.ExcelWork</RootNamespace>
     <AssemblyName>FrostNova.Core.ExcelWork.Npoi</AssemblyName>
     <PackageId>FrostNova.Core.ExcelWork.Npoi</PackageId>
@@ -13,8 +13,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NPOI" Version="2.7.2" />
-    <PackageReference Include="System.Drawing.Common" Version="9.0.7" />
+    <PackageReference Include="NPOI" Version="2.8.0" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.10" />
+    <!-- NPOI 2.8.0 uses SkiaSharp for image handling but declares it with exclude="Runtime",
+         so the managed/native SkiaSharp assets do NOT flow to consumers. Reference it directly
+         so AddImage works and SkiaSharp is deployed with apps that use this package. -->
+    <PackageReference Include="SkiaSharp" Version="4.150.1" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">

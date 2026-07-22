@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\FrostNova.Scheduling.Engine\FrostNova.Scheduling.Engine.csproj" />
+    <ProjectReference Include="..\..\FrostNova.TimeRangeChart\FrostNova.TimeRangeChart.Wpf\FrostNova.TimeRangeChart.Wpf.csproj" />
+    <ProjectReference Include="..\..\FrostNova.TimeRangeChart\FrostNova.TimeRangeChart\FrostNova.TimeRangeChart.csproj" />
+    <ProjectReference Include="..\..\FrostNova.Core.Wpf\FrostNova.Core.Wpf.csproj" />
+    <!-- TimeRangeChart の既定テーマが半透明オーバーレイ ScrollViewer スタイル
+         (FrostNova.Core.Wpf.Controls) をマージするため、VS デザイナでの解決を安定させる目的で直接参照する。
+         実行時は TimeRangeChart.Wpf 経由で推移的に入るため必須ではない。 -->
+    <ProjectReference Include="..\..\FrostNova.Core.Wpf.Controls\FrostNova.Core.Wpf.Controls.csproj" />
+    <ProjectReference Include="..\..\FrostNova.Core\FrostNova.Core.csproj" />
+  </ItemGroup>
+
+</Project>

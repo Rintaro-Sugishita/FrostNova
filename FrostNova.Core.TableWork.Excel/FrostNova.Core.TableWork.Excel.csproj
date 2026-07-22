@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>1.2.0</Version>
+    <Version>1.2.1</Version>
     <Description>Excel (.xlsx) import/export for FrostNova.Core.TableWork, provided as ITableObject extension methods. Built on the Apache-2.0 NPOI backend (FrostNova.Core.ExcelWork.Npoi) so that the core TableWork package can stay free of any EPPlus (Polyform Noncommercial) dependency.</Description>
   </PropertyGroup>
 
@@ -15,7 +15,7 @@
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
     <PackageReference Include="FrostNova.Core.TableWork" Version="1.2.0" />
-    <PackageReference Include="FrostNova.Core.ExcelWork.Npoi" Version="0.0.2" />
+    <PackageReference Include="FrostNova.Core.ExcelWork.Npoi" Version="0.0.3" />
   </ItemGroup>
 
 </Project>
