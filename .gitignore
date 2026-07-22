@@ -403,3 +403,5 @@ FodyWeavers.xsd
 
 # nuget publish batch
 upload_nuget_local.cmd
+copy_nuget.exe
+delete_old_pkg.exe
