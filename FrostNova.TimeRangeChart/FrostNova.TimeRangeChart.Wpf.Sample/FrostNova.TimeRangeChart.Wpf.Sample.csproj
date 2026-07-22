@@ -11,9 +11,12 @@
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <ProjectReference Include="..\FrostNova.TimeRangeChart.Wpf\FrostNova.TimeRangeChart.Wpf.csproj" />
     <ProjectReference Include="..\FrostNova.TimeRangeChart\FrostNova.TimeRangeChart.csproj" />
+    <!-- TimeRangeChart の既定テーマ(TimeRangeChartStyle.xaml)が Controls の半透明オーバーレイ
+         ScrollViewer スタイルをマージするため、直接参照して VS デザイナ/増分ビルドでの解決を確実にする。 -->
+    <ProjectReference Include="..\..\FrostNova.Core.Wpf.Controls\FrostNova.Core.Wpf.Controls.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="FrostNova.TimeRangeChart.Wpf" Version="1.1.2" />
+    <PackageReference Include="FrostNova.TimeRangeChart.Wpf" Version="1.1.24" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\FrostNova.Core.Wpf\FrostNova.Core.Wpf.csproj" />

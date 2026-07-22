@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using FrostNova.TimeRangeChart.TimeRangeHelpers;
 
@@ -47,6 +48,9 @@ public class ColumnHeaderRenderLayer : FrameworkElement
 
         double summaryH = SummaryHeight;
         double baseH = BaseHeight;
+
+        // ヘッダ全域をヒットテスト可能にする（列ヘッダクリックイベント用）。
+        drawingContext.DrawRectangle(Brushes.Transparent, null, new Rect(RenderSize));
 
         // 下段：各目盛りのラベル（従来動作）。列幅は隣接目盛りの LeftPoint 差で求める。
         for (int i = 0; i < ticks.Count - 1; i++)
@@ -156,6 +160,68 @@ public class ColumnHeaderRenderLayer : FrameworkElement
             p = VisualTreeHelper.GetParent(p);
         }
         return 0;
+    }
+
+    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonDown(e);
+        if (ParentChart?._chart?.TimeTicks is not { Count: >= 2 } ticks) return;
+
+        var pos = e.GetPosition(this);
+        bool isSummary = ParentChart.ShowSummaryHeader && pos.Y < SummaryHeight;
+
+        if (TryGetClickRange(ticks, pos.X, isSummary, out var clicked, out var rangeStart, out var rangeEnd))
+        {
+            ParentChart.RaiseColumnHeaderClick(clicked, rangeStart, rangeEnd, isSummary);
+            e.Handled = true;
+        }
+    }
+
+    // クリック位置 x（content座標）を、下段=1目盛り／上段=同一サマリキーの連続グループ の時刻範囲に変換する。
+    private bool TryGetClickRange(IList<IRuledLine> ticks, double x, bool summary,
+        out DateTime clicked, out DateTime rangeStart, out DateTime rangeEnd)
+    {
+        clicked = rangeStart = rangeEnd = default;
+        int n = ticks.Count;
+        int col = FindColumnIndex(ticks, x);   // 0..n-2
+        if (col < 0) return false;
+
+        if (!summary)
+        {
+            clicked = rangeStart = ticks[col].DateValue;
+            rangeEnd = ticks[col + 1].DateValue;
+            return true;
+        }
+
+        // 上段：クリックした列と同じサマリキーの連続範囲へ拡張。
+        string fmt = GetEffectiveSummaryFormat();
+        string key = Key(ticks[col].DateValue, fmt);
+        int first = col, last = col;
+        while (first - 1 >= 0 && Key(ticks[first - 1].DateValue, fmt) == key) first--;
+        while (last + 1 <= n - 2 && Key(ticks[last + 1].DateValue, fmt) == key) last++;
+
+        clicked = rangeStart = ticks[first].DateValue;
+        rangeEnd = ticks[last + 1].DateValue;
+        return true;
+    }
+
+    // クリック位置 x を含む列インデックス（ticks[i].LeftPoint <= x < ticks[i+1].LeftPoint）を返す。0..n-2 にクランプ。
+    private static int FindColumnIndex(IList<IRuledLine> ticks, double x)
+    {
+        int n = ticks.Count;
+        if (n < 2) return -1;
+        if (x <= ticks[0].LeftPoint) return 0;
+        if (x >= ticks[n - 1].LeftPoint) return n - 2;
+
+        int lo = 0, hi = n - 1;
+        while (lo <= hi)
+        {
+            int mid = (lo + hi) / 2;
+            if (ticks[mid].LeftPoint <= x) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        // hi = x 以下で最大の LeftPoint を持つインデックス
+        return Math.Max(0, Math.Min(hi, n - 2));
     }
 
     protected override Size MeasureOverride(Size availableSize)

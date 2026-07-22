@@ -182,5 +182,25 @@ namespace FrostNova.TimeRangeChart.Wpf.Sample
             Debug.WriteLine("Raised DragEnd");
         }
 
+        /// <summary>
+        /// 列ヘッダ（日付ヘッダ）クリック → その列（上段サマリならその年月グループ）の範囲に
+        /// 重なるタスクを全選択する例。
+        /// </summary>
+        [RelayCommand]
+        private void ColumnHeaderClick(ColumnHeaderClickEventArgs e)
+        {
+            foreach (var t in RangeList)
+            {
+                // [RangeStart, RangeEnd) に少しでも重なるタスクを選択
+                bool overlaps = t.StartTime < e.RangeEnd && t.EndTime > e.RangeStart;
+                t.IsSelected = overlaps;
+            }
+
+            Debug.WriteLine(
+                $"ColumnHeaderClick: {e.ClickedDateTime:yyyy/MM/dd HH:mm} " +
+                $"[{e.RangeStart:yyyy/MM/dd}..{e.RangeEnd:yyyy/MM/dd}) " +
+                $"summary={e.IsSummaryTier} selected={RangeList.Count(x => x.IsSelected)}");
+        }
+
     }
 }

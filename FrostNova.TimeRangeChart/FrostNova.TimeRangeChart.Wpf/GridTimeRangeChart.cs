@@ -723,6 +723,28 @@ namespace FrostNova.TimeRangeChart.Wpf
             typeof(EventHandler<DropOnRowEventArgs>), typeof(GridTimeRangeChart));
 
 
+        /// <summary>
+        /// 列ヘッダ（時間軸ヘッダ）がクリックされたときに発生する。
+        /// クリックした列（上段サマリの場合はグループ）が表す時刻とその範囲を <see cref="ColumnHeaderClickEventArgs"/> で渡す。
+        /// その範囲のタスクを全選択する等の用途を想定。
+        /// </summary>
+        public event EventHandler<ColumnHeaderClickEventArgs> ColumnHeaderClick
+        {
+            add { AddHandler(ColumnHeaderClickEvent, value); }
+            remove { RemoveHandler(ColumnHeaderClickEvent, value); }
+        }
+        public static readonly RoutedEvent ColumnHeaderClickEvent =
+            EventManager.RegisterRoutedEvent(
+                nameof(ColumnHeaderClick), RoutingStrategy.Bubble,
+                typeof(EventHandler<ColumnHeaderClickEventArgs>), typeof(GridTimeRangeChart));
+
+        internal void RaiseColumnHeaderClick(DateTime clicked, DateTime rangeStart, DateTime rangeEnd, bool isSummary)
+        {
+            RaiseEvent(new ColumnHeaderClickEventArgs(
+                ColumnHeaderClickEvent, this, clicked, rangeStart, rangeEnd, isSummary));
+        }
+
+
 
         #endregion
 

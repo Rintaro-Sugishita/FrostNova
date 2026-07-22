@@ -128,6 +128,10 @@
                             <i:EventTrigger EventName="TaskDrop">
                                 <i:InvokeCommandAction Command="{Binding GridVm.TaskDropCommand}" PassEventArgsToCommand="True" />
                             </i:EventTrigger>
+                            <!-- 日付ヘッダをクリック → その範囲のタスクを全選択（下段=その日、上段サマリ=その年月） -->
+                            <i:EventTrigger EventName="ColumnHeaderClick">
+                                <i:InvokeCommandAction Command="{Binding GridVm.ColumnHeaderClickCommand}" PassEventArgsToCommand="True" />
+                            </i:EventTrigger>
                         </i:Interaction.Triggers>
                         <chart:GridTimeRangeChart.RowHeaderTemplate>
                             <DataTemplate DataType="local:GridSampleData">
