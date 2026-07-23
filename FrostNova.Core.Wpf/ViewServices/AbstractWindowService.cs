@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Messaging;
+using FrostNova.Core.Wpf.AsyncHelpers;
 using FrostNova.Core.Wpf.Messages;
 using FrostNova.Core.Wpf.ViewModelBases;
 using FrostNova.Core.Wpf.Views;
@@ -89,6 +90,15 @@ namespace FrostNova.Core.Wpf.ViewServices
         public static Func<IWpfMessageBox> GetMessageBox = () =>
         {
             return new FrostNovaMessageBox();
+        };
+
+        /// <summary>
+        /// キャンセル可能な非同期処理を実行するランナーの生成関数。
+        /// テスト時は <see cref="CancelableProcessRunnerForTest"/> を返すよう差し替える。
+        /// </summary>
+        public static Func<ICancelableProcessRunner> GetCancelableProcessRunner = () =>
+        {
+            return new CancelableProcessRunner();
         };
 
 

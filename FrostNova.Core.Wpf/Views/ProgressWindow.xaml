@@ -11,7 +11,11 @@
         d:DataContext="{d:DesignInstance Type={x:Type vm:ProgressWindowViewModel}, IsDesignTimeCreatable=True}"
         Cursor="Wait"
         WindowStyle="None"
+        AllowsTransparency="True"
+        Background="#FFFFFF"
         WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Opacity="{Binding WindowOpacity}"
         Title="ProgressWindow" Height="100" Width="350">
     <Window.Resources>
         <ResourceDictionary>
@@ -41,7 +45,7 @@
                      />
         <Button Grid.Row="3" Width="70" Height="25" VerticalAlignment="Bottom" HorizontalAlignment="Right" Content="Cancel"
                 Command="{Binding CancelCommand}"
-                Visibility="{Binding ProgressInfo.CanCancel,Converter={StaticResource boolVisivilityConverter}}"
+                Visibility="{Binding ProgressInfo.CanCancel,Converter={StaticResource boolToVisibilityConverter}}"
                 
                 />
     </Grid>

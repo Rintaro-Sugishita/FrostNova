@@ -1,53 +1,29 @@
-﻿using FrostNova.Core.Wpf.ViewModelBases;
+using FrostNova.Core.Wpf.ViewModelBases;
+using FrostNova.Core.Wpf.ViewServices;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.ExceptionServices;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Threading;
 
 namespace FrostNova.Core.Wpf.AsyncHelpers
 {
     public class AsyncHelper
     {
-
+        /// <summary>
+        /// 進捗表示付きでキャンセル可能な非同期処理を実行する。
+        /// 実体は <see cref="ICancelableProcessRunner"/>（<see cref="AbstractWindowService.GetCancelableProcessRunner"/>）へ委譲する。
+        /// </summary>
         public static void RunAsyncProcess<T>(Func<ProgressInfo, Task> action, CancellationTokenSource token, Dispatcher? dispatcher = null)
         {
-            //if (dispatcher == null)
-            //{
-            //    dispatcher = Application.Current.Dispatcher;
-            //}
+            var progress = new ProgressInfo();
 
-            //return dispatcher.InvokeAsync<T>(action);
-
-
-            var vm = new ProgressWindowViewModel();
-            vm.Action = action;
-            vm.CancellationToken = token;
-
-
-            var task = vm.RunTask();
-
-            if (Environment.UserInteractive)
+            var runner = AbstractWindowService.GetCancelableProcessRunner();
+            runner.Run(new CancelableRunRequest
             {
-                var result = vm.WindowService?.ShowDialogWindow(vm);
-            }
-
-            task.Wait();
-
-            if (vm.Exception != null)
-            {
-                ExceptionDispatchInfo.Capture(vm.Exception).Throw();
-            }
-
-
-
+                Work = _ => action(progress),
+                Progress = progress,
+                CancellationTokenSource = token,
+            });
         }
-
-
-
-
     }
 }
