@@ -24,6 +24,10 @@ namespace FrostNova.TimeRangeChart.Wpf
 
         public bool IsSelected { get; set; }
 
+        public bool CanDrag => false;
+
+        public bool CanExpandSpan => false;
+
         public bool CanDragTasksBetweenRows => false;
 
         public bool CanStack => false;

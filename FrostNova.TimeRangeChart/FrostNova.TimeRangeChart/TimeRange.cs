@@ -34,6 +34,10 @@ namespace FrostNova.TimeRangeChart
         [ObservableProperty]
         private bool _IsSelected = false;
 
+        public bool CanDrag { get; set; } = true;
+
+        public bool CanExpandSpan { get; set; } = true;
+
         public bool CanDragTasksBetweenRows { get; set; } = true;
 
         public bool CanStack { get; set; } = true;

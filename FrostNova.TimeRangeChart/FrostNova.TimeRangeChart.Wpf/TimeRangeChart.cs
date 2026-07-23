@@ -1526,7 +1526,8 @@ public class TimeRangeChart : Control
         {
             if (AllowMultiDrag && draggingTask!.IsSelected)
             {
-                foreach (var t in ItemsSource.Cast<ITimeRangeRowIndex>().Where(x => x.IsSelected))
+                // CanDrag=false のタスクは移動しないので、ドラッグ対象（＝スタック最下部へ寄せる対象）から除外する
+                foreach (var t in ItemsSource.Cast<ITimeRangeRowIndex>().Where(x => x.IsSelected && CanDragItem(x)))
                     dragTargets.Add(t);
             }
             else
@@ -1899,6 +1900,25 @@ public class TimeRangeChart : Control
 
         }
 
+        // データモデルの CanDrag / CanExpandSpan をコントロール側に反映し、単体ドラッグ・リサイズの
+        // 開始判定やカーソル表示もデータモデルを唯一の真実として扱う。
+        if (range.DataContext is ITimeRangeRowIndex rowItem)
+        {
+            var canDragBinding = new Binding(nameof(ITimeRangeRowIndex.CanDrag))
+            {
+                Source = rowItem,
+                Mode = BindingMode.OneWay
+            };
+            BindingOperations.SetBinding(range, TimeRangeControl.CanDragProperty, canDragBinding);
+
+            var canExpandSpanBinding = new Binding(nameof(ITimeRangeRowIndex.CanExpandSpan))
+            {
+                Source = rowItem,
+                Mode = BindingMode.OneWay
+            };
+            BindingOperations.SetBinding(range, TimeRangeControl.CanExpandSpanProperty, canExpandSpanBinding);
+        }
+
 
     }
 
@@ -2183,6 +2203,13 @@ public class TimeRangeChart : Control
     // ドラッグと判定する最小移動距離（ピクセル）。これ未満の移動はクリックとして扱い、タスクを動かさない。
     private const double DragThresholdPixels = 4.0;
 
+    /// <summary>
+    /// 指定タスクが（単体・複数選択の一括移動を含めて）ドラッグ移動可能かを返す。
+    /// 判定はデータモデルの <see cref="ITimeRangeRowIndex.CanDrag"/> を用いるため、
+    /// 仮想化で画面外にあり実体化コントロールが無いタスクでも正しく判定できる。
+    /// </summary>
+    private static bool CanDragItem(ITimeRangeRowIndex task) => task.CanDrag;
+
     protected override void OnMouseMove(MouseEventArgs e)
     {
         if (_draggingControl == null || _draggingControl.DataContext is not ITimeRangeRowIndex task)
@@ -2236,6 +2263,8 @@ public class TimeRangeChart : Control
                 {
                     foreach (var t in dragTargets)
                     {
+                        // CanDrag=false のタスクは、複数選択の一括移動でも動かさない
+                        if (!CanDragItem(t)) continue;
                         // 全員の時間をズラす
                         var nwMove = _indexedNonWorkingTimes.TryGetValue(t.RowIndex, out var n) ? n : null;
                         t.MoveTo(t.StartTime + moveDiff, _draggingControl.IgnoreNonWorkingTimes ? null : nwMove);
@@ -2277,6 +2306,8 @@ public class TimeRangeChart : Control
                 {
                     foreach (var t in dragTargets)
                     {
+                        // CanExpandSpan=false のタスクは、複数選択の一括リサイズでも伸縮させない
+                        if (!t.CanExpandSpan) continue;
                         var nwExpandLeft = _indexedNonWorkingTimes.TryGetValue(t.RowIndex, out var n) ? n : null;
                         // 全員の開始時間をリーダーと同じ変化量だけ増減させる
                         t.ExpandStartTime(t.StartTime + resizeDiffLeft, _draggingControl.IgnoreNonWorkingTimes ? null : nwExpandLeft);
@@ -2296,6 +2327,8 @@ public class TimeRangeChart : Control
                 {
                     foreach (var t in dragTargets)
                     {
+                        // CanExpandSpan=false のタスクは、複数選択の一括リサイズでも伸縮させない
+                        if (!t.CanExpandSpan) continue;
                         var nwExpandRight = _indexedNonWorkingTimes.TryGetValue(t.RowIndex, out var n) ? n : null;
                         // 全員の終了時間をリーダーと同じ変化量だけ増減させる
                         t.ExpandEndTime(t.EndTime + resizeDiff, _draggingControl.IgnoreNonWorkingTimes ? null : nwExpandRight);

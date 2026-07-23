@@ -35,6 +35,11 @@ namespace FrostNova.TimeRangeChart.TimeRangeHelpers
 
         public bool IsSelected { get; set; }
 
+        public bool CanDrag { get; set; } = true;
+
+        // 期間固定（ExpandWorkingSpan は no-op）なので、既定では伸縮不可
+        public bool CanExpandSpan { get; set; } = false;
+
         public bool CanDragTasksBetweenRows => false;
 
         public bool CanStack { get; set; }
