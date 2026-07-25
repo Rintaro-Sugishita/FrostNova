@@ -40,8 +40,8 @@ namespace FrostNova.Core.Wpf.AsyncHelpers
 
                 try
                 {
-                    // テストなのでダイアログ無しで同期的に完了させる。
-                    request.Work(cts.Token).GetAwaiter().GetResult();
+                    // テストなのでダイアログ無し・進捗レポートは無視して同期的に完了させる。
+                    request.Work(NullProgress<ProgressReport>.Instance, cts.Token).GetAwaiter().GetResult();
                 }
                 catch (OperationCanceledException) when (cts.IsCancellationRequested)
                 {
