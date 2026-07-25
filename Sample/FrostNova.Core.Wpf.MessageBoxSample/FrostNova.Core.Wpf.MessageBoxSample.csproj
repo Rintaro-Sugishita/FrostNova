@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- WPF ウィンドウを出しつつコンソール出力も見たいので Exe(コンソール) + UseWPF -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- 独自 Main([STAThread]) を使うため自動生成エントリポイントを無効化 -->
+    <StartupObject>FrostNova.Core.Wpf.MessageBoxSample.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\FrostNova.Core.Wpf\FrostNova.Core.Wpf.csproj" />
+  </ItemGroup>
+
+</Project>

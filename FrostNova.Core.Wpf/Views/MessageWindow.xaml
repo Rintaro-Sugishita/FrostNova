@@ -19,6 +19,19 @@
         
 
         >
+    <Window.Resources>
+        <!--
+        ボタンの見た目は Core.Wpf の共有辞書(単一定義元)を参照する。
+        Window.Resources に置くことで Application 未生成(コンソール等)や
+        外部リソース未マージでも常に同じ見た目で表示できる。
+        -->
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/FrostNova.Core.Wpf;component/Resources/ButtonStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource FrostNovaButtonStyle}" />
+        </ResourceDictionary>
+    </Window.Resources>
     <Window.InputBindings>
         <KeyBinding Gesture="Ctrl+C" Command="{Binding KeyCommand}"/>
     </Window.InputBindings>

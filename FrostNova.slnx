@@ -6,13 +6,15 @@
     <File Path="nuget.config" />
   </Folder>
   <Folder Name="/Sample/">
+    <Project Path="FrostNova.Core.Wpf.Controls.Sample/FrostNova.Core.Wpf.Controls.Sample.csproj" />
     <Project Path="Sample/FrostNova.Core.ExcelWork.Sample/FrostNova.Core.ExcelWork.Sample.csproj" />
+    <Project Path="Sample/FrostNova.Core.Wpf.MessageBoxSample/FrostNova.Core.Wpf.MessageBoxSample.csproj" />
     <Project Path="Sample/FrostNova.Scheduling.Sample/FrostNova.Scheduling.Sample.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Tests/FrostNova.Core.NativeAOTTest/FrostNova.Core.NativeAOTTest.csproj" Id="b9e30476-736b-45c6-9725-d8732f5b7e00" />
-    <Project Path="Tests/FrostNova.Core.TableWorkTest/FrostNova.Core.TableWorkTest.csproj" Id="624e4bee-41d0-40f0-bab3-0830dfa57155" />
     <Project Path="Tests/FrostNova.Core.TableWork.Excel.Tests/FrostNova.Core.TableWork.Excel.Tests.csproj" />
+    <Project Path="Tests/FrostNova.Core.TableWorkTest/FrostNova.Core.TableWorkTest.csproj" Id="624e4bee-41d0-40f0-bab3-0830dfa57155" />
     <Project Path="Tests/FrostNova.Core.WpfTest/FrostNova.Core.WpfTest.csproj" />
     <Project Path="Tests/FrostNova.CoreTest/FrostNova.CoreTest.csproj" />
     <Project Path="Tests/FrostNova.Scheduling.Engine/FrostNova.Scheduling.Engine.Tests.csproj" Id="5992db38-285f-459b-ad93-d1a7680141d3" />
@@ -23,14 +25,13 @@
     <Project Path="FrostNova.TimeRangeChart/FrostNova.TimeRangeChart/FrostNova.TimeRangeChart.csproj" />
     <Project Path="FrostNova.TimeRangeChart/FrostNova.TimeRangeChartTest/FrostNova.TimeRangeChartTest.csproj" />
   </Folder>
-  <Project Path="FrostNova.Core.ExcelWork/FrostNova.Core.ExcelWork.csproj" />
   <Project Path="FrostNova.Core.ExcelWork.Npoi/FrostNova.Core.ExcelWork.Npoi.csproj" />
+  <Project Path="FrostNova.Core.ExcelWork/FrostNova.Core.ExcelWork.csproj" />
   <Project Path="FrostNova.Core.NativeAOT.Abstractions/FrostNova.Core.NativeAOT.Abstractions.csproj" />
   <Project Path="FrostNova.Core.NativeAOT.Generators/FrostNova.Core.NativeAOT.Generators.csproj" />
   <Project Path="FrostNova.Core.Registry/FrostNova.Core.Registry.csproj" />
-  <Project Path="FrostNova.Core.TableWork/FrostNova.Core.TableWork.csproj" />
   <Project Path="FrostNova.Core.TableWork.Excel/FrostNova.Core.TableWork.Excel.csproj" />
-  <Project Path="FrostNova.Core.Wpf.Controls.Sample/FrostNova.Core.Wpf.Controls.Sample.csproj" />
+  <Project Path="FrostNova.Core.TableWork/FrostNova.Core.TableWork.csproj" />
   <Project Path="FrostNova.Core.Wpf.Controls/FrostNova.Core.Wpf.Controls.csproj" />
   <Project Path="FrostNova.Core.Wpf/FrostNova.Core.Wpf.csproj" />
   <Project Path="FrostNova.Core/FrostNova.Core.csproj" />

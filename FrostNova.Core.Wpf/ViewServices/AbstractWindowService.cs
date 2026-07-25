@@ -32,13 +32,33 @@ namespace FrostNova.Core.Wpf.ViewServices
 
         public static bool? ShowDialogWindow<T>(T vm, Type windowType, IWindowService? windowSerVice, Window? ownerWindow = null, WindowStartupLocation? location = null) where T : DialogWindowViewModelBase
         {
+            // オーナーはウィンドウ生成より「前」に解決する。
+            // WPF は最初に生成された Window を自動的に Application.MainWindow に設定するため、
+            // 生成後に解決すると「これから表示するダイアログ自身」をオーナーに選んでしまい、
+            // 自己オーナー化(例外)や自身の MainWindow 化を招く。
+            ownerWindow ??= GetDefaultOwnerWindow();
+
+            var app = Application.Current;
+            var previousMain = app?.MainWindow;
+
             var window = windowType.Assembly.CreateInstance(windowType.FullName!) as Window;
             if (window == null) { return null; }
 
-            // ダイアログは既定で呼び出し元(アクティブ)ウィンドウの中央に表示する。
-            // 呼び出し側が明示指定した場合はそれを優先する。
-            ownerWindow ??= GetDefaultOwnerWindow();
-            location ??= WindowStartupLocation.CenterOwner;
+            // 生成時に MainWindow が自分自身へ置き換わっていたら元に戻す。
+            // これを怠ると ShutdownMode.OnMainWindowClose のアプリでは、
+            // ダイアログを閉じた瞬間にアプリ全体が終了してしまう。
+            if (app != null && ReferenceEquals(app.MainWindow, window))
+            {
+                app.MainWindow = previousMain!;
+            }
+
+            // オーナー未指定なら、CenterOwner では位置が不定になるため画面中央に出す。
+            if (location == null)
+            {
+                location = ownerWindow != null
+                    ? WindowStartupLocation.CenterOwner
+                    : WindowStartupLocation.CenterScreen;
+            }
 
             SetVm(vm, window, windowSerVice, ownerWindow, location);
             window.DataContext = vm;
@@ -51,9 +71,19 @@ namespace FrostNova.Core.Wpf.ViewServices
         /// </summary>
         private static Window? GetDefaultOwnerWindow()
         {
-            if (Application.Current == null) return null;
-            var active = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
-            return active ?? Application.Current.MainWindow;
+            var app = Application.Current;
+            if (app == null) return null;
+
+            // オーナーにできるのは「既に表示済み(IsLoaded かつ IsVisible)」のウィンドウのみ。
+            // 未表示ウィンドウをオーナーに設定すると ShowDialog が例外を投げる。
+            var shown = app.Windows.OfType<Window>()
+                                   .Where(w => w.IsLoaded && w.IsVisible)
+                                   .ToList();
+
+            var main = app.MainWindow;
+            if (main != null && (!main.IsLoaded || !main.IsVisible)) main = null;
+
+            return shown.FirstOrDefault(w => w.IsActive) ?? main ?? shown.FirstOrDefault();
         }
 
 
@@ -107,7 +137,13 @@ namespace FrostNova.Core.Wpf.ViewServices
         {
             subWindow.DataContext = vm;
 
-            if (ownerWindow != null) subWindow.Owner = ownerWindow;
+            // 自分自身をオーナーにすると例外。未表示ウィンドウもオーナーにできない。
+            if (ownerWindow != null
+                && !ReferenceEquals(ownerWindow, subWindow)
+                && ownerWindow.IsLoaded)
+            {
+                subWindow.Owner = ownerWindow;
+            }
             if (location != null) subWindow.WindowStartupLocation = location.Value;
 
             vm.WindowService = windowService;

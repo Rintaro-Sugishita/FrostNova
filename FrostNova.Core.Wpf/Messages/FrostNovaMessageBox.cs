@@ -43,11 +43,17 @@ namespace FrostNova.Core.Wpf.Messages
                 {
                     return Show(this.OwnerWindow, messageBoxText, caption, button, icon, defaultResult);
                 }
-                else
+                else if (Application.Current != null)
                 {
                     var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
                                 ?? Application.Current.MainWindow;
                     return Show(owner, messageBoxText, caption, button, icon, defaultResult);
+                }
+                else
+                {
+                    // Application も画面も存在しない(コンソール/起動直後)。
+                    // オーナー無し・画面中央で表示する。
+                    return Show(messageBoxText, caption, button, icon, defaultResult);
                 }
             }
 
@@ -65,7 +71,7 @@ namespace FrostNova.Core.Wpf.Messages
             {
                 var w = CreateMessageVm(messageBoxText, caption, button, icon, defaultResult);
                 var r = AbstractWindowService.ShowDialogWindow(w, typeof(MessageWindow), w.WindowService!, null, WindowStartupLocation.CenterScreen);
-                ForceActivate(Application.Current.MainWindow);
+                ForceActivate(Application.Current?.MainWindow);
                 return w?.Result ?? MessageBoxResult.None;
             }
             else
@@ -95,6 +101,8 @@ namespace FrostNova.Core.Wpf.Messages
         private static void ForceActivate(Window? owner)
         {
             if (owner == null) return;
+            // 既に閉じている/まだ表示されていないウィンドウを Activate すると例外になる。
+            if (!owner.IsLoaded) return;
 
             if (owner.WindowState == WindowState.Minimized)
             {
