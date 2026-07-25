@@ -2245,6 +2245,11 @@ public class TimeRangeChart : Control
             dragTargets.Add(task);
         }
 
+        // タスクごとの実効 MinSpan（コントロール個別値 → 無ければチャート既定）。
+        // リサイズ時にこれを下回らないよう端をクランプする。
+        TimeSpan EffectiveMinSpan(ITimeRangeRowIndex t)
+            => (_activeControls.TryGetValue(t, out var c) ? c.MinSpan : null) ?? MinSpan;
+
         switch (_dragMode)
         {
             case TimeRangeControl.HitTestMode.Move:
@@ -2301,6 +2306,9 @@ public class TimeRangeChart : Control
 
             case TimeRangeControl.HitTestMode.ResizeLeft:
                 var newStart = currentMouseTime;
+                // MinSpan を下回らないよう、開始端は EndTime - MinSpan までに制限（リーダー基準）
+                var leaderMaxStart = task.EndTime - EffectiveMinSpan(task);
+                if (newStart > leaderMaxStart) newStart = leaderMaxStart;
                 TimeSpan resizeDiffLeft = newStart - task.StartTime;
                 if (resizeDiffLeft != TimeSpan.Zero)
                 {
@@ -2309,8 +2317,12 @@ public class TimeRangeChart : Control
                         // CanExpandSpan=false のタスクは、複数選択の一括リサイズでも伸縮させない
                         if (!t.CanExpandSpan) continue;
                         var nwExpandLeft = _indexedNonWorkingTimes.TryGetValue(t.RowIndex, out var n) ? n : null;
-                        // 全員の開始時間をリーダーと同じ変化量だけ増減させる
-                        t.ExpandStartTime(t.StartTime + resizeDiffLeft, _draggingControl.IgnoreNonWorkingTimes ? null : nwExpandLeft);
+                        // 全員の開始時間をリーダーと同じ変化量だけ増減させる。
+                        // ただし各タスク自身の MinSpan は下回らないようクランプ。
+                        var tNewStart = t.StartTime + resizeDiffLeft;
+                        var tMaxStart = t.EndTime - EffectiveMinSpan(t);
+                        if (tNewStart > tMaxStart) tNewStart = tMaxStart;
+                        t.ExpandStartTime(tNewStart, _draggingControl.IgnoreNonWorkingTimes ? null : nwExpandLeft);
                     }
                     _dragOccured = true;
                 }
@@ -2321,6 +2333,9 @@ public class TimeRangeChart : Control
             case TimeRangeControl.HitTestMode.ResizeRight:
 
                 var newEnd = currentMouseTime;
+                // MinSpan を下回らないよう、終了端は StartTime + MinSpan までに制限（リーダー基準）
+                var leaderMinEnd = task.StartTime + EffectiveMinSpan(task);
+                if (newEnd < leaderMinEnd) newEnd = leaderMinEnd;
                 TimeSpan resizeDiff = newEnd - task.EndTime;
 
                 if (resizeDiff != TimeSpan.Zero)
@@ -2330,8 +2345,12 @@ public class TimeRangeChart : Control
                         // CanExpandSpan=false のタスクは、複数選択の一括リサイズでも伸縮させない
                         if (!t.CanExpandSpan) continue;
                         var nwExpandRight = _indexedNonWorkingTimes.TryGetValue(t.RowIndex, out var n) ? n : null;
-                        // 全員の終了時間をリーダーと同じ変化量だけ増減させる
-                        t.ExpandEndTime(t.EndTime + resizeDiff, _draggingControl.IgnoreNonWorkingTimes ? null : nwExpandRight);
+                        // 全員の終了時間をリーダーと同じ変化量だけ増減させる。
+                        // ただし各タスク自身の MinSpan は下回らないようクランプ。
+                        var tNewEnd = t.EndTime + resizeDiff;
+                        var tMinEnd = t.StartTime + EffectiveMinSpan(t);
+                        if (tNewEnd < tMinEnd) tNewEnd = tMinEnd;
+                        t.ExpandEndTime(tNewEnd, _draggingControl.IgnoreNonWorkingTimes ? null : nwExpandRight);
                     }
                     _dragOccured = true;
                 }
