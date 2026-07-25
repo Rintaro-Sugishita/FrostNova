@@ -5,6 +5,42 @@
         <ResourceDictionary Source="/FrostNova.Core.Wpf.Controls;component/Themes/Customs/ToggleButtonStyleDictionary.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
+    <!--
+        ドラムの ▲/▼ ボタン。既定テンプレートに依存せず、ボタン全面を必ずヒット領域にする。
+        Background=Transparent（ヒットテスト有効）の Border でセル全体を覆うため、
+        右半分など一部が反応しない事象を防ぐ。
+    -->
+    <Style x:Key="TimePickerDrumRepeatButtonStyle" TargetType="{x:Type RepeatButton}">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RepeatButton}">
+                    <Border x:Name="bg"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="defaultFrostNovaTimePickerStyle" TargetType="{x:Type local:TimePicker}">
         <Setter Property="Template">
             <Setter.Value>
@@ -67,7 +103,7 @@
                                                 <RowDefinition Height="96"/>
                                                 <RowDefinition Height="32"/>
                                             </Grid.RowDefinitions>
-                                            <RepeatButton x:Name="PART_hour_up" Grid.Row="0" Focusable="False" BorderThickness="0" Background="Transparent">
+                                            <RepeatButton x:Name="PART_hour_up" Grid.Row="0" Style="{StaticResource TimePickerDrumRepeatButtonStyle}">
                                                 <TextBlock FontFamily="Segoe Fluent Icons" Text="&#xe971;" HorizontalAlignment="Center"/>
                                             </RepeatButton>
                                             <Grid Grid.Row="1" ClipToBounds="True" x:Name="PART_hour_container" Background="Transparent">
@@ -84,7 +120,7 @@
                                                         BorderThickness="0,1,0,1"
                                                         IsHitTestVisible="False"/>
                                             </Grid>
-                                            <RepeatButton x:Name="PART_hour_down" Grid.Row="2" Focusable="False" BorderThickness="0" Background="Transparent">
+                                            <RepeatButton x:Name="PART_hour_down" Grid.Row="2" Style="{StaticResource TimePickerDrumRepeatButtonStyle}">
                                                 <TextBlock FontFamily="Segoe Fluent Icons" Text="&#xe972;" HorizontalAlignment="Center"/>
                                             </RepeatButton>
                                         </Grid>
@@ -99,7 +135,7 @@
                                                 <RowDefinition Height="96"/>
                                                 <RowDefinition Height="32"/>
                                             </Grid.RowDefinitions>
-                                            <RepeatButton x:Name="PART_minute_up" Grid.Row="0" Focusable="False" BorderThickness="0" Background="Transparent">
+                                            <RepeatButton x:Name="PART_minute_up" Grid.Row="0" Style="{StaticResource TimePickerDrumRepeatButtonStyle}">
                                                 <TextBlock FontFamily="Segoe Fluent Icons" Text="&#xe971;" HorizontalAlignment="Center"/>
                                             </RepeatButton>
                                             <Grid Grid.Row="1" ClipToBounds="True" x:Name="PART_minute_container" Background="Transparent">
@@ -116,7 +152,7 @@
                                                         BorderThickness="0,1,0,1"
                                                         IsHitTestVisible="False"/>
                                             </Grid>
-                                            <RepeatButton x:Name="PART_minute_down" Grid.Row="2" Focusable="False" BorderThickness="0" Background="Transparent">
+                                            <RepeatButton x:Name="PART_minute_down" Grid.Row="2" Style="{StaticResource TimePickerDrumRepeatButtonStyle}">
                                                 <TextBlock FontFamily="Segoe Fluent Icons" Text="&#xe972;" HorizontalAlignment="Center"/>
                                             </RepeatButton>
                                         </Grid>
@@ -152,7 +188,7 @@
                                                 <RowDefinition Height="96"/>
                                                 <RowDefinition Height="32"/>
                                             </Grid.RowDefinitions>
-                                            <RepeatButton x:Name="PART_second_up" Grid.Row="0" Focusable="False" BorderThickness="0" Background="Transparent">
+                                            <RepeatButton x:Name="PART_second_up" Grid.Row="0" Style="{StaticResource TimePickerDrumRepeatButtonStyle}">
                                                 <TextBlock FontFamily="Segoe Fluent Icons" Text="&#xe971;" HorizontalAlignment="Center"/>
                                             </RepeatButton>
                                             <Grid Grid.Row="1" ClipToBounds="True" x:Name="PART_second_container" Background="Transparent">
@@ -169,7 +205,7 @@
                                                         BorderThickness="0,1,0,1"
                                                         IsHitTestVisible="False"/>
                                             </Grid>
-                                            <RepeatButton x:Name="PART_second_down" Grid.Row="2" Focusable="False" BorderThickness="0" Background="Transparent">
+                                            <RepeatButton x:Name="PART_second_down" Grid.Row="2" Style="{StaticResource TimePickerDrumRepeatButtonStyle}">
                                                 <TextBlock FontFamily="Segoe Fluent Icons" Text="&#xe972;" HorizontalAlignment="Center"/>
                                             </RepeatButton>
                                         </Grid>

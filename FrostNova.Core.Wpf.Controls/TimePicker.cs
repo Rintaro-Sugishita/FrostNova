@@ -479,23 +479,25 @@ namespace FrostNova.Core.Wpf.Controls
             var up   = GetTemplateChild(upPartName)   as ButtonBase;
             var down = GetTemplateChild(downPartName) as ButtonBase;
 
-            if (up   != null) up.Click   += (s, e) => StepDrum(valueProp, rows, -1);
-            if (down != null) down.Click += (s, e) => StepDrum(valueProp, rows,  1);
+            // 値は上に行くほど大きくなる（スピナー慣習：▲=増加 / ▼=減少）。
+            if (up   != null) up.Click   += (s, e) => StepDrum(valueProp, rows,  1);
+            if (down != null) down.Click += (s, e) => StepDrum(valueProp, rows, -1);
 
             if (container != null)
             {
                 container.PreviewMouseWheel += (s, e) =>
                 {
-                    StepDrum(valueProp, rows, e.Delta > 0 ? -1 : 1);
+                    // ホイール上回転で増加。
+                    StepDrum(valueProp, rows, e.Delta > 0 ? 1 : -1);
                     e.Handled = true;
                 };
             }
 
-            // 上下の行をクリックするとその方向に1ステップ進む
+            // 上下の行をクリックするとその値が中央に来る（上=大きい値 / 下=小さい値）。
             for (int i = 0; i < 3; i++)
             {
                 if (i == 1) continue;   // 中央はスキップ
-                int offset = i - 1;     // 0→-1, 2→+1
+                int offset = 1 - i;     // 0→+1(上/大), 2→-1(下/小)
                 var row = rows[i];
                 if (row != null)
                     row.MouseLeftButtonUp += (s, e) => StepDrum(valueProp, rows, offset);
@@ -538,7 +540,7 @@ namespace FrostNova.Core.Wpf.Controls
             if (count == 0) return;
             for (int i = 0; i < 3; i++)
             {
-                int offset = i - 1;  // -1, 0, +1
+                int offset = 1 - i;  // 上(+1/大), 中央(0), 下(-1/小)
                 int idx = ((centerIdx + offset) % count + count) % count;
                 if (rows[i] != null) rows[i]!.Text = items[idx].ToString("D2");
             }
