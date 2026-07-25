@@ -376,6 +376,12 @@ att:DataGridEx.SaveKey="a1"
                     <Button Command="{Binding ShowWarningMessageCommand}" Content="show error" />
                 </StackPanel>
             </TabItem>
+            <TabItem Header="progressWindow">
+                <StackPanel>
+                    <Button Command="{Binding RunLongProgressCommand}" Content="Long and process" />
+                    <Button Command="{Binding RunIndeterminateProgressCommand}" Content="Long" />
+                </StackPanel>
+            </TabItem>
         </TabControl>
 
     </Grid>

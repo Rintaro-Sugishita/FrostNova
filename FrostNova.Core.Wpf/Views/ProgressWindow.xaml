@@ -12,7 +12,7 @@
         Cursor="Wait"
         WindowStyle="None"
         AllowsTransparency="True"
-        Background="#FFFFFF"
+        Background="Transparent"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         Opacity="{Binding WindowOpacity}"
@@ -22,31 +22,106 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/FrostNova.Core.Wpf;component/Resources/Converters.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Windows 11 風 ProgressBar: 細い角丸トラック + アクセント色。
+                 不確定時は角丸ピルがスライドする。 -->
+            <Style x:Key="Win11ProgressBarStyle" TargetType="{x:Type ProgressBar}">
+                <Setter Property="Height" Value="4" />
+                <Setter Property="Foreground" Value="#0067C0" />
+                <Setter Property="Background" Value="#E6E6E6" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ProgressBar}">
+                            <Border x:Name="TrackBackground"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="2"
+                                    ClipToBounds="True">
+                                <Grid x:Name="PART_Track">
+                                    <!-- 確定バー -->
+                                    <Border x:Name="PART_Indicator"
+                                            HorizontalAlignment="Left"
+                                            Background="{TemplateBinding Foreground}"
+                                            CornerRadius="2" />
+                                    <!-- 不確定ピル -->
+                                    <Border x:Name="IndeterminatePill"
+                                            Width="70"
+                                            HorizontalAlignment="Left"
+                                            Background="{TemplateBinding Foreground}"
+                                            CornerRadius="2"
+                                            Visibility="Collapsed">
+                                        <Border.RenderTransform>
+                                            <TranslateTransform x:Name="PillTransform" X="-80" />
+                                        </Border.RenderTransform>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsIndeterminate" Value="True">
+                                    <Setter TargetName="PART_Indicator" Property="Visibility" Value="Collapsed" />
+                                    <Setter TargetName="IndeterminatePill" Property="Visibility" Value="Visible" />
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard Name="IndeterminateStoryboard">
+                                            <Storyboard RepeatBehavior="Forever">
+                                                <DoubleAnimation Storyboard.TargetName="PillTransform"
+                                                                 Storyboard.TargetProperty="X"
+                                                                 From="-80" To="360" Duration="0:0:1.4">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseInOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <StopStoryboard BeginStoryboardName="IndeterminateStoryboard" />
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
     <i:Interaction.Behaviors>
         <behaviors:WindowDragMoveBehavior IsCloseDoubleClick="False" />
     </i:Interaction.Behaviors>
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="20" />
-            <RowDefinition />
-            <RowDefinition Height="6" />
-            <RowDefinition Height="30" />
-        </Grid.RowDefinitions>
-        <TextBlock Text="{Binding ProgressInfo.Title}"  d:Text="grejgioea" FontSize="12" Background="#f3f3f3" Padding="4,0,0,0" />
-        <TextBlock Grid.Row="1" Text="{Binding ProgressInfo.ProgressText}" VerticalAlignment="Bottom" Margin="4" />
-        <ProgressBar Grid.Row="2" Height="4" VerticalAlignment="Center" Margin="4,1,4,1"
-                     Minimum="{Binding ProgressInfo.Minimum}"
-                     Maximum="{Binding ProgressInfo.Maximum}"
-                     Value="{Binding ProgressInfo.Value}"
-                     IsIndeterminate="{Binding ProgressInfo.IsIndeterminate}"
-                     
-                     />
-        <Button Grid.Row="3" Width="200" Height="25" VerticalAlignment="Bottom" HorizontalAlignment="Right" Content="Cancel"
-                Command="{Binding CancelCommand}"
-                Visibility="{Binding ProgressInfo.CanCancel,Converter={StaticResource boolToVisibilityConverter}}"
-                
-                />
-    </Grid>
+
+    <!-- ウィンドウ全体の枠(角丸 + 1pxボーダー)。境界が背景と同化しないようにする。 -->
+    <Border Background="#FFFFFF"
+            BorderBrush="#D5D5D5"
+            BorderThickness="1"
+            CornerRadius="8">
+        <Grid Margin="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+                <RowDefinition Height="6" />
+                <RowDefinition Height="30" />
+            </Grid.RowDefinitions>
+            <TextBlock Text="{Binding ProgressInfo.Title}" d:Text="grejgioea" FontSize="12" Background="#f3f3f3" Padding="4,0,0,0">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Style.Triggers>
+                            <!-- タイトル未設定時は上部のグレー帯を出さない -->
+                            <DataTrigger Binding="{Binding ProgressInfo.Title}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock Grid.Row="1" Text="{Binding ProgressInfo.ProgressText}" VerticalAlignment="Bottom" Margin="4" />
+            <ProgressBar Grid.Row="2" Style="{StaticResource Win11ProgressBarStyle}"
+                         Height="4" VerticalAlignment="Center" Margin="8,1,8,1"
+                         Minimum="{Binding ProgressInfo.Minimum}"
+                         Maximum="{Binding ProgressInfo.Maximum}"
+                         Value="{Binding ProgressInfo.Value}"
+                         IsIndeterminate="{Binding ProgressInfo.IsIndeterminate}" />
+            <Button Grid.Row="3" Width="80" Height="25" VerticalAlignment="Bottom" HorizontalAlignment="Right" Content="Cancel"
+                    Command="{Binding CancelCommand}"
+                    Visibility="{Binding ProgressInfo.CanCancel,Converter={StaticResource boolToVisibilityConverter}}" />
+        </Grid>
+    </Border>
 </Window>

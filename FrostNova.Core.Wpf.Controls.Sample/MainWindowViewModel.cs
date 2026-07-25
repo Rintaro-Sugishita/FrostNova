@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using FrostNova.Core.Common;
 using FrostNova.Core.Operators;
 using FrostNova.Core.Wpf;
+using FrostNova.Core.Wpf.AsyncHelpers;
 using FrostNova.Core.Wpf.AttachedProperties;
 using FrostNova.Core.Wpf.Controls.Dialogs;
 using FrostNova.Core.Wpf.Messages;
@@ -150,12 +151,12 @@ namespace FrostNova.Core.Wpf.Controls.Sample
 
             foreach (var item in Samples2)
             {
-               (string key, object value )pair =  newCol.Type switch
+                (string key, object value) pair = newCol.Type switch
                 {
                     ColumnType.text => (newCol.UniqueKey, string.Empty),
                     ColumnType.checkBox => (newCol.UniqueKey, false),
                     ColumnType.date => (newCol.UniqueKey, DateTime.Today),
-                    ColumnType.comboBox => (newCol.UniqueKey,newCol.Options.First().Value),
+                    ColumnType.comboBox => (newCol.UniqueKey, newCol.Options.First().Value),
                     ColumnType.numeric => (newCol.UniqueKey, 0m),
                     ColumnType.button => (newCol.UniqueKey, string.Empty),
                     _ => (newCol.UniqueKey, string.Empty)
@@ -193,6 +194,61 @@ namespace FrostNova.Core.Wpf.Controls.Sample
                 MessageBox?.Show($"Command executed for {colInfo.ColumnValue}");
             }
 
+        }
+
+        [RelayCommand]
+        private void RunLongProgress()
+        {
+
+            AsyncHelper.RunAsyncProcess(async (progress, ct) =>
+            {
+                progress.Report(new ProgressReport { Message = "準備中...", IsIndeterminate = true });
+                await Task.Delay(500, ct);
+
+                progress.Report(new ProgressReport { IsIndeterminate = false, Minimum = 0, Maximum = 100 });
+                for (int i = 0; i < 100; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    //await DoStepAsync(i, ct);
+                    await Task.Delay(10000, ct);
+
+                    progress.Report(new ProgressReport { Message = $"処理中 {i + 1}/100", Value = i + 1 });
+                }
+            }, message: "開始中...");
+        }
+
+        [RelayCommand]
+        private void RunIndeterminateProgress()
+        {
+
+            AsyncHelper.RunAsyncProcess(async (progress, ct) =>
+            {
+                progress.Report(new ProgressReport { Message = "準備中...", IsIndeterminate = true });
+                await Task.Delay(500, ct);
+
+                for (int i = 0; i < 100; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    //await DoStepAsync(i, ct);
+                    await Task.Delay(100, ct);
+                }
+            }, message: "開始中...");
+        }
+        [RelayCommand]
+        private void RunShortProgress()
+        {
+
+            AsyncHelper.RunAsyncProcess(async (progress, ct) =>
+            {
+                progress.Report(new ProgressReport { Message = "準備中...", IsIndeterminate = true });
+                await Task.Delay(500, ct);
+
+                for (int i = 0; i < 100; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    //await DoStepAsync(i, ct);
+                }
+            }, message: "開始中...");
         }
     }
 }
