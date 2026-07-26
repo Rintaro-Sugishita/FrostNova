@@ -74,7 +74,7 @@
                                MaxHeight="{TemplateBinding MaxPopupHeight}"
                                IsOpen="{Binding IsChecked, ElementName=PART_BUTTON}"
                                Placement="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Placement, FallbackValue={x:Static PlacementMode.Bottom}}"
-                               StaysOpen="False">
+                               StaysOpen="True">
                             <Popup.Style>
                                 <Style TargetType="{x:Type Popup}">
                                     <Setter Property="PlacementTarget" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=PlacementTarget}" />

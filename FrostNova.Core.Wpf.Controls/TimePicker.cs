@@ -416,6 +416,9 @@ namespace FrostNova.Core.Wpf.Controls
         private readonly TextBlock?[] _minuteRows = new TextBlock?[3];
         private readonly TextBlock?[] _secondRows = new TextBlock?[3];
 
+        private ToggleButton? _toggleButton;
+        private Window? _ownerWindow;
+
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
@@ -424,6 +427,7 @@ namespace FrostNova.Core.Wpf.Controls
             SetSecondList(this, SecondSpan);
 
             var toggleButton = GetTemplateChild("PART_BUTTON") as ToggleButton;
+            _toggleButton = toggleButton;
             var okButton     = GetTemplateChild("PART_ok")     as ButtonBase;
             var cancelButton = GetTemplateChild("PART_cancel") as ButtonBase;
 
@@ -450,9 +454,27 @@ namespace FrostNova.Core.Wpf.Controls
                     _confirmClicked = false;
                     SetHourAndMinute(this);
                     RefreshAllDrums();
+
+                    // ポップアップは StaysOpen=True。外側クリック/ウィンドウ非アクティブ化での
+                    // クローズは、高DPIで不正確になりうる WPF の内部判定に頼らず、オーナー
+                    // ウィンドウ側の入力を監視して自前で行う（ポップアップは別HWNDなので、
+                    // オーナーがマウスダウンを受けた＝ポップアップ外クリック）。
+                    _ownerWindow = Window.GetWindow(this);
+                    if (_ownerWindow != null)
+                    {
+                        _ownerWindow.PreviewMouseDown += OnOwnerPreviewMouseDown;
+                        _ownerWindow.Deactivated      += OnOwnerDeactivated;
+                    }
                 };
                 toggleButton.Unchecked += (sender, e) =>
                 {
+                    if (_ownerWindow != null)
+                    {
+                        _ownerWindow.PreviewMouseDown -= OnOwnerPreviewMouseDown;
+                        _ownerWindow.Deactivated      -= OnOwnerDeactivated;
+                        _ownerWindow = null;
+                    }
+
                     if (_confirmClicked)
                         SetValue(this);
                     else
@@ -462,9 +484,43 @@ namespace FrostNova.Core.Wpf.Controls
             }
 
             if (okButton != null)
-                okButton.Click += (s, e) => { _confirmClicked = true; if (toggleButton != null) toggleButton.IsChecked = false; };
+                okButton.Click += (s, e) => { _confirmClicked = true; ClosePopup(); };
             if (cancelButton != null)
-                cancelButton.Click += (s, e) => { if (toggleButton != null) toggleButton.IsChecked = false; };
+                cancelButton.Click += (s, e) => ClosePopup();
+        }
+
+        private void OnOwnerPreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // ポップアップは別HWNDだが、要素ツリー上はこのウィンドウ配下にあるため、
+            // ポップアップ内クリックもこのハンドラに届く。クリック元がポップアップ内なら
+            // 閉じない（外側クリックのときだけ閉じる）。判定は座標ではなく要素の親子関係で行う。
+            var popupChild = (GetTemplateChild("PART_popup") as Popup)?.Child as DependencyObject;
+            if (popupChild != null && IsWithin(e.OriginalSource as DependencyObject, popupChild))
+                return;
+            ClosePopup();
+        }
+
+        private void OnOwnerDeactivated(object? sender, EventArgs e) => ClosePopup();
+
+        private void ClosePopup()
+        {
+            if (_toggleButton != null && _toggleButton.IsChecked == true)
+                _toggleButton.IsChecked = false;
+        }
+
+        /// <summary>visual/logical のどちらの親も辿って、source が container の子孫かを判定する。</summary>
+        private static bool IsWithin(DependencyObject? source, DependencyObject container)
+        {
+            var d = source;
+            while (d != null)
+            {
+                if (ReferenceEquals(d, container)) return true;
+                DependencyObject? parent = (d is Visual || d is System.Windows.Media.Media3D.Visual3D)
+                    ? VisualTreeHelper.GetParent(d)
+                    : null;
+                d = parent ?? LogicalTreeHelper.GetParent(d);
+            }
+            return false;
         }
 
         private void RefreshAllDrums()
