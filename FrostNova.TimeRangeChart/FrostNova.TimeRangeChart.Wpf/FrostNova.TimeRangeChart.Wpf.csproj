@@ -18,7 +18,7 @@
   <ItemGroup Condition="'$(Configuration)' != 'Debug'">
     <PackageReference Include="FrostNova.Core.Wpf" Version="1.4.8" />
     <PackageReference Include="FrostNova.Core.Wpf.Controls" Version="1.0.11" />
-    <PackageReference Include="FrostNova.TimeRangeChart" Version="1.1.5" />
+    <PackageReference Include="FrostNova.TimeRangeChart" Version="1.1.6" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Behaviors\" />
