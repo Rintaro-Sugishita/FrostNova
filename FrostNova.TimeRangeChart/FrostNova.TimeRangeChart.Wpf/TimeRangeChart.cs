@@ -484,9 +484,12 @@ public class TimeRangeChart : Control
             if (chart.AutoFitWidth && e.Property != WidthPerRuledLineProperty)
                 chart.CoerceValue(WidthPerRuledLineProperty);
 
-            // 自身の再描画をトリガーする
+            // 自身の再描画をトリガーする。
+            // 時間軸(Start/End/幅/単位)の変更は行数・行高を変えないため、レイアウト全体の
+            // 再計算(UpdateLayoutMetrics)は不要。AutoFit のリサイズ等で高頻度に呼ばれるので、
+            // ここでは Refresh() ではなく InvalidateVisual() で再描画のみ行う。
             chart.CalclateTimeAxis();
-            chart.RefreshCall();
+            chart.InvalidateVisual();
             // 時間軸の幅(WidthPerRuledLine)やStart/End変更で_contentWidthが変わるため、
             // 既存タスク(TimeRangeControl)の位置も再計算する。InvalidateVisualだけでは
             // 罫線は再描画されるがタスクの位置は更新されない。
@@ -912,7 +915,14 @@ public class TimeRangeChart : Control
 
     private void UpdateVisibleRange()
     {
-        if (_scrollViewer == null || RowOffsets == null || RowOffsets.Length == 0) return;
+        if (_scrollViewer == null || RowOffsets == null || RowOffsets.Length == 0)
+        {
+            // 行が 0 件になった場合は、可視行インデックスを無効化しておく。
+            // 古い値が残っていると DrawBorder が前の行数のまま罫線を描いてしまう。
+            _currentFirstRow = -1;
+            _currentLastRow = -1;
+            return;
+        }
 
         double top = _scrollViewer.VerticalOffset;
         double bottom = top + _scrollViewer.ViewportHeight;
@@ -1929,6 +1939,13 @@ public class TimeRangeChart : Control
 
     public void Refresh()
     {
+        // バインドされている行数が変化（特に減少）した場合、InvalidateVisual だけでは
+        // RowOffsets/RowHeights が前の状態のまま残り、罫線（行の横罫線や時間軸の縦罫線の高さ）が
+        // 古い行数で描画されてしまう。再描画時にレイアウト（行数・行高・オフセット）と
+        // 可視範囲を再計算してから無効化することで、行数の変化を確実に反映する。
+        _forceSyncVisuals = true;
+        UpdateLayoutMetrics();
+        UpdateVisibleRange();
         this.InvalidateVisual();
     }
 
