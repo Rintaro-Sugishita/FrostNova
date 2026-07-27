@@ -425,7 +425,30 @@ public class TimeRangeChart : Control
     }
     public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register(nameof(ItemsSource), typeof(IEnumerable<ITimeRangeRowIndex>), typeof(TimeRangeChart), new PropertyMetadata(null, OnItemSourceChanged));
 
-    public int RowCount { get; internal set; } = 0;
+    private int _rowCount = 0;
+    private bool _isRowCountSet = false;
+
+    /// <summary>
+    /// 外部（GridTimeRangeChart 等）から指定される行数。
+    /// 指定された場合はこれを行数の唯一の基準とし、NonWorkingTimes/BackgroundTimes に
+    /// 削除済みの行を指す古いエントリが残っていても、それらで行数を増やさない。
+    /// 値が変わったときはレイアウト（行高・オフセット）と可視範囲を再計算して罫線を追従させる。
+    /// これがないと、バインド行数が減っても TimeRangeChart 側が旧行数のまま罫線を描いてしまう。
+    /// </summary>
+    public int RowCount
+    {
+        get => _rowCount;
+        internal set
+        {
+            _isRowCountSet = true;
+            if (_rowCount == value) return;
+            _rowCount = value;
+
+            // 行数が変わったことを描画に反映する。
+            UpdateLayoutMetrics();
+            UpdateVisibleRange();
+        }
+    }
 
     #region Stack properties
 
@@ -1477,14 +1500,24 @@ public class TimeRangeChart : Control
             .ToDictionary(g => g.Key, g => g.ToList()) ?? new();
 
         int maxRowFromTasks = ItemsSource?.Any() == true ? ItemsSource.Max(t => t.RowIndex) : -1;
-        int maxRowFromNonWorking = NonWorkingTimes?.Any() == true ? NonWorkingTimes.Max(t => t.RowIndex) : -1;
-        int maxRowFromBackground = BackgroundTimes?.Any() == true ? BackgroundTimes.Max(t => t.RowIndex) : -1;
-        int rowCount = Math.Max(Math.Max(maxRowFromTasks, maxRowFromNonWorking), maxRowFromBackground) + 1;
-        // 画面上に表示すべき最低限の行数がある場合は、大きい方を取る。
-        // タスク/背景/非稼働のいずれも持たない行（末尾の空行など）は最大RowIndexに現れず
-        // 行数から漏れてしまうため、明示指定された RowCount を下限として採用する。
-        // これを行わないと空行の高さが確保されず、RowHeader 側とスクロールがずれる。
-        rowCount = Math.Max(rowCount, RowCount);
+
+        int rowCount;
+        if (_isRowCountSet)
+        {
+            // 行数が外部（GridTimeRangeChart 等）から明示指定されている場合は、それを唯一の
+            // 基準とする。NonWorkingTimes/BackgroundTimes に削除済みの行を指す古いエントリが
+            // 残っていても、それらで行数を増やさない。これをしないと、バインド行数が減ったときに
+            // 背景/非稼働の RowIndex が大きいままだと罫線が前の行数のまま残ってしまう。
+            // ただし、万一タスクが指す行が RowCount を超えても切り捨てないよう下限は確保する。
+            rowCount = Math.Max(RowCount, maxRowFromTasks + 1);
+        }
+        else
+        {
+            // 直接利用時（行数未指定）は、従来どおりタスク/背景/非稼働の最大行から算出する。
+            int maxRowFromNonWorking = NonWorkingTimes?.Any() == true ? NonWorkingTimes.Max(t => t.RowIndex) : -1;
+            int maxRowFromBackground = BackgroundTimes?.Any() == true ? BackgroundTimes.Max(t => t.RowIndex) : -1;
+            rowCount = Math.Max(Math.Max(maxRowFromTasks, maxRowFromNonWorking), maxRowFromBackground) + 1;
+        }
 
         var tempRowHeights = new double[rowCount];
         var tempRowOffsets = new double[rowCount];
