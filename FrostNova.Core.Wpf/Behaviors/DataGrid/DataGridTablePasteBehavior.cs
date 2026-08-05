@@ -23,6 +23,8 @@ namespace FrostNova.Core.Wpf.Behaviors
             base.OnAttached();
             AssociatedObject.Initialized += AssociatedObject_Initialized;
             AssociatedObject.PreviewKeyDown += AssociatedObject_PreviewKeyDown;
+            AssociatedObject.KeyDown += AssociatedObject_KeyDown;
+            AssociatedObject.CopyingRowClipboardContent += AssociatedObject_CopyingRowClipboardContent;
         }
 
         protected override void OnDetaching()
@@ -30,6 +32,8 @@ namespace FrostNova.Core.Wpf.Behaviors
             base.OnDetaching();
             AssociatedObject.Initialized -= AssociatedObject_Initialized;
             AssociatedObject.PreviewKeyDown -= AssociatedObject_PreviewKeyDown;
+            AssociatedObject.KeyDown -= AssociatedObject_KeyDown;
+            AssociatedObject.CopyingRowClipboardContent -= AssociatedObject_CopyingRowClipboardContent;
 
             // Initialized 時に各列へ張った PastingCellClipboardContent を解除する
             foreach (var item in AssociatedObject.Columns)
@@ -93,6 +97,30 @@ namespace FrostNova.Core.Wpf.Behaviors
                 //CTRL + V
                 OnPaste();
                 e.Handled = true;
+            }
+            else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && Keyboard.IsKeyDown(Key.X))
+            {
+                //CTRL + X（切り取り = コピー後にクリア）
+                OnCut();
+                e.Handled = true;
+            }
+        }
+
+        private void OnCut()
+        {
+            // まず標準のコピー（CopyingRowClipboardContent 経由で値が注入される）
+            if (ApplicationCommands.Copy.CanExecute(null, AssociatedObject))
+            {
+                ApplicationCommands.Copy.Execute(null, AssociatedObject);
+            }
+
+            // 選択セルをクリア
+            foreach (var cell in AssociatedObject.SelectedCells)
+            {
+                if (!cell.Column.IsReadOnly)
+                {
+                    cell.Column.OnPastingCellClipboardContent(cell.Item, null);
+                }
             }
         }
         private void AssociatedObject_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -240,11 +268,12 @@ namespace FrostNova.Core.Wpf.Behaviors
 
                     var content = e.ClipboardRowContent.FirstOrDefault(x => x.Column == column && x.Item == item);
                     var index = e.ClipboardRowContent.IndexOf(content);
-                    if (content.Content !=null)
+                    if (index >= 0)
                     {
-                        e.ClipboardRowContent.Remove(content);
+                        // テンプレート列など既定 Content が null の場合でも「置換」する。
+                        // 旧実装は null のとき Remove せず Insert していたため空セルが重複していた。
+                        e.ClipboardRowContent[index] = new DataGridClipboardCellContent(item, column, value);
                     }
-                    e.ClipboardRowContent.Insert(index, new DataGridClipboardCellContent(item, column, value));
                 }
             }
         }
