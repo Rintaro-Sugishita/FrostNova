@@ -25,6 +25,8 @@
     <Project Path="FrostNova.TimeRangeChart/FrostNova.TimeRangeChart/FrostNova.TimeRangeChart.csproj" />
     <Project Path="FrostNova.TimeRangeChart/FrostNova.TimeRangeChartTest/FrostNova.TimeRangeChartTest.csproj" />
   </Folder>
+  <Project Path="FrostNova.Core.DbAccess/FrostNova.Core.DbAccess.csproj" />
+  <Project Path="FrostNova.Core.EncodingDetection/FrostNova.Core.EncodingDetection.csproj" />
   <Project Path="FrostNova.Core.ExcelWork.Npoi/FrostNova.Core.ExcelWork.Npoi.csproj" />
   <Project Path="FrostNova.Core.ExcelWork/FrostNova.Core.ExcelWork.csproj" />
   <Project Path="FrostNova.Core.NativeAOT.Abstractions/FrostNova.Core.NativeAOT.Abstractions.csproj" />

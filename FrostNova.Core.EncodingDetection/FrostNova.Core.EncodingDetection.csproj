@@ -10,7 +10,7 @@
     <FileVersion>1.0.0.0</FileVersion>
     <Authors>r-sugishita</Authors>
     <Description>BOM有無を含むテキストファイルの文字コード自動判定（SJIS/EUC/JIS/UTF系）。</Description>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
