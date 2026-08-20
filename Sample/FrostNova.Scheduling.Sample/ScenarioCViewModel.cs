@@ -291,9 +291,10 @@ public partial class ScenarioCViewModel : ObservableObject
         // 時間は「実行時間」ブロックに一本化しているので、この表には品質の指標だけを載せる。
         var metrics = new List<BenchmarkMetricRow>
         {
-            new("メイクスパン", $"{baseStats.MakespanDays:F1} 日", optStats == null ? "—" : $"{optStats.MakespanDays:F1} 日"),
-            new("設備平均稼働率", $"{baseStats.AverageUtilization:P1}", optStats == null ? "—" : $"{optStats.AverageUtilization:P1}"),
-            new("稼働時間 最小/最大", $"{baseStats.MinLineHours:N0} / {baseStats.MaxLineHours:N0} h",
+            new("メイクスパン", $"{baseStats.MakespanDays:F1} 日 / {horizonDays} 日 ({baseStats.HorizonUsage:P0})",
+                optStats == null ? "—" : $"{optStats.MakespanDays:F1} 日 / {horizonDays} 日 ({optStats.HorizonUsage:P0})"),
+            new("設備平均稼働率（メイクスパン内）", $"{baseStats.AverageUtilization:P1}", optStats == null ? "—" : $"{optStats.AverageUtilization:P1}"),
+            new("実作業時間 最小/最大", $"{baseStats.MinLineHours:N0} / {baseStats.MaxLineHours:N0} h",
                 optStats == null ? "—" : $"{optStats.MinLineHours:N0} / {optStats.MaxLineHours:N0} h"),
             new("稼働バランス（標準偏差）", $"{baseStats.LineHoursStdDev:N1} h", optStats == null ? "—" : $"{optStats.LineHoursStdDev:N1} h"),
             new("希望納期の遅れ合計", $"{baseStats.TotalLatenessHours:N0} h", optStats == null ? "—" : $"{optStats.TotalLatenessHours:N0} h"),
@@ -398,6 +399,7 @@ public partial class ScenarioCViewModel : ObservableObject
 
     private sealed record Stats(
         double MakespanDays,
+        double HorizonUsage,
         double AverageUtilization,
         double MinLineHours,
         double MaxLineHours,
@@ -417,19 +419,28 @@ public partial class ScenarioCViewModel : ObservableObject
             ? 0
             : (scheduled.Max(s => s.End!.Value) - baseDate).TotalDays;
 
-        // 設備ごとの占有時間（実時間）
+        // 設備ごとの実作業時間。
+        // (End - Start) は週末や休憩をまたいだぶんも含む「経過時間」なので稼働時間としては使えない
+        // （実際、経過時間で集計すると稼働可能時間を超えて 100% を上回る）。
+        // エンジンが返す WorkingSpan が段取りを除いた実作業時間そのもの。
         var byLine = lineIds.ToDictionary(id => id, _ => 0.0);
         foreach (var s in scheduled)
         {
             if (s.LineId is string lid && byLine.ContainsKey(lid))
-                byLine[lid] += (s.End!.Value - s.Start!.Value).TotalHours;
+                byLine[lid] += (s.WorkingSpan ?? (s.End!.Value - s.Start!.Value)).TotalHours;
         }
         var hours = byLine.Values.ToArray();
         var mean = hours.Length == 0 ? 0 : hours.Average();
         var stdDev = hours.Length == 0 ? 0 : Math.Sqrt(hours.Average(h => (h - mean) * (h - mean)));
 
-        var availableHours = CountWorkingDays(baseDate, horizonDays) * 24.0;
-        var utilization = availableHours <= 0 ? 0 : mean / availableHours;
+        // 稼働率の分母はメイクスパン内の稼働可能時間。
+        // 期間全体（100 日）を分母にすると、早く終わったときに「詰まり具合」ではなく
+        // 「与えた枠をどれだけ消化したか」を見ることになり、実態と乖離する。
+        var makespanWorkingHours = CountWorkingDays(baseDate, (int)Math.Ceiling(makespanDays)) * 24.0;
+        var utilization = makespanWorkingHours <= 0 ? 0 : mean / makespanWorkingHours;
+
+        // 与えられた期間のうちどれだけ使ったか（メイクスパン ÷ 期間）
+        var horizonUsage = horizonDays <= 0 ? 0 : makespanDays / horizonDays;
 
         // 希望納期は各製品の最終工程で判定する
         double lateness = 0;
@@ -445,6 +456,7 @@ public partial class ScenarioCViewModel : ObservableObject
 
         return new Stats(
             makespanDays,
+            horizonUsage,
             utilization,
             hours.Length == 0 ? 0 : hours.Min(),
             hours.Length == 0 ? 0 : hours.Max(),
