@@ -5,7 +5,9 @@ using FrostNova.TimeRangeChart.TimeRangeHelpers;
 using FrostNova.TimeRangeChart.Wpf.TimeRangeHelpers;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace FrostNova.Scheduling.Sample;
 
@@ -34,6 +36,15 @@ public partial class ScenarioCViewModel : ObservableObject
         br.Freeze();
         return br;
     }
+
+    /// <summary>実行時間の積み上げバーの色（生成 / スケジューリング / 最適化 / 描画）。</summary>
+    private static readonly Brush[] PhaseBrushes =
+    [
+        MakeBrush(150, 150, 150),   // 生成
+        MakeBrush(70,  130, 180),   // スケジューリング
+        MakeBrush(150, 60,  180),   // 最適化
+        MakeBrush(215, 130, 40),    // 描画
+    ];
 
     // ─── 問題サイズ ─────────────────────────────────────────────────────────
     [ObservableProperty] private int _taskCount = 1000;
@@ -64,6 +75,12 @@ public partial class ScenarioCViewModel : ObservableObject
         "「▶ ベンチマーク実行」で開始します。既定設定（1000タスク / ランダム探索10回 / 単位1h）で 20 秒ほどかかります。" +
         "急ぐときは「最適化なし」にするか、時間単位を 4 にしてください。";
     [ObservableProperty] private ObservableCollection<BenchmarkMetricRow> _metrics = new();
+
+    // ─── 実行時間の内訳 ─────────────────────────────────────────────────────
+    [ObservableProperty] private ObservableCollection<PhaseTiming> _phaseTimings = new();
+    [ObservableProperty] private string _totalTimeText = "";
+    [ObservableProperty] private string _computeVsRenderText = "";
+    [ObservableProperty] private bool _hasTimings;
 
     // ─── チャートデータ ─────────────────────────────────────────────────────
     [ObservableProperty] private ObservableCollection<ScheduleResultRow> _resultRows = new();
@@ -98,17 +115,25 @@ public partial class ScenarioCViewModel : ObservableObject
             StatusText = result.Summary;
             Metrics = new ObservableCollection<BenchmarkMetricRow>(result.Metrics);
 
+            long chartDataMs = 0, wpfRenderMs = 0;
             if (RenderChart)
             {
                 var sw = Stopwatch.StartNew();
                 BuildChart(result.Nodes, result.LineIds, baseDate, horizonDays);
                 sw.Stop();
-                StatusText = $"{result.Summary}  |  描画 {sw.ElapsedMilliseconds:N0}ms";
+                chartDataMs = sw.ElapsedMilliseconds;
+
+                // ここまでは ObservableCollection を組み立てただけで、WPF はまだ何も描いていない。
+                // 実際のレイアウト・描画はディスパッチャ上で後から走るため、
+                // それらより低い優先度のコールバックが回ってくるまでを実描画時間として測る。
+                wpfRenderMs = await MeasureRenderAsync();
             }
             else
             {
                 ClearChart();
             }
+
+            BuildTimings(result, chartDataMs, wpfRenderMs);
         }
         finally
         {
@@ -116,13 +141,73 @@ public partial class ScenarioCViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// WPF が実際にレイアウト・描画を終えるまでの時間を測る。
+    /// ContextIdle は Render / Loaded より低い優先度なので、描画が片付いた後に回ってくる。
+    /// </summary>
+    /// <remarks>
+    /// チャートが仮想化している場合、ここで測れるのは「画面に見えている分」の描画時間になる。
+    /// また Application.Current が無い環境（ヘッドレス実行など）では 0 を返す。
+    /// </remarks>
+    private static async Task<long> MeasureRenderAsync()
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher == null) return 0;
+
+        var sw = Stopwatch.StartNew();
+        await dispatcher.InvokeAsync(() => { }, DispatcherPriority.ContextIdle);
+        sw.Stop();
+        return sw.ElapsedMilliseconds;
+    }
+
+    /// <summary>合計時間・積み上げバー・フェーズ別内訳を組み立てる。</summary>
+    private void BuildTimings(RunResult result, long chartDataMs, long wpfRenderMs)
+    {
+        var renderMs = chartDataMs + wpfRenderMs;
+        var computeMs = result.GenerateMs + result.ScheduleMs + result.OptimizeMs;
+        var total = Math.Max(1, computeMs + renderMs);
+
+        var rows = new List<PhaseTiming>
+        {
+            new("生成", result.GenerateMs, result.GenerateMs / (double)total, "問題データの組み立て", PhaseBrushes[0]),
+            new("スケジューリング", result.ScheduleMs, result.ScheduleMs / (double)total, "最適化なしで 1 回", PhaseBrushes[1]),
+        };
+        if (result.OptimizeMs > 0)
+        {
+            rows.Add(new("最適化", result.OptimizeMs, result.OptimizeMs / (double)total,
+                $"{result.SimulationCount} 回 / 1 回あたり {result.OptimizeMs / (double)Math.Max(1, result.SimulationCount):N0} ms",
+                PhaseBrushes[2]));
+        }
+        if (RenderChart)
+        {
+            rows.Add(new("描画", renderMs, renderMs / (double)total,
+                $"データ組み立て {chartDataMs:N0} + WPF 実描画 {wpfRenderMs:N0} ms", PhaseBrushes[3]));
+        }
+
+        PhaseTimings = new ObservableCollection<PhaseTiming>(rows);
+        TotalTimeText = FormatDuration(total);
+        ComputeVsRenderText = RenderChart
+            ? $"計算 {computeMs:N0} ms ({computeMs / (double)total:P1})  /  描画 {renderMs:N0} ms ({renderMs / (double)total:P1})"
+            : $"計算 {computeMs:N0} ms（描画は無効）";
+        HasTimings = true;
+    }
+
+    private static string FormatDuration(long ms)
+        => ms >= 10_000 ? $"{ms / 1000.0:N1} s"
+         : ms >= 1_000 ? $"{ms / 1000.0:N2} s"
+         : $"{ms:N0} ms";
+
     // ─── ベンチマーク本体（UI スレッド外で実行される） ───────────────────────
 
     private sealed record RunResult(
         SampleBom[] Nodes,
         string[] LineIds,
         string Summary,
-        List<BenchmarkMetricRow> Metrics);
+        List<BenchmarkMetricRow> Metrics,
+        long GenerateMs,
+        long ScheduleMs,
+        long OptimizeMs,
+        int SimulationCount);
 
     private static RunResult Run(
         int taskCount, int lineCount, int horizonDays, int stepsPerProduct,
@@ -203,10 +288,9 @@ public partial class ScenarioCViewModel : ObservableObject
             optStats = Summarize(nodes, lineIds, baseDate, horizonDays, violationCount: null);
         }
 
+        // 時間は「実行時間」ブロックに一本化しているので、この表には品質の指標だけを載せる。
         var metrics = new List<BenchmarkMetricRow>
         {
-            new("スケジューリング時間", $"{baseMs:N0} ms",
-                optStats == null ? "—" : $"{optMs:N0} ms ({simCount} 回 / 1回あたり {optMs / (double)Math.Max(1, simCount):N0} ms)"),
             new("メイクスパン", $"{baseStats.MakespanDays:F1} 日", optStats == null ? "—" : $"{optStats.MakespanDays:F1} 日"),
             new("設備平均稼働率", $"{baseStats.AverageUtilization:P1}", optStats == null ? "—" : $"{optStats.AverageUtilization:P1}"),
             new("稼働時間 最小/最大", $"{baseStats.MinLineHours:N0} / {baseStats.MaxLineHours:N0} h",
@@ -233,10 +317,9 @@ public partial class ScenarioCViewModel : ObservableObject
         var summary =
             $"{products:N0} 製品 × {stepsPerProduct} 工程 = {products * stepsPerProduct:N0} タスク / " +
             $"{lineCount} 設備 / {horizonDays} 日 / 単位 {unit.TotalHours:N0}h" +
-            (useDaily ? " / 日別効率あり" : "") +
-            $"  |  生成 {genMs:N0}ms";
+            (useDaily ? " / 日別効率あり" : "");
 
-        return new RunResult(nodes, lineIds, summary, metrics);
+        return new RunResult(nodes, lineIds, summary, metrics, genMs, baseMs, optMs, simCount);
     }
 
     // ─── 問題データの生成 ───────────────────────────────────────────────────
@@ -450,3 +533,10 @@ public partial class ScenarioCViewModel : ObservableObject
 
 /// <summary>ベンチマーク結果 1 行（指標名・ベースライン・最適化後）。</summary>
 public record BenchmarkMetricRow(string Label, string Baseline, string Optimized);
+
+/// <summary>実行時間の 1 フェーズ。<paramref name="Fraction"/> は合計に対する比率（積み上げバーの幅）。</summary>
+public record PhaseTiming(string Label, long Milliseconds, double Fraction, string Detail, Brush Color)
+{
+    public string TimeText => Milliseconds >= 1000 ? $"{Milliseconds / 1000.0:N2} s" : $"{Milliseconds:N0} ms";
+    public string PercentText => Fraction.ToString("P1");
+}
