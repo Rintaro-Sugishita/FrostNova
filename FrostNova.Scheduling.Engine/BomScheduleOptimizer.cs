@@ -43,7 +43,9 @@ public static class BomScheduleOptimizer
             ScoreWeights? weights = null,
             IScheduleOptimizationStrategy<TBom>? strategy = null,
             int iterations = 50,
-            Dictionary<BomScheduler.ResourceType, IEqualityComparer<object>>? comparers = null)
+            Dictionary<BomScheduler.ResourceType, IEqualityComparer<object>>? comparers = null,
+            Func<DateTime, double>? globalDailyEfficiencyGetter = null,
+            Func<BomScheduler.ResourceKey, DateTime, double>? resourceDailyEfficiencyGetter = null)
         where TBom : class, IBomNode<TBom, TBomKey, TOperationKey, TOperation>
         where TOperation : IProcessStep<TOperationKey>
         where TBomKey : notnull
@@ -78,6 +80,10 @@ public static class BomScheduleOptimizer
                 baseDateGetter,
                 isForward,
                 unit,
+                leadTimeOverride: null,
+                setupMatrix: null,
+                globalDailyEfficiencyGetter,
+                resourceDailyEfficiencyGetter,
                 comparers);
 
             // スコア評価

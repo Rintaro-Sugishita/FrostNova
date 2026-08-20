@@ -36,6 +36,8 @@ public static class SimulationEngine
         IOptimizationStrategy strategy,
         ISetupMatrix? setupMatrix = null,
         Dictionary<ResourceType, IEqualityComparer<object>>? comparers = null,
+        Func<DateTime, double>? globalDailyEfficiencyGetter = null,
+        Func<ResourceKey, DateTime, double>? resourceDailyEfficiencyGetter = null,
         CancellationToken ct = default)
         where TBom : class, IBomNode<TBom, TBomKey, TOperationKey, TOperation>
         where TOperation : IProcessStep<TOperationKey>
@@ -44,7 +46,8 @@ public static class SimulationEngine
         var evaluator = BuildDefaultEvaluator<TBom, TBomKey, TOperation, TOperationKey>(targetNodes, weights);
         return Optimize<TBom, TBomKey, TOperation, TOperationKey>(
             targetNodes, referenceNodes, nonWorkingTimes, resourceNonWorkingGetter,
-            baseDateGetter, isForward, unit, evaluator, strategy, setupMatrix, comparers, ct);
+            baseDateGetter, isForward, unit, evaluator, strategy, setupMatrix, comparers,
+            globalDailyEfficiencyGetter, resourceDailyEfficiencyGetter, ct);
     }
 
     // ────────────────────────────────────────────────────────────────
@@ -67,6 +70,8 @@ public static class SimulationEngine
         IOptimizationStrategy strategy,
         ISetupMatrix? setupMatrix = null,
         Dictionary<ResourceType, IEqualityComparer<object>>? comparers = null,
+        Func<DateTime, double>? globalDailyEfficiencyGetter = null,
+        Func<ResourceKey, DateTime, double>? resourceDailyEfficiencyGetter = null,
         CancellationToken ct = default)
         where TBom : class, IBomNode<TBom, TBomKey, TOperationKey, TOperation>
         where TOperation : IProcessStep<TOperationKey>
@@ -89,7 +94,8 @@ public static class SimulationEngine
 
             Schedule<TBom, TBomKey, TOperation, TOperationKey>(
                 targetNodes, referenceNodes, nonWorkingTimes,
-                resourceNonWorkingGetter, baseDateGetter, isForward, unit, leadTimeOverride, setupMatrix, comparers);
+                resourceNonWorkingGetter, baseDateGetter, isForward, unit, leadTimeOverride, setupMatrix,
+                globalDailyEfficiencyGetter, resourceDailyEfficiencyGetter, comparers);
 
             var variant = TakeSnapshot<TBom, TBomKey, TOperation, TOperationKey>(targetNodes, order);
             var score = evaluator.Evaluate(variant);

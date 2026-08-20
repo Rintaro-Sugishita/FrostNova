@@ -18,7 +18,7 @@ All packages are distributed via [nuget.org](https://www.nuget.org/packages?q=Fr
 | `FrostNova.Core.ExcelWork.Npoi` | net8.0-windows+ | Drop-in NPOI-based alternative to `FrostNova.Core.ExcelWork` (Apache-2.0; EPPlus-free) |
 | `FrostNova.Core.Registry` | net8.0-windows+ | Windows Registry helpers (startup registration, file associations) |
 | `FrostNova.Core.NativeAOT.Abstractions` | netstandard2.0+ | Marker attributes consumed by the NativeAOT source generator |
-| `FrostNova.Scheduling.Engine` | net8.0 / net9.0 | BOM-based production scheduler (forward / backward) |
+| `FrostNova.Scheduling.Engine` | net8.0 / net9.0 / net10.0 | BOM-based production scheduler (forward / backward) |
 | `FrostNova.TimeRangeChart` | net8.0 | Time-range data model and helpers |
 | `FrostNova.TimeRangeChart.Wpf` | net8.0-windows+ | Gantt-chart WPF control built on `FrostNova.TimeRangeChart` |
 | `FrostNova.WindowEventPickers` | net8.0-windows+ | Global Win32 keyboard / mouse / active-window hooks |
@@ -302,6 +302,7 @@ Implements a pluggable optimization architecture: the scheduler iterates over pr
 
 - `IBomNode<TBomKey, TOperation, TOperationKey>` — a node in the BOM tree
 - `IProcessStep<TOperationKey>` — a schedulable operation with resource, lead time, and setup info
+- `IResourceConstraint` — per-step resource candidates with a speed multiplier: `(Id, Efficiency)`, where `2.0` halves the duration
 
 ```csharp
 var result = BomScheduler.Schedule(
@@ -317,6 +318,23 @@ var result = BomScheduler.Schedule(
         Generations: 200,
         MutationRate: 0.05)));
 ```
+
+**Per-date efficiency**
+
+`IResourceConstraint` fixes an efficiency per resource for all time. To vary it by calendar date — a line running at 80 % on one day, a site-wide slowdown during a heatwave — pass the two daily-efficiency delegates. They mirror the two non-working-time inputs: one global, one per resource.
+
+```csharp
+var result = BomScheduler.Schedule(
+    // …same arguments as above…
+    leadTimeOverride: null,
+    setupMatrix: null,
+    globalDailyEfficiencyGetter: date => heatwaveDays.Contains(date) ? 0.9 : 1.0,
+    resourceDailyEfficiencyGetter: (resource, date) => staffingRatio[resource][date]);
+```
+
+The effective rate is `(line efficiency × member efficiency) × global(date) × Π resource(key, date)`, and **it varies within a single operation**: an operation running from the evening of one day into the next consumes work at each day's own rate rather than being fixed at its start date. Dates are taken as `DateTime.Date`; when `unit` does not divide a day evenly, a slice straddling midnight uses its starting date's rate.
+
+Values of `0` or less (and `NaN`) are clamped to `0.01`, so an efficiency of `0` means *100× slower*, not *closed*. To make a day non-working, use `nonWorkingTimes` or `resourceNonWorkingGetter` instead. Omitting both delegates leaves the original code path untouched.
 
 ---
 

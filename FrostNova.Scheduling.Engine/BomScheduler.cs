@@ -110,9 +110,61 @@ public static class BomScheduler
         where TBom : class, IBomNode<TBom, TBomKey, TOperationKey, TOperation>
         where TOperation : IProcessStep<TOperationKey>
         where TBomKey : notnull
+        => Schedule<TBom, TBomKey, TOperation, TOperationKey>(
+            targetNodes, referenceNodes, nonWorkingTimes, resourceNonWorkingGetter,
+            baseDateGetter, isForward, unit, leadTimeOverride, setupMatrix,
+            globalDailyEfficiencyGetter: null, resourceDailyEfficiencyGetter: null, comparers);
+
+    /// <summary>
+    /// 日別（暦日単位）効率を指定できるオーバーロード。
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 実効レート = (ライン効率 × メンバー効率) × globalDailyEfficiencyGetter(日) × Π resourceDailyEfficiencyGetter(リソースキー, 日)
+    /// で決まり、<b>1つの工程の途中でもレートが変動する</b>。たとえば 4/1 が 1.0、4/2 が 0.5 の場合、
+    /// 4/1 の夜から始まって日をまたぐ工程は、4/1 側の稼働時間を等倍で、4/2 側を半分の速さで消化する。
+    /// </para>
+    /// <para>
+    /// 効率は「速度倍率」であり、2.0 なら所要時間が半分になる。
+    /// <c>0</c> 以下・<c>NaN</c> は 0.01 に丸められる（無限ループ防止）。
+    /// つまり <b>効率 0 を指定してもその日が休みになるわけではなく、100 倍遅い稼働日として扱われる</b>。
+    /// ある日を完全に非稼働にしたい場合は効率ではなく <paramref name="nonWorkingTimes"/> または
+    /// <paramref name="resourceNonWorkingGetter"/> を使うこと。
+    /// </para>
+    /// <para>
+    /// 日付は <see cref="DateTime.Date"/> で切り出される。<paramref name="unit"/> が 1 日を割り切らず
+    /// スライスが日をまたぐ場合、そのスライスは<b>開始側の日付</b>のレートを採用する。
+    /// また、getter に渡される <see cref="DateTime.Kind"/> は呼び出し側が与えた基準日時に由来するため、
+    /// Utc と Local を混在させないこと。
+    /// </para>
+    /// <para>
+    /// 両方の getter が <c>null</c> の場合は従来と完全に同一の計算経路を通る（後方互換）。
+    /// </para>
+    /// </remarks>
+    /// <param name="globalDailyEfficiencyGetter">全リソース共通の日別係数を返す関数。null なら 1.0 固定。</param>
+    /// <param name="resourceDailyEfficiencyGetter">リソース個別の日別係数を返す関数。null なら 1.0 固定。</param>
+    public static IReadOnlyList<ScheduleViolationInfo> Schedule<TBom, TBomKey, TOperation, TOperationKey>
+(
+        IEnumerable<TBom> targetNodes,
+        IEnumerable<TBom> referenceNodes,
+        IEnumerable<IPendingTimeRange> nonWorkingTimes,
+        Func<ResourceKey, IEnumerable<IPendingTimeRange>> resourceNonWorkingGetter,
+        Func<TOperation, BaseDateInfo> baseDateGetter,
+        bool isForward,
+        TimeSpan unit,
+        Func<TOperation, TimeSpan>? leadTimeOverride,
+        ISetupMatrix? setupMatrix,
+        Func<DateTime, double>? globalDailyEfficiencyGetter,
+        Func<ResourceKey, DateTime, double>? resourceDailyEfficiencyGetter,
+        Dictionary<ResourceType, IEqualityComparer<object>>? comparers = null
+        )
+        where TBom : class, IBomNode<TBom, TBomKey, TOperationKey, TOperation>
+        where TOperation : IProcessStep<TOperationKey>
+        where TBomKey : notnull
     {
         var violations = new List<ScheduleViolationInfo>();
-        var resourceManager = new ResourceScheduler(unit, resourceNonWorkingGetter, comparers, setupMatrix);
+        var resourceManager = new ResourceScheduler(unit, resourceNonWorkingGetter, comparers, setupMatrix,
+            globalDailyEfficiencyGetter, resourceDailyEfficiencyGetter);
 
         // 既存予約（referenceNodes）の登録
         // targetNodesに含まれるものは再計算対象なので除外
@@ -279,7 +331,7 @@ public static class BomScheduler
             PropagateConstraints<TBom, TBomKey, TOperation, TOperationKey>(item.Node, item.Step, isForward, stepCursors, useForwardForLinks: useForward);
 
             // リソース予約の確定（直前品番の追跡のため itemKey を渡し、段取り・後段取り時間を反映）
-            resourceManager.Book<TOperation, TOperationKey>(item.Step, result.LineId, result.MemberId, itemKey: nodeItemKey, effectiveSetupTime: result.EffectiveSetupTime, effectivePostSetupTime: result.EffectivePostSetupTime);
+            resourceManager.Book<TOperation, TOperationKey>(item.Step, result.LineId, result.MemberId, itemKey: nodeItemKey, effectiveSetupTime: result.EffectiveSetupTime, effectivePostSetupTime: result.EffectivePostSetupTime, occupancyStart: result.OccupancyStart, occupancyEnd: result.OccupancyEnd);
 
             completedSteps.Add(currentStep);
         }
@@ -604,17 +656,82 @@ public static class BomScheduler
         private readonly ISetupMatrix? _setupMatrix;
         private readonly Dictionary<object, object?> _lastItemByLine = new();
 
+        /// <summary>効率の下限。既存の Math.Max(0.01, …) クランプと同値。</summary>
+        private const double MinEfficiency = 0.01;
+
+        /// <summary>稼働時間走査の反復上限。カレンダーが恒久的に非稼働な場合のハングを有界な例外に変える保険。</summary>
+        private const long MaxWalkSlices = 10_000_000;
+
+        private readonly Func<DateTime, double>? _globalDailyEff;
+        private readonly Func<ResourceKey, DateTime, double>? _resDailyEff;
+        private readonly Dictionary<DateTime, double> _globalDailyCache = new();
+        private readonly Dictionary<ResourceKey, Dictionary<DateTime, double>> _resDailyCache;
+
+        /// <summary>日別効率が1つでも指定されていればレート方式の走査を使う。両方 null なら従来経路。</summary>
+        private bool UseDailyRate => _globalDailyEff != null || _resDailyEff != null;
+
         public ResourceScheduler(
          TimeSpan unit,
          Func<ResourceKey, IEnumerable<IPendingTimeRange>> resNonWorkingGetter,
          Dictionary<ResourceType, IEqualityComparer<object>>? comparers = null,
-         ISetupMatrix? setupMatrix = null)
+         ISetupMatrix? setupMatrix = null,
+         Func<DateTime, double>? globalDailyEfficiencyGetter = null,
+         Func<ResourceKey, DateTime, double>? resourceDailyEfficiencyGetter = null)
         {
             _unit = unit;
             _resNonWorkingGetter = resNonWorkingGetter;
             var keyComparer = new ResourceKeyComparer(comparers);
             _resourceUsage = new Dictionary<ResourceKey, List<IPendingTimeRange>>(keyComparer);
             _setupMatrix = setupMatrix;
+            _globalDailyEff = globalDailyEfficiencyGetter;
+            _resDailyEff = resourceDailyEfficiencyGetter;
+            // _resourceUsage と同じ比較子を使うこと。
+            // ここを既定比較子にすると、カスタム比較子が「予約」にだけ効いて「効率」に効かない不整合になる。
+            _resDailyCache = new Dictionary<ResourceKey, Dictionary<DateTime, double>>(keyComparer);
+        }
+
+        /// <summary>効率値を有効域へ丸める。Math.Max(0.01, double.NaN) は NaN を返すため NaN を明示的に潰す。</summary>
+        private static double NormalizeEfficiency(double value)
+            => double.IsNaN(value) || value < MinEfficiency ? MinEfficiency : value;
+
+        /// <summary>
+        /// 指定時刻における日別係数（全体 × 各リソース）を返す。(リソース, 日) および 日 でメモ化するため、
+        /// ユーザーデリゲートの呼び出しは組み合わせごとに1回で済む。
+        /// </summary>
+        private double GetDailyFactor(List<ResourceKey> keys, DateTime at)
+        {
+            var date = at.Date;
+            double factor = 1.0;
+
+            if (_globalDailyEff != null)
+            {
+                if (!_globalDailyCache.TryGetValue(date, out var g))
+                {
+                    g = NormalizeEfficiency(_globalDailyEff(date));
+                    _globalDailyCache[date] = g;
+                }
+                factor *= g;
+            }
+
+            if (_resDailyEff != null)
+            {
+                foreach (var key in keys)
+                {
+                    if (!_resDailyCache.TryGetValue(key, out var byDate))
+                    {
+                        byDate = new Dictionary<DateTime, double>();
+                        _resDailyCache[key] = byDate;
+                    }
+                    if (!byDate.TryGetValue(date, out var r))
+                    {
+                        r = NormalizeEfficiency(_resDailyEff(key, date));
+                        byDate[date] = r;
+                    }
+                    factor *= r;
+                }
+            }
+
+            return factor;
         }
         /// <summary>
         /// Registers global non-working time intervals.
@@ -636,7 +753,8 @@ public static class BomScheduler
         /// <param name="memberId">An optional identifier for the resource member to associate with the booking. Can be null to indicate no
         /// specific member.</param>
         public void Book<TOperation, TOperationKey>(TOperation step, object? lineId, object? memberId,
-                    object? itemKey = null, TimeSpan? effectiveSetupTime = null, TimeSpan? effectivePostSetupTime = null)
+                    object? itemKey = null, TimeSpan? effectiveSetupTime = null, TimeSpan? effectivePostSetupTime = null,
+                    DateTime? occupancyStart = null, DateTime? occupancyEnd = null)
                     where TOperation : IProcessStep<TOperationKey>
         {
             if (step.LeadTime == null || !step.Start.HasValue || !step.End.HasValue) return;
@@ -644,10 +762,12 @@ public static class BomScheduler
             var setup = effectiveSetupTime ?? step.SetupTime;
             var postSetup = effectivePostSetupTime ?? step.PostSetupTime;
 
+            // occupancyStart/End が渡された場合はカレンダー走査で求めた実占有範囲をそのまま使う。
+            // 渡されない場合（従来経路・referenceNodes の登録）は素の時刻演算で再構築する。
             var range = new TimeRangeInstance
             {
-                Start = step.Start - setup,
-                End = step.End + postSetup
+                Start = occupancyStart ?? (step.Start - setup),
+                End = occupancyEnd ?? (step.End + postSetup)
             };
             if (lineId != null && itemKey != null)
                 _lastItemByLine[lineId] = itemKey;
@@ -697,11 +817,31 @@ public static class BomScheduler
                     var totalEfficiency = line.Efficiency * member.Efficiency;
                     var keys = GetSelectedResourceKeys(line.Id, member.Id).ToList();
 
-                    // 効率を加味した実際の所要時間を計算
-                    var actualDuration = CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, totalEfficiency);
-
                     // 直前品番を考慮した動的段取り時間（ISetupMatrix がなければ step.SetupTime を使用）
                     var baseSetupTime = GetEffectiveSetupTime(line.Id, step.SetupTime, itemKey);
+
+                    if (UseDailyRate)
+                    {
+                        // レート方式：所要時間を先に確定せず、仕事量をスライスごとに消化する
+                        var segments = BuildSegments<TOperation, TOperationKey>(step, baseDuration, baseSetupTime);
+                        var seg = FindFirstAvailableStartSegmented(keys, startCursor, segments, totalEfficiency, step.BatchCapacity, latestFinish);
+
+                        if (bestResult == null || seg.LeadEnd < bestResult.Value.End)
+                        {
+                            bestResult = new ScheduleResult(
+                                seg.LeadStart, seg.LeadEnd, line.Id, member.Id,
+                                TimeSpan.FromTicks(_unit.Ticks * seg.LeadSlices),
+                                seg.Violation,
+                                effectiveSetup: seg.LeadStart - seg.OccStart,
+                                effectivePostSetup: seg.OccEnd - seg.LeadEnd,
+                                occupancyStart: seg.OccStart,
+                                occupancyEnd: seg.OccEnd);
+                        }
+                        continue;
+                    }
+
+                    // 効率を加味した実際の所要時間を計算
+                    var actualDuration = CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, totalEfficiency);
 
                     // 段取り時間に効率を適用するかどうかに応じて実効段取り時間を算出
                     var effectiveSetup = step.ScaleSetupByEfficiency
@@ -762,11 +902,31 @@ public static class BomScheduler
                     var totalEfficiency = line.Efficiency * member.Efficiency;
                     var keys = GetSelectedResourceKeys(line.Id, member.Id).ToList();
 
-                    // 効率を加味した実際の所要時間を計算
-                    var actualDuration = CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, totalEfficiency);
-
                     // 直前品番を考慮した動的段取り時間（ISetupMatrix がなければ step.SetupTime を使用）
                     var baseSetupTime = GetEffectiveSetupTime(line.Id, step.SetupTime, itemKey);
+
+                    if (UseDailyRate)
+                    {
+                        // レート方式：所要時間を先に確定せず、仕事量をスライスごとに消化する
+                        var segments = BuildSegments<TOperation, TOperationKey>(step, baseDuration, baseSetupTime);
+                        var seg = FindFirstAvailableEndSegmented(keys, endCursor, segments, totalEfficiency, step.BatchCapacity, earliestStart);
+
+                        if (bestResult == null || seg.LeadEnd > bestResult.Value.End)
+                        {
+                            bestResult = new ScheduleResult(
+                                seg.LeadStart, seg.LeadEnd, line.Id, member.Id,
+                                TimeSpan.FromTicks(_unit.Ticks * seg.LeadSlices),
+                                seg.Violation,
+                                effectiveSetup: seg.LeadStart - seg.OccStart,
+                                effectivePostSetup: seg.OccEnd - seg.LeadEnd,
+                                occupancyStart: seg.OccStart,
+                                occupancyEnd: seg.OccEnd);
+                        }
+                        continue;
+                    }
+
+                    // 効率を加味した実際の所要時間を計算
+                    var actualDuration = CalculateActualDuration<TOperation, TOperationKey>(step, baseDuration, totalEfficiency);
 
                     // 段取り時間に効率を適用するかどうかに応じて実効段取り時間を算出
                     var effectiveSetup = step.ScaleSetupByEfficiency
@@ -971,6 +1131,211 @@ public static class BomScheduler
             return TimeSpan.FromTicks(effectiveBase.Ticks * (long)batchCount);
         }
 
+        /// <summary>
+        /// 効率で割る前の「理想仕事量」（効率 1.0 で処理した場合の所要時間）を返す。
+        /// レート方式の走査では所要時間を先に確定できないため、この仕事量をスライスごとに消化していく。
+        /// </summary>
+        /// <remarks>
+        /// <see cref="CalculateActualDuration"/> は (ticks / eff) * n、こちらは (ticks * n) を返して後から
+        /// レートで割るため、丸め順の違いで最大 n-1 ticks の差が出るが、_unit で量子化された後は観測できない。
+        /// </remarks>
+        private TimeSpan CalculateWorkAmount<TOperation, TOperationKey>(TOperation step, TimeSpan baseDuration) where TOperation : IProcessStep<TOperationKey>
+        {
+            if (step.IsFixedTime) return baseDuration;
+
+            var batchCount = Math.Ceiling(step.Quantity / Math.Max(1, step.BatchCapacity));
+            return TimeSpan.FromTicks(baseDuration.Ticks * (long)batchCount);
+        }
+
+        /// <summary>走査対象の1区間。<paramref name="ApplyEfficiency"/> が false ならレート 1.0（実時間）で歩く。</summary>
+        private readonly record struct WorkSegment(TimeSpan Work, bool ApplyEfficiency);
+
+        /// <summary>
+        /// [前段取り, 作業, 後段取り] のセグメント列を作る。
+        /// 段取り時間に効率を掛けるかは <see cref="IProcessStep{TKey}.ScaleSetupByEfficiency"/> に従う。
+        /// false の場合はリソース効率も日別効率も掛からず、実時間で歩く（従来セマンティクスの維持）。
+        /// </summary>
+        private WorkSegment[] BuildSegments<TOperation, TOperationKey>(TOperation step, TimeSpan baseDuration, TimeSpan baseSetupTime) where TOperation : IProcessStep<TOperationKey>
+            => new[]
+            {
+                new WorkSegment(baseSetupTime, step.ScaleSetupByEfficiency),
+                new WorkSegment(CalculateWorkAmount<TOperation, TOperationKey>(step, baseDuration), true),
+                new WorkSegment(step.PostSetupTime, step.ScaleSetupByEfficiency),
+            };
+
+        /// <summary>各セグメント終了時点の時刻と、そのセグメントで消化した稼働スライス数。</summary>
+        private readonly record struct WalkResult(DateTime[] Bounds, long[] WorkingSlices);
+
+        /// <summary>
+        /// 仕事量ベースで前方へ稼働時間を歩き、各セグメントの境界時刻を返す。
+        /// </summary>
+        /// <remarks>
+        /// 衝突判定とジャンプ挙動は <see cref="AddWorkingTime"/> と同一（予約は無視しカレンダーのみ見る）。
+        /// セグメントを個別に歩くと 1 スライス単位の切り上げが境界ごとに発生して休日ゼロでも終了時刻がずれるため、
+        /// 余り（負の remaining）を次のセグメントへ繰り越して 1 本のループで消化する。これによりレートが
+        /// 常に 1.0 のとき従来の単一ブロック走査と同じ終了時刻になる。
+        /// </remarks>
+        private WalkResult WalkForwardSegments(List<ResourceKey> keys, DateTime start, IReadOnlyList<WorkSegment> segments, double resourceEfficiency)
+        {
+            var bounds = new DateTime[segments.Count];
+            var slices = new long[segments.Count];
+            var current = start;
+            var effectiveResourceEff = Math.Max(MinEfficiency, resourceEfficiency);
+            double remaining = 0d; // 効率 1.0 換算の残り仕事量（ティック）
+            long guard = 0;
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                remaining += segments[i].Work.Ticks;
+
+                while (remaining > 0d)
+                {
+                    if (++guard > MaxWalkSlices)
+                        throw new InvalidOperationException("稼働時間の走査が収束しませんでした。非稼働カレンダーが終端のない範囲になっていないか確認してください。");
+
+                    var collision = FindCollisionWithBatch(keys, current, current.Add(_unit), double.MaxValue);
+                    if (collision != null)
+                    {
+                        // 非稼働時間（休日・昼休み等）は消化せずに飛び越える
+                        current = RoundUp(collision.End ?? current.Add(_unit), _unit);
+                        continue;
+                    }
+
+                    var rate = segments[i].ApplyEfficiency
+                        ? effectiveResourceEff * GetDailyFactor(keys, current)
+                        : 1.0;
+
+                    remaining -= _unit.Ticks * rate;
+                    current = current.Add(_unit);
+                    slices[i]++;
+                }
+
+                bounds[i] = current;
+            }
+
+            return new WalkResult(bounds, slices);
+        }
+
+        /// <summary>
+        /// 仕事量ベースで後方へ稼働時間を歩く。セグメントは時間の逆順（後段取り → 作業 → 前段取り）で渡すこと。
+        /// </summary>
+        /// <remarks>
+        /// 衝突判定は <see cref="SubtractWorkingTime"/> と同一で <see cref="FindCollision"/> を使う
+        /// （＝他工程の予約も非稼働として扱い、ジャンプせず 1 unit ずつ後退する）。
+        /// 前方走査との非対称性は既存の挙動であり、既存テストが依存しているためここでは踏襲する。
+        /// レートは各スライスの開始側（prev）の日付で引く。
+        /// </remarks>
+        private WalkResult WalkBackwardSegments(List<ResourceKey> keys, DateTime end, IReadOnlyList<WorkSegment> segments, double resourceEfficiency)
+        {
+            var bounds = new DateTime[segments.Count];
+            var slices = new long[segments.Count];
+            var current = end;
+            var effectiveResourceEff = Math.Max(MinEfficiency, resourceEfficiency);
+            double remaining = 0d;
+            long guard = 0;
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                remaining += segments[i].Work.Ticks;
+
+                while (remaining > 0d)
+                {
+                    if (++guard > MaxWalkSlices)
+                        throw new InvalidOperationException("稼働時間の走査が収束しませんでした。非稼働カレンダーが終端のない範囲になっていないか確認してください。");
+
+                    var prev = current.Subtract(_unit);
+                    if (FindCollision(keys, prev, current) == null)
+                    {
+                        var rate = segments[i].ApplyEfficiency
+                            ? effectiveResourceEff * GetDailyFactor(keys, prev)
+                            : 1.0;
+
+                        remaining -= _unit.Ticks * rate;
+                        slices[i]++;
+                    }
+                    current = prev;
+                }
+
+                bounds[i] = current;
+            }
+
+            return new WalkResult(bounds, slices);
+        }
+
+        /// <summary>
+        /// レート方式版の <see cref="FindFirstAvailableStart"/>。
+        /// リトライ構造（空きへのスナップ → 走査 → 衝突判定）は従来と同一で、段取り区間もカレンダーを考慮して歩く点だけが異なる。
+        /// </summary>
+        /// <param name="segments">[前段取り, 作業, 後段取り] の順。</param>
+        private (DateTime OccStart, DateTime LeadStart, DateTime LeadEnd, DateTime OccEnd, long LeadSlices, ScheduleViolationType Violation)
+            FindFirstAvailableStartSegmented(List<ResourceKey> keys, DateTime start, IReadOnlyList<WorkSegment> segments, double resourceEfficiency, double capacity, DateTime? latestFinish)
+        {
+            var currentStart = MoveToAvailableSlot(keys, start, true);
+
+            while (true)
+            {
+                var walk = WalkForwardSegments(keys, currentStart, segments, resourceEfficiency);
+                var endCandidate = walk.Bounds[2];
+
+                if (latestFinish.HasValue && endCandidate > latestFinish.Value)
+                {
+                    // 従来の latestFinish - duration に相当する処理。レートが変動するため単純減算はできないので、
+                    // 納期から逆順セグメントで後退走査して配置する（副次的にカレンダーも考慮される）。
+                    var reversed = new[] { segments[2], segments[1], segments[0] };
+                    var back = WalkBackwardSegments(keys, latestFinish.Value, reversed, resourceEfficiency);
+                    return (back.Bounds[2], back.Bounds[1], back.Bounds[0], latestFinish.Value,
+                            back.WorkingSlices[1], ScheduleViolationType.DeadlineMiss);
+                }
+
+                var collision = FindCollisionWithBatch(keys, currentStart, endCandidate, capacity);
+
+                if (collision == null || IsCalendarHoliday(keys, collision))
+                {
+                    return (currentStart, walk.Bounds[0], walk.Bounds[1], endCandidate,
+                            walk.WorkingSlices[1], ScheduleViolationType.None);
+                }
+
+                currentStart = RoundUp(collision.End ?? currentStart.Add(_unit), _unit);
+                currentStart = MoveToAvailableSlot(keys, currentStart, true);
+            }
+        }
+
+        /// <summary>
+        /// レート方式版の <see cref="FindFirstAvailableEnd"/>（バックワード）。
+        /// </summary>
+        /// <param name="segments">[前段取り, 作業, 後段取り] の順（内部で逆順にして走査する）。</param>
+        private (DateTime OccStart, DateTime LeadStart, DateTime LeadEnd, DateTime OccEnd, long LeadSlices, ScheduleViolationType Violation)
+            FindFirstAvailableEndSegmented(List<ResourceKey> keys, DateTime end, IReadOnlyList<WorkSegment> segments, double resourceEfficiency, double capacity, DateTime? earliestStart)
+        {
+            var reversed = new[] { segments[2], segments[1], segments[0] };
+            var currentEnd = MoveToAvailableSlot(keys, end, false);
+
+            while (true)
+            {
+                var walk = WalkBackwardSegments(keys, currentEnd, reversed, resourceEfficiency);
+                var startCandidate = walk.Bounds[2];
+
+                if (earliestStart.HasValue && startCandidate < earliestStart.Value)
+                {
+                    var fwd = WalkForwardSegments(keys, earliestStart.Value, segments, resourceEfficiency);
+                    return (earliestStart.Value, fwd.Bounds[0], fwd.Bounds[1], fwd.Bounds[2],
+                            fwd.WorkingSlices[1], ScheduleViolationType.EarliestStartViolation);
+                }
+
+                var collision = FindCollisionWithBatch(keys, startCandidate, currentEnd, capacity);
+
+                if (collision == null || IsCalendarHoliday(keys, collision))
+                {
+                    // reversed の並びは [後段取り, 作業, 前段取り] なので Bounds[0] が作業終了、Bounds[1] が作業開始
+                    return (startCandidate, walk.Bounds[1], walk.Bounds[0], currentEnd,
+                            walk.WorkingSlices[1], ScheduleViolationType.None);
+                }
+
+                currentEnd = RoundDown(collision.Start ?? currentEnd.Subtract(_unit), _unit);
+                currentEnd = MoveToAvailableSlot(keys, currentEnd, false);
+            }
+        }
+
 
         private IPendingTimeRange? FindCollisionWithBatch(IEnumerable<ResourceKey> keys, DateTime start, DateTime end, double capacity)
         {
@@ -1118,10 +1483,19 @@ public static class BomScheduler
             public TimeSpan EffectiveSetupTime;
             public TimeSpan EffectivePostSetupTime;
 
-            public ScheduleResult(DateTime s, DateTime e, object? l, object? m, TimeSpan workingSpan, ScheduleViolationType violation = ScheduleViolationType.None, TimeSpan effectiveSetup = default, TimeSpan effectivePostSetup = default)
+            /// <summary>
+            /// 段取りを含めてリソースを実際に占有する範囲。レート方式ではカレンダー走査で求まるため、
+            /// Start - EffectiveSetupTime とは一致しない（休日をまたぐ段取りがあると乖離する）。
+            /// 従来経路では null で、その場合は呼び出し側が素の時刻演算にフォールバックする。
+            /// </summary>
+            public DateTime? OccupancyStart;
+            public DateTime? OccupancyEnd;
+
+            public ScheduleResult(DateTime s, DateTime e, object? l, object? m, TimeSpan workingSpan, ScheduleViolationType violation = ScheduleViolationType.None, TimeSpan effectiveSetup = default, TimeSpan effectivePostSetup = default, DateTime? occupancyStart = null, DateTime? occupancyEnd = null)
             {
                 Start = s; End = e; LineId = l; MemberId = m; WorkingSpan = workingSpan; Violation = violation;
                 EffectiveSetupTime = effectiveSetup; EffectivePostSetupTime = effectivePostSetup;
+                OccupancyStart = occupancyStart; OccupancyEnd = occupancyEnd;
             }
         }
     }
