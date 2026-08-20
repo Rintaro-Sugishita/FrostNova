@@ -13,6 +13,7 @@
     <Window.Resources>
         <!-- Converters must be defined before templates that reference them -->
         <local:CountToForegroundConverter x:Key="CountToForegroundConverter"/>
+        <local:InverseBoolConverter x:Key="InverseBoolConverter"/>
 
         <!-- Footer column: task count per time column -->
         <DataTemplate x:Key="FooterColumnTemplate" DataType="{x:Type local:FooterColumnViewModel}">
@@ -354,6 +355,118 @@
                                                VerticalAlignment="Center" HorizontalAlignment="Center"
                                                Padding="3,0" TextTrimming="CharacterEllipsis"/>
                                 </Border>
+                            </DataTemplate>
+                        </chart:GridTimeRangeChart.ItemTemplate>
+                    </chart:GridTimeRangeChart>
+                </DockPanel>
+            </TabItem>
+
+            <!-- ═══ Scenario C: 大量データ ベンチマーク ═══ -->
+            <TabItem Header="C: 大量データ（1000タスク×30設備×100日）">
+                <DockPanel DataContext="{Binding ScenarioC}">
+
+                    <!-- コントロールパネル -->
+                    <Border DockPanel.Dock="Top" Background="#F0F0F0" BorderBrush="#CCC" BorderThickness="0,0,0,1" Padding="8,6">
+                        <StackPanel>
+                            <!-- 問題サイズ -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="タスク数" Style="{StaticResource EffLabel}" FontWeight="SemiBold" Margin="0,0,4,0"/>
+                                <TextBox Text="{Binding TaskCount}" Width="56" VerticalContentAlignment="Center"/>
+                                <TextBlock Text="設備数" Style="{StaticResource EffLabel}" FontWeight="SemiBold"/>
+                                <TextBox Text="{Binding LineCount}" Width="44" VerticalContentAlignment="Center"/>
+                                <TextBlock Text="期間(日)" Style="{StaticResource EffLabel}" FontWeight="SemiBold"/>
+                                <TextBox Text="{Binding HorizonDays}" Width="44" VerticalContentAlignment="Center"/>
+                                <TextBlock Text="製品あたり工程数" Style="{StaticResource EffLabel}" FontWeight="SemiBold"/>
+                                <TextBox Text="{Binding StepsPerProduct}" Width="34" VerticalContentAlignment="Center"/>
+                                <TextBlock Text="時間単位(h)" Style="{StaticResource EffLabel}" FontWeight="SemiBold"/>
+                                <TextBox Text="{Binding UnitHours}" Width="34" VerticalContentAlignment="Center"
+                                         ToolTip="スケジューリングの最小刻み。1 が最も精密で最も遅い。4 にすると約 4 倍速くなる。"/>
+                            </StackPanel>
+
+                            <!-- 実行設定 -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <Button Content="▶ ベンチマーク実行" Command="{Binding RunBenchmarkCommand}"
+                                        Padding="14,5" FontWeight="Bold" Margin="0,0,16,0"
+                                        IsEnabled="{Binding IsRunning, Converter={StaticResource InverseBoolConverter}}"/>
+                                <TextBlock Text="探索:" Style="{StaticResource EffLabel}" FontWeight="SemiBold"/>
+                                <ComboBox SelectedValue="{Binding SelectedStrategy}" SelectedValuePath="Tag" Width="150" VerticalContentAlignment="Center">
+                                    <ComboBoxItem Content="最適化なし（1回）" Tag="none"/>
+                                    <ComboBoxItem Content="ランダム探索" Tag="random" IsSelected="True"/>
+                                    <ComboBoxItem Content="遺伝的アルゴリズム" Tag="ga"/>
+                                </ComboBox>
+                                <TextBlock Text="試行回数" Style="{StaticResource EffLabel}" FontWeight="SemiBold"/>
+                                <TextBox Text="{Binding Iterations}" Width="44" VerticalContentAlignment="Center"/>
+                                <CheckBox Content="日別効率を使う" IsChecked="{Binding UseDailyEfficiency}"
+                                          VerticalAlignment="Center" Margin="14,0,0,0" FontSize="11"/>
+                                <CheckBox Content="ガントチャートに描画" IsChecked="{Binding RenderChart}"
+                                          VerticalAlignment="Center" Margin="12,0,0,0" FontSize="11"/>
+                            </StackPanel>
+
+                            <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#333" TextWrapping="Wrap" Margin="0,0,0,4"/>
+
+                            <!-- 指標テーブル -->
+                            <Border BorderBrush="#CCC" BorderThickness="1" Background="White" Padding="0">
+                                <ItemsControl ItemsSource="{Binding Metrics}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type local:BenchmarkMetricRow}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="180"/>
+                                                    <ColumnDefinition Width="200"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="11" Padding="6,2"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Baseline}" FontSize="11" Padding="6,2" Foreground="#555"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding Optimized}" FontSize="11" Padding="6,2" FontWeight="SemiBold"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                            <Grid Margin="0,2,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="180"/>
+                                    <ColumnDefinition Width="200"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="1" Text="ベースライン（最適化なし）" FontSize="10" Foreground="#888" Padding="6,0"/>
+                                <TextBlock Grid.Column="2" Text="最適化後" FontSize="10" Foreground="#888" Padding="6,0"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <chart:GridTimeRangeChart
+                        x:Name="ChartC"
+                        DockPanel.Dock="Bottom"
+                        ItemsSource="{Binding ResultRows}"
+                        TasksSourcePath="Tasks"
+                        NonWorkingTimes="{Binding NonWorkingTimes}"
+                        StartTime="{Binding ChartStart}"
+                        EndTime="{Binding ChartEnd}"
+                        ScaleIncrement="1.00:00:00"
+                        HeaderFormat="MM/dd"
+                        WidthPerRuledLine="16"
+                        ChartHeight="18"
+                        StackHeight="14"
+                        MinRowWidth="60"
+                        CanStackRange="False"
+                        CanDragTasksBetweenRows="False"
+                        FooterHeight="22"
+                        FooterItemsSource="{Binding FooterItems}"
+                        FooterTemplate="{StaticResource FooterColumnTemplate}"
+                        FooterCornerSource="タスク数"
+                        FooterCornerTemplate="{StaticResource FooterCornerTemplate}"
+                        TaskDragEnd="ChartC_TaskDragEnd">
+                        <chart:GridTimeRangeChart.RowHeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding TeamName}" VerticalAlignment="Center"
+                                           Margin="6,0" FontSize="10"/>
+                            </DataTemplate>
+                        </chart:GridTimeRangeChart.RowHeaderTemplate>
+                        <chart:GridTimeRangeChart.ItemTemplate>
+                            <DataTemplate DataType="{x:Type local:ScheduledTask}">
+                                <Border Background="{Binding Color}" CornerRadius="1" Margin="0,1"
+                                        ToolTip="{Binding PhaseLabel}"/>
                             </DataTemplate>
                         </chart:GridTimeRangeChart.ItemTemplate>
                     </chart:GridTimeRangeChart>

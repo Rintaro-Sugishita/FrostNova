@@ -17,4 +17,7 @@ public partial class MainWindow : Window
 
     private void ChartB_TaskDragEnd(object sender, DragDropRangeEventArgs e)
         => Vm.ScenarioB.RecalcFooter();
+
+    private void ChartC_TaskDragEnd(object sender, DragDropRangeEventArgs e)
+        => Vm.ScenarioC.RecalcFooter();
 }
