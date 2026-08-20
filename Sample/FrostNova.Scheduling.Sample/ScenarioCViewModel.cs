@@ -52,6 +52,12 @@ public partial class ScenarioCViewModel : ObservableObject
     [ObservableProperty] private int _horizonDays = 100;
     [ObservableProperty] private int _stepsPerProduct = 4;
 
+    /// <summary>1 工程あたりの作業時間（時間）の下限。工程ごとにこの範囲で散らす。</summary>
+    [ObservableProperty] private int _minLeadHours = 10;
+
+    /// <summary>1 工程あたりの作業時間（時間）の上限。</summary>
+    [ObservableProperty] private int _maxLeadHours = 40;
+
     // ─── 実行設定 ───────────────────────────────────────────────────────────
     /// <summary>スケジューリングの最小時間単位（時間）。小さいほど精密だが遅い。</summary>
     [ObservableProperty] private int _unitHours = 1;
@@ -89,6 +95,22 @@ public partial class ScenarioCViewModel : ObservableObject
     [ObservableProperty] private DateTime _chartStart = DateTime.Today;
     [ObservableProperty] private DateTime _chartEnd = DateTime.Today.AddDays(100);
 
+    /// <summary>
+    /// 設備が期間中おおよそ 50% 埋まる作業時間を逆算して、最小/最大にセットする。
+    /// 稼働可能時間 = 設備数 × 平日日数 × 24h。タスク数や設備数を変えた後の当たりを付ける用。
+    /// </summary>
+    [RelayCommand]
+    public void AutoLeadTime()
+    {
+        var taskCount = Math.Max(1, TaskCount);
+        var workingDays = CountWorkingDays(DateTime.Today, Math.Max(1, HorizonDays));
+        var capacityHours = (double)Math.Max(1, LineCount) * workingDays * 24.0;
+        var avg = Math.Max(1.0, capacityHours * 0.5 / taskCount);
+
+        MinLeadHours = Math.Max(1, (int)(avg * 0.4));
+        MaxLeadHours = Math.Max(MinLeadHours + 1, (int)(avg * 1.6));
+    }
+
     [RelayCommand]
     public async Task RunBenchmarkAsync()
     {
@@ -105,12 +127,14 @@ public partial class ScenarioCViewModel : ObservableObject
             var strategyKey = SelectedStrategy;
             var iterations = Math.Max(1, Iterations);
             var useDaily = UseDailyEfficiency;
+            var minLead = Math.Max(1, MinLeadHours);
+            var maxLead = Math.Max(minLead, MaxLeadHours);
 
             StatusText = $"生成中… ({taskCount} タスク / {lineCount} 設備 / {horizonDays} 日)";
 
             var result = await Task.Run(() => Run(
                 taskCount, lineCount, horizonDays, stepsPerProduct,
-                unit, baseDate, strategyKey, iterations, useDaily));
+                unit, baseDate, strategyKey, iterations, useDaily, minLead, maxLead));
 
             StatusText = result.Summary;
             Metrics = new ObservableCollection<BenchmarkMetricRow>(result.Metrics);
@@ -211,11 +235,16 @@ public partial class ScenarioCViewModel : ObservableObject
 
     private static RunResult Run(
         int taskCount, int lineCount, int horizonDays, int stepsPerProduct,
-        TimeSpan unit, DateTime baseDate, string strategyKey, int iterations, bool useDaily)
+        TimeSpan unit, DateTime baseDate, string strategyKey, int iterations, bool useDaily,
+        int minLead, int maxLead)
     {
         var sw = Stopwatch.StartNew();
-        var (nodes, lineIds) = BuildProblem(taskCount, lineCount, horizonDays, stepsPerProduct, baseDate);
-        var nonWorking = GenerateWeekends(baseDate, baseDate.AddDays(horizonDays))
+        var (nodes, lineIds) = BuildProblem(taskCount, lineCount, horizonDays, stepsPerProduct, baseDate, minLead, maxLead);
+        // 週末カレンダーは期間より広めに作る。期間ぶんしか用意しないと、作業時間を長くして
+        // スケジュールが期間をはみ出したときに、その先が「週末なしの 24 時間稼働」になってしまい、
+        // 稼働率が 100% を超えるなど実態と合わなくなる。
+        var calendarDays = Math.Max(horizonDays * 3, horizonDays + 365);
+        var nonWorking = GenerateWeekends(baseDate, baseDate.AddDays(calendarDays))
             .Cast<IPendingTimeRange>().ToList();
         sw.Stop();
         var genMs = sw.ElapsedMilliseconds;
@@ -317,7 +346,7 @@ public partial class ScenarioCViewModel : ObservableObject
         var products = Math.Max(1, taskCount / stepsPerProduct);
         var summary =
             $"{products:N0} 製品 × {stepsPerProduct} 工程 = {products * stepsPerProduct:N0} タスク / " +
-            $"{lineCount} 設備 / {horizonDays} 日 / 単位 {unit.TotalHours:N0}h" +
+            $"{lineCount} 設備 / {horizonDays} 日 / 1工程 {minLead}〜{maxLead}h / 単位 {unit.TotalHours:N0}h" +
             (useDaily ? " / 日別効率あり" : "");
 
         return new RunResult(nodes, lineIds, summary, metrics, genMs, baseMs, optMs, simCount);
@@ -326,19 +355,12 @@ public partial class ScenarioCViewModel : ObservableObject
     // ─── 問題データの生成 ───────────────────────────────────────────────────
 
     private static (SampleBom[] Nodes, string[] LineIds) BuildProblem(
-        int taskCount, int lineCount, int horizonDays, int stepsPerProduct, DateTime baseDate)
+        int taskCount, int lineCount, int horizonDays, int stepsPerProduct, DateTime baseDate,
+        int minLead, int maxLead)
     {
         var rnd = new Random(Seed);
         var lineIds = Enumerable.Range(0, lineCount).Select(i => $"L{i:00}").ToArray();
         var products = Math.Max(1, taskCount / stepsPerProduct);
-
-        // 100 日で 30 設備がおおよそ半分埋まる程度の負荷になるよう所要時間を調整する。
-        // 稼働時間 = 設備数 × 平日日数 × 24h。その 50% を総作業量の目安とする。
-        var workingDays = CountWorkingDays(baseDate, horizonDays);
-        var capacityHours = (double)lineCount * workingDays * 24.0;
-        var avgLeadHours = Math.Max(1.0, capacityHours * 0.5 / Math.Max(1, products * stepsPerProduct));
-        var minLead = Math.Max(1, (int)(avgLeadHours * 0.4));
-        var maxLead = Math.Max(minLead + 1, (int)(avgLeadHours * 1.6));
 
         // 希望納期は期間の 30%〜95% に散らしたうえで、製品インデックスとの対応をシャッフルする。
         // シャッフルしないと「Priority = p」の初期順序がそのまま納期順（EDD）になってしまい、
@@ -475,11 +497,27 @@ public partial class ScenarioCViewModel : ObservableObject
         return n;
     }
 
+    /// <summary>
+    /// 週末を非稼働期間として返す。土日は連続しているので 1 つの範囲にまとめる。
+    /// 範囲数が半分になるぶん、スライスごとの衝突判定と週末帯の描画がどちらも軽くなる。
+    /// </summary>
     private static IEnumerable<NonWorkingPeriod> GenerateWeekends(DateTime from, DateTime to)
     {
-        for (var d = from.Date; d < to.Date; d = d.AddDays(1))
+        var d = from.Date;
+        while (d < to.Date)
+        {
             if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
-                yield return new NonWorkingPeriod(d, d.AddDays(1));
+            {
+                var start = d;
+                do { d = d.AddDays(1); }
+                while (d < to.Date && d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday);
+                yield return new NonWorkingPeriod(start, d);
+            }
+            else
+            {
+                d = d.AddDays(1);
+            }
+        }
     }
 
     // ─── チャート構築 ───────────────────────────────────────────────────────
@@ -513,8 +551,11 @@ public partial class ScenarioCViewModel : ObservableObject
         var allSteps = nodes.SelectMany(n => n.ProcessSteps).Where(s => s.End.HasValue).ToList();
         var maxEnd = allSteps.Count == 0 ? baseDate.AddDays(horizonDays) : allSteps.Max(s => s.End!.Value);
 
+        // 表示期間は指定された期間で固定する（早く終わっても右側は空きとして見せる）。
+        // ただし期間をはみ出した場合だけは、タスクが隠れないよう伸ばす。
         ChartStart = baseDate.Date;
-        ChartEnd = maxEnd.Date.AddDays(2);
+        var horizonEnd = baseDate.Date.AddDays(horizonDays);
+        ChartEnd = maxEnd.Date.AddDays(1) > horizonEnd ? maxEnd.Date.AddDays(2) : horizonEnd;
 
         ResultRows = new ObservableCollection<ScheduleResultRow>(rows);
 

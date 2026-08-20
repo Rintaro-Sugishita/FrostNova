@@ -385,6 +385,20 @@
                                          ToolTip="スケジューリングの最小刻み。1 が最も精密で最も遅い。4 にすると約 4 倍速くなる。"/>
                             </StackPanel>
 
+                            <!-- 1 工程あたりの作業時間 -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="1工程あたりの時間(h)" Style="{StaticResource EffLabel}" FontWeight="SemiBold" Margin="0,0,4,0"/>
+                                <TextBox Text="{Binding MinLeadHours}" Width="44" VerticalContentAlignment="Center"
+                                         ToolTip="工程ごとの作業時間の下限。この範囲でばらつかせる。"/>
+                                <TextBlock Text="〜" Style="{StaticResource EffLabel}" Margin="4,0,4,0"/>
+                                <TextBox Text="{Binding MaxLeadHours}" Width="44" VerticalContentAlignment="Center"
+                                         ToolTip="工程ごとの作業時間の上限。"/>
+                                <Button Content="自動" Command="{Binding AutoLeadTimeCommand}" Padding="10,2" Margin="8,0,0,0"
+                                        ToolTip="設備が期間中おおよそ 50% 埋まる作業時間を逆算してセットする。"/>
+                                <TextBlock VerticalAlignment="Center" FontSize="10" Foreground="#777" Margin="12,0,0,0"
+                                           Text="長くすると期間を使い切る方向、短くすると早く終わって右側が空く"/>
+                            </StackPanel>
+
                             <!-- 実行設定 -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                 <Button Content="▶ ベンチマーク実行" Command="{Binding RunBenchmarkCommand}"
