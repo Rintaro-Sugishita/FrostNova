@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Version>0.0.3</Version>
+    <RootNamespace>FrostNova.Core.ExcelWork</RootNamespace>
+    <AssemblyName>FrostNova.Core.ExcelWork.ClosedXml</AssemblyName>
+    <PackageId>FrostNova.Core.ExcelWork.ClosedXml</PackageId>
+    <Description>ClosedXML (MIT) based cross-platform Excel (.xlsx) read/write for FrostNova. Runs on net8.0 without System.Drawing.Common or a -windows TFM. Images, shapes and charts are not supported. A drop-in replacement for FrostNova.Core.ExcelWork.Npoi sharing the same public API surface, with no commercial-use restriction (unlike EPPlus or NPOI's image stack).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <ProjectReference Include="..\FrostNova.Core\FrostNova.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+    <PackageReference Include="FrostNova.Core" Version="1.1.2" />
+  </ItemGroup>
+
+</Project>
