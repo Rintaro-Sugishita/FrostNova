@@ -206,6 +206,7 @@ namespace FrostNova.Core.NativeAOT
 
         private static string ProcessClass(INamedTypeSymbol classSymbol, bool isNullable, INamedTypeSymbol? contextType, List<ITypeSymbol> contextTargetTypes, string? getPathMethodName, string[] customConverters, bool isHiding, string version)
         {
+            var hasNamespace = !classSymbol.ContainingNamespace.IsGlobalNamespace;
             var namespaceName = classSymbol.ContainingNamespace.ToDisplayString();
             var accessibility = GetAccessibilityText(classSymbol.DeclaredAccessibility);
             var className = classSymbol.Name;
@@ -231,8 +232,11 @@ namespace FrostNova.Core.NativeAOT
             sb.AppendLine("using System.Diagnostics;");
             sb.AppendLine("using System.Collections.Generic;");
             sb.AppendLine();
-            sb.AppendLine($"namespace {namespaceName}");
-            sb.AppendLine("{");
+            if (hasNamespace)
+            {
+                sb.AppendLine($"namespace {namespaceName}");
+                sb.AppendLine("{");
+            }
 
 
             if (getPathMethodName != null)
@@ -504,7 +508,7 @@ namespace FrostNova.Core.NativeAOT
             // --- Collection Extensions ---
             GenerateCollectionExtensions(sb, className, accessibility, contextTypeName, contextTargetTypes, customConverters, genAttr, q);
 
-            sb.AppendLine("}");
+            if (hasNamespace) sb.AppendLine("}");
             return sb.ToString();
         }
 

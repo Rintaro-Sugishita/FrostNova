@@ -198,6 +198,7 @@ public class DeepCloneGenerator : IIncrementalGenerator
             return null;
         }
 
+        var hasNamespace = !classSymbol.ContainingNamespace.IsGlobalNamespace;
         var namespaceName = classSymbol.ContainingNamespace.ToDisplayString();
         var className = classSymbol.Name;
         var interfaceName = $"{INTERFACE_NAME}<{className}>";
@@ -210,8 +211,11 @@ public class DeepCloneGenerator : IIncrementalGenerator
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Linq;");
         sb.AppendLine();
-        sb.AppendLine($"namespace {namespaceName}");
-        sb.AppendLine("{");
+        if (hasNamespace)
+        {
+            sb.AppendLine($"namespace {namespaceName}");
+            sb.AppendLine("{");
+        }
         sb.AppendLine($"    partial class {className} : {interfaceName}, {interfaceName2}");
         sb.AppendLine("    {");
 
@@ -264,7 +268,7 @@ public class DeepCloneGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("    }");
-        sb.AppendLine("}");
+        if (hasNamespace) sb.AppendLine("}");
 
         return sb.ToString();
     }
@@ -279,9 +283,14 @@ public class DeepCloneGenerator : IIncrementalGenerator
         if (type == null || sourceType == null) return null;
 
         var targetTypeName = type.ToDisplayString();
+        var containingNamespace = methodSymbol.ContainingType.ContainingNamespace;
+        var hasNamespace = !containingNamespace.IsGlobalNamespace;
         var sb = new StringBuilder();
-        sb.AppendLine($"namespace {methodSymbol.ContainingType.ContainingNamespace.ToDisplayString()}");
-        sb.AppendLine("{");
+        if (hasNamespace)
+        {
+            sb.AppendLine($"namespace {containingNamespace.ToDisplayString()}");
+            sb.AppendLine("{");
+        }
         sb.AppendLine($"    partial class {methodSymbol.ContainingType.Name}");
         sb.AppendLine("    {");
         if (isDeepClone)
@@ -314,7 +323,7 @@ public class DeepCloneGenerator : IIncrementalGenerator
 
         sb.AppendLine("        }");
         sb.AppendLine("    }");
-        sb.AppendLine("}");
+        if (hasNamespace) sb.AppendLine("}");
         return sb.ToString();
     }
 
