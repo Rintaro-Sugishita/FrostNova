@@ -11,11 +11,13 @@ namespace FrostNova.Core.Processes
     {
         public static bool IsExecuting(bool hasWindowProcess)
         {
-            var p = System.Diagnostics.Process.GetCurrentProcess();
+            // Process はいずれも IDisposable(OS ハンドルを保持)なので必ず破棄する。
+            using var p = System.Diagnostics.Process.GetCurrentProcess();
 
             var list = System.Diagnostics.Process.GetProcessesByName(p.ProcessName);
+            if (list == null) { return false; }
 
-            if (list != null)
+            try
             {
                 var p2 = list.FirstOrDefault(x => x.Id != p.Id);
                 if (p2 == null) { return false; }
@@ -27,8 +29,10 @@ namespace FrostNova.Core.Processes
                 }
                 return true;
             }
-
-            return false;
+            finally
+            {
+                foreach (var item in list) { item.Dispose(); }
+            }
         }
 
 

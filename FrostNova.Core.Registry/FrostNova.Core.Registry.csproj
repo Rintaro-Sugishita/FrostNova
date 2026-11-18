@@ -7,7 +7,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Description>Windows Registry / shell-integration helpers: auto-start entries, file-type associations, and Explorer context-menu verbs. Per-user (no-admin) by default.</Description>
     <PackageReleaseNotes>
       1.1.0

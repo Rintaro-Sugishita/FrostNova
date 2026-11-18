@@ -183,8 +183,10 @@ namespace FrostNova.Core.Wpf.Behaviors
             string path = SavePath;
             if (string.IsNullOrEmpty(path))
             {
-                // 単一ファイル発行では Assembly.Location が空になるため AppContext.BaseDirectory を使う
-                path = AppContext.BaseDirectory;
+                // 単一ファイル発行では Assembly.Location が空になるため exe 隣(BaseDirectory)を使う。
+                // ただし MSIX(ストアアプリ)や Program Files 配下では読み取り専用なので、
+                // GetWritableBasePath が %APPDATA% 配下へ退避してくれる。
+                path = FrostNova.Core.PathHelpers.PathHelper.GetWritableBasePath();
             }
             if (!System.IO.Directory.Exists(path))
             {

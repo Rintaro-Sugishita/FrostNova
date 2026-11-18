@@ -1,4 +1,4 @@
-using FrostNova.Core.Wpf.AttachedProperties;
+﻿using FrostNova.Core.Wpf.AttachedProperties;
 using FrostNova.Core.Wpf.VisualHelpers;
 using Microsoft.Xaml.Behaviors;
 using System;
@@ -18,13 +18,31 @@ namespace FrostNova.Core.Wpf.Behaviors
     {
         private Popup? _popup;
         private StackPanel? _menuPanel;
-        private string _settingsPath = "";
+        private string? _settingsPath = null;
 
         private Button? _cornerButton;
 
+        /// <summary>
+        /// 列の表示状態を保存するフォルダ。未指定なら exe 隣
+        /// (書き込み不可なら %APPDATA% 配下)。
+        /// 同じ DataGrid に <see cref="DataGridColumnSizeSavingBehavior"/> が付いていて
+        /// そちらに SavePath が指定されている場合はそれを引き継ぐ。
+        /// </summary>
+        public string SavePath
+        {
+            get { return (string)GetValue(SavePathProperty); }
+            set { SetValue(SavePathProperty, value); }
+        }
+        public static readonly DependencyProperty SavePathProperty =
+            DependencyProperty.Register(nameof(SavePath), typeof(string), typeof(ColumnVisibilityMenuBehavior));
+
+        /// <summary>
+        /// 保存先パス。バインディングの解決タイミングを待つため遅延で解決し、以後キャッシュする。
+        /// </summary>
+        private string SettingsPath => _settingsPath ??= GetSavePath();
+
         protected override void OnAttached()
         {
-            _settingsPath = GetSavePath();
             base.OnAttached();
             AssociatedObject.Unloaded += OnUnloaded;
             AssociatedObject.LayoutUpdated += AssociatedObject_LayoutUpdated;
@@ -182,7 +200,8 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private void SaveColumnSettings()
         {
-            if (string.IsNullOrEmpty(_settingsPath)) return;
+            var settingsPath = SettingsPath;
+            if (string.IsNullOrEmpty(settingsPath)) return;
             try
             {
                 // ForcedVisibility が設定されている列はプログラマー管轄なので保存しない
@@ -194,11 +213,11 @@ namespace FrostNova.Core.Wpf.Behaviors
                         IsVisible = c.Visibility == Visibility.Visible
                     }).ToList();
 
-                var dir = Path.GetDirectoryName(_settingsPath)!;
+                var dir = Path.GetDirectoryName(settingsPath)!;
                 if (!Directory.Exists(dir))
                     Directory.CreateDirectory(dir);
 
-                File.WriteAllText(_settingsPath, JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+                File.WriteAllText(settingsPath, JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
             }
             catch (Exception ex)
             {
@@ -208,12 +227,13 @@ namespace FrostNova.Core.Wpf.Behaviors
 
         private void LoadColumnSettings()
         {
-            if (string.IsNullOrEmpty(_settingsPath)) return;
+            var settingsPath = SettingsPath;
+            if (string.IsNullOrEmpty(settingsPath)) return;
             try
             {
-                if (!File.Exists(_settingsPath)) return;
+                if (!File.Exists(settingsPath)) return;
 
-                var json = File.ReadAllText(_settingsPath);
+                var json = File.ReadAllText(settingsPath);
                 var data = JsonSerializer.Deserialize<List<ColumnState>>(json);
                 if (data == null) return;
 
@@ -239,10 +259,21 @@ namespace FrostNova.Core.Wpf.Behaviors
             var key = DataGridSaveKeyHelper.GetGridKey(AssociatedObject);
             if (string.IsNullOrEmpty(key)) return string.Empty;
 
-            // 単一ファイル発行では Assembly.Location が空になるため AppContext.BaseDirectory を使う
-            string path = AppContext.BaseDirectory;
-            if (!System.IO.Directory.Exists(path))
-                System.IO.Directory.CreateDirectory(path);
+            // 保存先の優先順:
+            //   1. このビヘイビアの SavePath
+            //   2. 同じ DataGrid に付いた DataGridColumnSizeSavingBehavior の SavePath
+            //   3. exe 隣。ただし MSIX(ストアアプリ)や Program Files 配下は読み取り専用なので
+            //      GetWritableBasePath が %APPDATA% 配下へ退避する。
+            //      (単一ファイル発行では Assembly.Location が空になるため BaseDirectory 基準)
+            string path = SavePath;
+            if (string.IsNullOrEmpty(path))
+            {
+                path = GetSizeBehavior()?.SavePath ?? string.Empty;
+            }
+            if (string.IsNullOrEmpty(path))
+            {
+                path = FrostNova.Core.PathHelpers.PathHelper.GetWritableBasePath();
+            }
 
             return System.IO.Path.Combine(path, "windowSizeData", "gridColumnVis", key + ".json");
         }

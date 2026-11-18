@@ -131,7 +131,8 @@ namespace FrostNova.Core.Wpf.Controls
 
         public static string GetSavePath()
         {
-            var folder = PathHelper.GetUserDataPath(Process.GetCurrentProcess().ProcessName);
+            // 引数省略時もプロセス名が使われる(こちらはハンドルを確保せずキャッシュする)。
+            var folder = PathHelper.GetUserDataPath();
             return System.IO.Path.Combine(folder,"usedColors.txt");
         }
 

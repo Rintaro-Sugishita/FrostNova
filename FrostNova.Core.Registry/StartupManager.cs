@@ -24,7 +24,9 @@ namespace FrostNova.Core.Registry
 
             if (appPath == "")
             {
-                appPath = System.Diagnostics.Process.GetCurrentProcess()?.MainModule?.FileName ?? "";
+                // Process.GetCurrentProcess() はプロセスハンドルを確保するため使わない。
+                // Environment.ProcessPath は単一ファイル発行でも実行中 exe のパスを返す。
+                appPath = Environment.ProcessPath ?? "";
             }
 
             // パスをクォートで囲み、引数があれば後ろに付加する。

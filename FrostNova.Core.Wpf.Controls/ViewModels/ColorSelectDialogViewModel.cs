@@ -100,7 +100,8 @@ namespace FrostNova.Core.Wpf.Controls.ViewModels
 
         internal static string GetSavePath()
         {
-                var folder = FrostNova.Core.PathHelpers.PathHelper.GetUserDataPath(Process.GetCurrentProcess().ProcessName);
+                // 引数省略時もプロセス名が使われる(こちらはハンドルを確保せずキャッシュする)。
+                var folder = FrostNova.Core.PathHelpers.PathHelper.GetUserDataPath();
                 var fullPath = System.IO.Path.Combine(folder, "colorPaletteData.json");
                 return fullPath;
         }

@@ -1,4 +1,4 @@
-using FrostNova.Core.JsonData;
+﻿using FrostNova.Core.JsonData;
 using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections.Generic;
@@ -195,13 +195,16 @@ namespace FrostNova.Core.Wpf.Behaviors
             }
             else if (SavePath == WindowLocationMemoryPath.UserDirectory)
             {
-                basicPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-                            + System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+                // 以前は GetFolderPath(ApplicationData) とプロセス名を区切り文字なしで連結しており
+                // (例: ...\AppData\RoamingMyApp)、かつ Process ハンドルを確保していた。
+                basicPath = FrostNova.Core.PathHelpers.PathHelper.GetUserDataPath();
             }
             else
             {
-                // 単一ファイル発行では Assembly.Location が空になるため AppContext.BaseDirectory を使う
-                basicPath = AppContext.BaseDirectory;
+                // 単一ファイル発行では Assembly.Location が空になるため exe 隣(BaseDirectory)を使う。
+                // ただし MSIX(ストアアプリ)や Program Files 配下では読み取り専用なので、
+                // GetWritableBasePath が %APPDATA% 配下へ退避してくれる。
+                basicPath = FrostNova.Core.PathHelpers.PathHelper.GetWritableBasePath();
             }
 
             return System.IO.Path.Combine(basicPath, "windowSizeData", AssociatedObject.GetType().Name + ".json");
